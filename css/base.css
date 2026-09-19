@@ -1,0 +1,128 @@
+/* =========================================================
+   VAPT CONSOLE — base.css
+   A console built for the work itself: terminal-accurate payload
+   blocks, severity-coded scanning, restrained motion. Dark theme
+   is the primary surface; light theme is a fully-tuned second pass.
+
+   CSS module map (load in this order — later files override
+   earlier ones, same as the original single-file cascade):
+     base.css                    (this file) design tokens, reset, base type
+     layout.css                  ambient backdrop, modals, topbar, hero, page grid
+     components.css              category sections, test cards, status system,
+                                  domain context panel, assessor notes
+     responsive-performance.css  breakpoints, reduced-motion, print
+     theme-extras.css            light theme + v9 additions (badges, toolkit,
+                                  command palette, drills)
+========================================================= */
+
+:root{
+  /* ---- surfaces (elevation scale, low to high) ---- */
+  --bg:#050505;
+  --surface-1:#0B0C0E;
+  --surface-2:#121315;
+  --surface-3:#181B1F;
+  --surface-4:#1F242B;
+
+  /* ---- borders ---- */
+  --border:rgba(47,140,255,.14);
+  --border-soft:rgba(47,140,255,.07);
+  --border-strong:rgba(47,140,255,.34);
+
+  /* ---- text ----
+     The two muted tones below are set by contrast ratio, not by eye. Both
+     carry real body copy (table cells, descriptions, hints, placeholders) at
+     small sizes, and their previous values failed WCAG AA on every surface in
+     the elevation scale — --text-dim bottomed out at 3.39:1 and --text-faint
+     at 1.62:1, against a 4.5:1 requirement. These values clear 4.5:1 on the
+     darkest through lightest surfaces while preserving the four-step
+     hierarchy. If you change a surface or either tone, re-check the ratios
+     rather than judging by eye — on a dark palette this is easy to get wrong. */
+  --text-bright:#EAF3FF;   /* 13.94:1 worst case */
+  --text:#B6BFC9;          /*  8.39:1 worst case */
+  --text-dim:#939DAB;      /*  5.69:1 worst case */
+  --text-faint:#838D9B;    /*  4.64:1 worst case */
+
+  /* ---- brand accents ---- */
+  --accent:#2F8CFF;
+  --accent-rgb:47,140,255;
+  --accent-2:#FFB000;
+  --accent-2-rgb:255,176,0;
+  --accent-dim:#1558B0;
+  --accent-glow:rgba(47,140,255,.28);
+  --accent-ink:#04101F;
+
+  /* ---- severity taxonomy (shared meaning across the whole app) ---- */
+  --crit:#FF4D4D;          /* 4.77:1 worst case — was #FF3B3B at 4.42, under AA */
+  --crit-rgb:255,77,77;
+  --high:#FFB000;
+  --high-rgb:255,176,0;
+  --med:#FFD866;
+  --med-rgb:255,216,102;
+  --low:#00FF66;
+  --low-rgb:0,255,102;
+  --info:#2FD9FF;
+  --info-rgb:47,217,255;
+  --fail:#FF5C5C;
+  --fail-rgb:255,92,92;
+  --na:#849489;            /* 4.89:1 worst case — was #7A8A82 at 4.30, under AA */
+  --na-rgb:132,148,137;
+
+  /* ---- elevation ---- */
+  --shadow-sm:0 1px 2px rgba(0,0,0,.5);
+  --shadow-md:0 6px 20px -6px rgba(0,0,0,.65), 0 2px 6px -2px rgba(0,0,0,.5);
+  --shadow-lg:0 24px 60px -16px rgba(0,0,0,.75), 0 8px 20px -8px rgba(0,0,0,.55);
+  --shadow-accent:0 8px 28px -8px rgba(var(--accent-rgb),.35);
+
+  /* ---- radii ---- */
+  --r-sm:5px;
+  --r-md:8px;
+  --r-lg:12px;
+  --r-xl:16px;
+  --r-pill:999px;
+
+  /* ---- motion ---- */
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+
+  /* ---- type ---- */
+  --font-display:'JetBrains Mono', monospace;
+  --font-body:'Fira Code', monospace;
+  --font-mono:'JetBrains Mono', monospace;
+
+  /* legacy alias kept for any inline references */
+  --radius:var(--r-md);
+  --panel:var(--surface-1);
+  --panel-2:var(--surface-2);
+  --panel-3:var(--surface-3);
+}
+
+/* =========================================================
+   RESET / BASE
+========================================================= */
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:
+    radial-gradient(900px 560px at 14% -6%, rgba(var(--accent-rgb),.075), transparent 60%),
+    radial-gradient(760px 520px at 102% 4%, rgba(var(--accent-2-rgb),.06), transparent 58%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+  transition:background-color .25s ease, color .25s ease;
+}
+::selection{background:var(--accent); color:var(--accent-ink);}
+::-webkit-scrollbar{width:10px; height:10px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--surface-4); border-radius:8px; border:2px solid transparent; background-clip:padding-box;}
+::-webkit-scrollbar-thumb:hover{background:var(--accent-dim); background-clip:padding-box;}
+a{color:inherit; text-decoration:none;}
+button{font-family:inherit; cursor:pointer; color:inherit;}
+h1,h2,h3,h4{font-family:var(--font-display);}
+svg{display:block;}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px;}
+.icn{width:15px; height:15px; display:inline-block; flex-shrink:0; vertical-align:-3px;}
+.chev svg{width:100%; height:100%; display:block;}

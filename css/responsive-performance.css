@@ -1,0 +1,284 @@
+/* GREYSH3LL — responsive-performance.css: breakpoint overrides, mobile nav-drawer (sidebar + backdrop), reduced-motion/print, and performance rules. */
+
+/* =========================================================
+   GLOBAL OVERFLOW SAFETY NET
+   No single element should ever be able to force the page wider
+   than the viewport — this is what causes browsers/users to pinch
+   -zoom out just to see the whole layout.
+========================================================= */
+html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+html, body{ max-width:100%; overflow-x:hidden; }
+img, svg, canvas, video{ max-width:100%; height:auto; }
+.radar svg, #particleCanvas, #confettiCanvas{ height:unset; } /* these size themselves explicitly */
+
+/* =========================================================
+   MOBILE NAV-DRAWER (sidebar)
+   Hidden by default outside the breakpoint below; becomes a real
+   off-canvas drawer with a backdrop and an explicit close button
+   once the two-column layout can no longer fit.
+========================================================= */
+.sidebar-backdrop{
+  display:none;
+  position:fixed; inset:0; z-index:39;
+  background:rgba(2,4,8,.6); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+  opacity:0; transition:opacity .22s var(--ease-out);
+}
+.sidebar-close-btn{
+  display:none;
+  position:absolute; top:14px; right:14px; z-index:2;
+  align-items:center; justify-content:center;
+  width:34px; height:34px; border-radius:var(--r-sm);
+  background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+}
+.sidebar-close-btn .icn{ width:16px; height:16px; }
+body.sidebar-locked{ overflow:hidden; }
+
+/* =========================================================
+   RESPONSIVE BREAKPOINTS
+========================================================= */
+
+/* ---- large desktop: tighten the outer gutters a little ---- */
+@media (max-width:1400px){
+  .layout{ max-width:1280px; }
+}
+
+/* ---- tablet / narrow desktop: sidebar converts to an off-canvas drawer ---- */
+@media (max-width:980px){
+  .layout{ grid-template-columns:1fr; }
+  .sidebar{
+    position:fixed; left:0; top:0; bottom:0; width:min(284px,84vw);
+    padding-top:64px;
+    background:var(--surface-1); z-index:40;
+    transform:translateX(-100%); transition:transform .28s var(--ease-out);
+    box-shadow:var(--shadow-lg); border-right:1px solid var(--border);
+  }
+  .sidebar.open{ transform:translateX(0); }
+  .sidebar-backdrop.open{ display:block; opacity:1; }
+  .sidebar-close-btn{ display:flex; }
+  .menu-btn{ display:flex; }
+  .tester-field input{ width:100px; }
+  .main{ padding:20px 16px 96px; }
+  .identity{ padding:28px 22px; }
+  .identity-wrap{ padding:26px 14px 6px; }
+  .toolkit-card{ max-width:calc(100vw - 32px); }
+}
+
+/* ---- small tablet / large phone ---- */
+@media (max-width:768px){
+  .topbar{ padding:10px 14px; }
+  .assess-card, .stats-card, .palette-card{ max-width:calc(100vw - 24px); }
+}
+
+/* ---- phones ---- */
+@media (max-width:600px){
+  .brand .ver{ display:none; }
+  .brand .title{ font-size:13.5px; }
+  .tester-field{ display:none; }
+  .btn span.lbl{ display:none; }
+  .btn{ padding:9px; min-height:38px; }
+  .menu-btn{ min-width:38px; min-height:38px; }
+  .chip{ min-height:32px; }
+  .topbar{ gap:8px; }
+  .topbar-actions{ gap:2px; padding-left:8px; }
+  .detail-inner{ padding:6px 14px 20px 14px; }
+  .detail-prereq{ flex-direction:column; gap:6px; padding:10px 12px; }
+  .detail-desc, .detail-impact{ padding:11px 13px; }
+  .detail-chapter-head{ padding:11px 12px; font-size:11px; }
+  .detail-chapter.open .detail-chapter-body-inner{ padding:2px 12px 12px; }
+  .test-row{ padding-left:12px; }
+  .toolbar{ gap:8px; }
+  .search-wrap{ min-width:100%; flex-basis:100%; order:-1; }
+  .radar{ width:140px; height:140px; }
+
+  /* Modal padding was never reduced on mobile — it was stacking on
+     top of .detail-inner's own (already-reduced) padding nested
+     inside it, compounding to ~90px of pure padding on a 375px
+     screen before any text even started. The inner content already
+     provides its own comfortable margin, so the outer shell only
+     needs a thin one. */
+  .assess-overlay{ padding:8px; }
+  .assess-head{ padding:16px 14px 0; }
+  .assess-body{ padding:14px 10px 20px; }
+  .assess-nav{ margin-top:20px; padding-top:16px; }
+  .stats-overlay{ padding:8px; }
+  .stats-card{ padding:18px 14px; }
+  .palette-overlay{ padding:6vh 8px 8px; }
+}
+
+/* ---- very small phones ---- */
+@media (max-width:420px){
+  .identity{ padding:22px 16px; }
+  .identity-wrap{ padding:18px 10px 4px; }
+  .main{ padding:16px 12px 92px; }
+  .sidebar{ padding-left:12px; padding-right:12px; }
+  .assess-card, .stats-card, .palette-card, .toolkit-card{ max-width:calc(100vw - 16px); border-radius:var(--r-md); }
+  .cat-head{ padding:12px; }
+  .item-title{ font-size:13px; }
+  .assess-nav{ gap:6px; }
+  .assess-nav .btn{ padding:11px 6px; font-size:12.5px; }
+  .detail-inner{ padding:6px 10px 16px 10px; }
+  .detail-chapter-head{ padding:10px; gap:7px; }
+  .detail-chapter-title{ font-size:10.5px; }
+  .assess-overlay{ padding:4px; }
+  .assess-head{ padding:12px 10px 0; }
+  .assess-body{ padding:10px 6px 16px; }
+  .stats-card{ padding:14px 10px; }
+  .detail-chapter.open .detail-chapter-body-inner{ padding:2px 9px 9px; }
+  .detail-desc, .detail-impact{ padding:10px 11px; }
+}
+
+/* ---- category header: severity bar + count crowding the title on narrow screens ---- */
+@media (max-width:768px){
+  .cat-head{ gap:10px; }
+  .mini-stack{ width:70px; }
+}
+@media (max-width:600px){
+  .cat-head{ flex-wrap:wrap; row-gap:8px; padding:12px; }
+  .cat-head .title-block{ flex-basis:100%; order:1; }
+  .cat-head .chev{ order:0; }
+  .mini-stack{ order:2; width:90px; }
+  .cat-count{ order:3; margin-left:auto; }
+  .cat-head .desc{ display:none; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; scroll-behavior:auto !important;}
+}
+.report-root{display:none;}
+
+@media print{
+  @page{ margin:16mm 14mm; }
+  body *{ visibility:hidden; }
+  #reportRoot, #reportRoot *{ visibility:visible; }
+  #reportRoot{
+    display:block; position:absolute; inset:0; margin:0;
+    background:#fff; color:#1a1a1a;
+    font-family:Georgia, 'Times New Roman', serif;
+    font-size:11pt; line-height:1.55;
+  }
+
+  .report-page{ page-break-after:always; padding:0 2mm; }
+  .report-page:last-child{ page-break-after:auto; }
+
+  /* ---- cover page ---- */
+  .report-cover{
+    display:flex; flex-direction:column; justify-content:space-between;
+    min-height:250mm; padding:20mm 6mm 10mm;
+  }
+  .report-cover-eyebrow{
+    font-family:'Courier New', monospace; font-size:10pt; letter-spacing:2px; text-transform:uppercase;
+    color:#2F5CA6; margin-bottom:28mm;
+  }
+  .report-cover-title{
+    font-family:Georgia, serif; font-size:34pt; font-weight:700; line-height:1.15;
+    color:#111; margin:0 0 10mm;
+  }
+  .report-cover-rule{ width:40mm; height:2pt; background:#2F5CA6; margin-bottom:10mm; }
+  .report-cover-meta{ border-collapse:collapse; font-size:11pt; }
+  .report-cover-meta td{ padding:2.2mm 0; border-bottom:1px solid #ddd; }
+  .report-cover-meta td:first-child{ color:#666; padding-right:8mm; font-family:'Courier New', monospace; font-size:9.5pt; text-transform:uppercase; letter-spacing:.5px; vertical-align:top; }
+  .report-cover-meta td:last-child{ font-weight:600; }
+  .report-cover-footer{
+    font-family:Arial, sans-serif; font-size:8.5pt; line-height:1.6; color:#666;
+    border-top:1px solid #ccc; padding-top:5mm;
+  }
+  .report-cover-footer strong{ color:#B91C1C; }
+
+  /* ---- headings & body text ---- */
+  .report-h2{
+    font-family:Georgia, serif; font-size:18pt; font-weight:700; color:#111;
+    border-bottom:2pt solid #2F5CA6; padding-bottom:2.5mm; margin:0 0 6mm;
+  }
+  .report-h3{ font-family:Georgia, serif; font-size:13pt; font-weight:700; color:#222; margin:8mm 0 3mm; }
+  .report-body{ font-size:10.5pt; color:#333; margin:0 0 5mm; }
+  .report-footnote{ font-family:Arial, sans-serif; font-size:8pt; color:#888; margin-top:8mm; border-top:1px solid #ddd; padding-top:3mm; }
+
+  /* ---- exec summary stat row ---- */
+  .report-stat-row{ display:flex; gap:4mm; margin:5mm 0 7mm; }
+  .report-stat-box{
+    flex:1; border:1px solid #ccc; border-radius:2mm; padding:4mm 3mm; text-align:center;
+    font-family:Arial, sans-serif;
+  }
+  .report-stat-box b{ display:block; font-family:Georgia, serif; font-size:19pt; color:#111; }
+  .report-stat-box span{ font-size:7.5pt; color:#777; text-transform:uppercase; letter-spacing:.4px; }
+  .report-stat-warn b{ color:#B91C1C; }
+
+  /* ---- tables ---- */
+  .report-table{ width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:9.5pt; margin-bottom:6mm; }
+  .report-table th{
+    text-align:left; background:#F1F4F9; color:#333; font-size:8pt; text-transform:uppercase; letter-spacing:.4px;
+    padding:2.5mm 3mm; border-bottom:1.5pt solid #2F5CA6;
+  }
+  .report-table td{ padding:2.5mm 3mm; border-bottom:1px solid #e2e2e2; vertical-align:top; }
+  .report-table tr{ page-break-inside:avoid; }
+  .report-table-compact{ font-size:8.5pt; }
+  .report-table-compact th, .report-table-compact td{ padding:1.8mm 2.5mm; }
+  .report-table-context td{ font-size:8.8pt; }
+
+  .report-sev-chip{
+    display:inline-block; color:#fff; font-family:Arial, sans-serif; font-size:7.5pt; font-weight:700;
+    text-transform:uppercase; letter-spacing:.3px; padding:1mm 2.5mm; border-radius:1.5mm;
+  }
+
+  /* ---- findings ---- */
+  .report-finding{ border:1px solid #ddd; border-radius:2mm; padding:5mm 6mm; margin-bottom:6mm; page-break-inside:avoid; }
+  .report-finding-head{ display:flex; align-items:center; gap:3mm; font-family:Arial, sans-serif; margin-bottom:2mm; }
+  .report-finding-id{ font-family:'Courier New', monospace; font-size:9pt; color:#666; }
+  .report-finding-status{ margin-left:auto; font-family:Arial, sans-serif; font-size:8pt; font-weight:700; color:#B91C1C; text-transform:uppercase; }
+  .report-finding-title{ font-family:Georgia, serif; font-size:13pt; font-weight:700; color:#111; margin:0 0 1.5mm; }
+  .report-finding-meta{ font-family:Arial, sans-serif; font-size:8.5pt; color:#888; margin-bottom:4mm; }
+  .report-field{ margin-bottom:3.5mm; }
+  .report-field-label{ font-family:Arial, sans-serif; font-size:8pt; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#2F5CA6; margin-bottom:1mm; }
+  .report-field p{ margin:0; font-size:10pt; color:#333; }
+  .report-field ul{ margin:0; padding-left:5mm; font-size:10pt; color:#333; }
+  .report-field li{ margin-bottom:1mm; }
+
+  /* ---- evidence attachments ---- */
+  .report-attachments{ display:flex; flex-wrap:wrap; gap:3mm; }
+  .report-attachment-img{ max-width:60mm; max-height:60mm; border:1px solid #ccc; border-radius:1.5mm; object-fit:cover; }
+
+  /* ---- attack chain sequences ---- */
+  .report-chain-path{ font-family:Arial, sans-serif; }
+  .report-chain-node{ font-size:10pt; color:#222; padding:1.5mm 0; }
+  .report-chain-arrow{ font-size:9pt; color:#2F5CA6; padding-left:3mm; }
+  .report-chain-arrow em{ font-style:normal; color:#666; }
+}
+
+/* =========================================================
+   PERFORMANCE
+========================================================= */
+/* Note: collapsed sections already skip building their item-row DOM
+   entirely (see interactions.js renderResults()/ensureCategoryBodyRendered),
+   which is what actually keeps big domains fast. An earlier
+   content-visibility:hidden rule here was redundant on top of that —
+   and risked content staying unpainted after being toggled visible
+   until some unrelated interaction forced a reflow. Removed. */
+
+/* =========================================================
+   DASHBOARD (index.html) — responsive pass
+========================================================= */
+@media (max-width:980px){
+  .dash-main{ padding:8px 20px 70px; }
+}
+@media (max-width:768px){
+  .domain-grid{ grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
+  .dash-ring-label b{ font-size:22px; }
+}
+@media (max-width:600px){
+  .dash-main{ padding:8px 16px 56px; }
+  .dash-section-title{ margin:26px 0 12px; }
+  .domain-grid{ grid-template-columns:1fr; }
+  .domain-card-head{ flex-wrap:wrap; row-gap:6px; }
+  .domain-card-badge{ order:3; margin-left:0; }
+  .dash-cta{ flex-wrap:wrap; text-align:center; padding:14px; }
+  .dash-cta .btn{ width:100%; margin-left:0 !important; }
+  .dash-search{ padding:4px 4px 4px 12px; }
+  .dash-search .btn span.lbl{ display:none; }
+  .dash-search .btn{ padding:9px; min-width:38px; }
+}
+@media (max-width:420px){
+  .dash-ring-card{ padding:14px 0; }
+  .dash-ring{ width:104px; height:104px; }
+  .dash-ring-label b{ font-size:18px; }
+  .dash-stat-card{ padding:14px; }
+}

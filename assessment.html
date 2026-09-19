@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreySh3ll — VAPT Assessment Console</title>
+<meta name="description" content="524 VAPT test cases across network, web, API, LLM/AI, cloud, mobile, thick client, wireless, source code and social engineering — ordered the way a real assessment runs.">
+<meta name="theme-color" content="#0a0e14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230a0e14'/%3E%3Ctext x='50' y='68' font-size='58' font-family='monospace' font-weight='700' fill='%232f8cff' text-anchor='middle'%3E%3E_%3C/text%3E%3C/svg%3E">
+<meta property="og:title" content="GreySh3ll — 524-case penetration testing checklist">
+<meta property="og:description" content="GreySh3ll — an offline-first, multi-page VAPT assessment console: 524 test cases across 10 domains, with real payloads, an Analyst Toolkit, and gamified progress tracking.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/responsive-performance.css">
+<link rel="stylesheet" href="css/theme-extras.css">
+</head>
+<body>
+
+<div class="boot-loader" id="bootLoader">
+  <div class="boot-spinner"></div>
+  <span>Loading 524 test cases…</span>
+</div>
+
+<div class="bg-grid"></div>
+<canvas id="particleCanvas"></canvas>
+<canvas id="confettiCanvas"></canvas>
+
+<header class="topbar">
+  <button class="menu-btn" id="menuBtn" aria-label="Toggle categories"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
+  <div class="brand">
+    <span class="dot"></span>
+    <span class="title">GREY//<span>SH3LL</span></span>
+    <span class="ver">v1.2</span>
+  </div>
+  <div class="tester-field">
+    <label for="testerName">TESTER /</label>
+    <input id="testerName" type="text" value="Atharva Sail" autocomplete="off">
+  </div>
+  <div class="topbar-actions">
+    <button class="theme-toggle" id="themeToggle" title="Toggle light/dark theme" aria-label="Toggle light or dark theme"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.4 14.7A8.5 8.5 0 1 1 9.3 3.6a7 7 0 0 0 11.1 11.1z"/></svg></button>
+    <button class="btn" id="paletteBtn" title="Command palette (Ctrl/Cmd+K)" aria-label="Open command palette"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7.2"/><line x1="20.8" y1="20.8" x2="16.4" y2="16.4"/></svg><span class="lbl">Jump</span></button>
+    <span class="btn-divider"></span>
+    <button class="btn" id="badgesBtn" title="XP, streak &amp; badges" aria-label="View XP, streak and badges"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v4.2a5 5 0 0 1-10 0V4z"/><path d="M7 5.2H4.3a1 1 0 0 0-1 1.1c.2 2.4 1.7 3.9 4.1 4.2M17 5.2h2.7a1 1 0 0 1 1 1.1c-.2 2.4-1.7 3.9-4.1 4.2"/><line x1="12" y1="13.2" x2="12" y2="17.5"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="9.5" y1="17.5" x2="14.5" y2="17.5"/></svg><span class="lbl">Badges</span></button>
+    <button class="btn" id="toolkitBtn" title="CVSS calculator, payload cheat-sheet &amp; report builder" aria-label="Open Analyst Toolkit"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9.5" width="18" height="10.5" rx="2"/><path d="M8.5 9.5V6.8a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2.7"/><line x1="3" y1="14.2" x2="21" y2="14.2"/><line x1="10.7" y1="14.2" x2="10.7" y2="16"/><line x1="13.3" y1="14.2" x2="13.3" y2="16"/></svg><span class="lbl">Toolkit</span></button>
+    <button class="btn" id="statsBtn" title="View coverage &amp; severity dashboard" aria-label="View coverage and severity stats"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="10.5"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="19" y1="20" x2="19" y2="14.5"/></svg><span class="lbl">Stats</span></button>
+    <span class="btn-divider"></span>
+    <button class="btn" id="importBtn" title="Import a saved progress file" aria-label="Import saved progress file"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.5V4.5"/><path d="M7.2 9.2 12 4.5l4.8 4.7"/><path d="M4.5 15.5v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3"/></svg><span class="lbl">Import</span></button>
+    <input type="file" id="importInput" class="import-input" accept="application/json">
+    <button class="btn" id="exportJsonBtn" title="Save progress to a file" aria-label="Save progress to a file"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v11"/><path d="M7.2 11.3 12 15.5l4.8-4.2"/><path d="M4.5 15.5v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3"/></svg><span class="lbl">Save</span></button>
+    <button class="btn" id="exportCsvBtn" title="Export findings as CSV" aria-label="Export findings as CSV"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.3" y="4.5" width="17.4" height="15" rx="1.8"/><line x1="3.3" y1="10" x2="20.7" y2="10"/><line x1="9.2" y1="4.5" x2="9.2" y2="19.5"/></svg><span class="lbl">CSV</span></button>
+    <button class="btn primary" id="printBtn" title="Print / save as PDF report" aria-label="Print or save report as PDF"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 8.7V4.2a.8.8 0 0 1 .8-.8h9.4a.8.8 0 0 1 .8.8v4.5"/><rect x="3.8" y="8.7" width="16.4" height="7.6" rx="1.4"/><path d="M6.5 15.5v4.5a.8.8 0 0 0 .8.8h9.4a.8.8 0 0 0 .8-.8v-4.5"/></svg><span class="lbl">Report</span></button>
+  </div>
+</header>
+
+<div class="workspace-strip">
+  <a class="workspace-back" href="index.html">
+    <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18.5 8.5,12 15,5.5"/></svg>
+    Dashboard
+  </a>
+  <span class="workspace-title">Assessment Workspace</span>
+  <div class="xp-bar-wrap xp-bar-compact" id="xpBarWrap" title="Click for badges &amp; XP details">
+    <span class="xp-level" id="xpLevelTag">LVL 1</span>
+    <span class="xp-streak" id="xpStreakTag">0 day streak</span>
+    <span class="xp-time" id="xpTimeTag" title="Active testing time logged for this engagement">0m</span>
+    <span class="xp-num" id="xpNumTag">0 XP</span>
+  </div>
+  <!-- kept off-screen: renderSidebar()/dashboard.js still write into these each render -->
+  <span class="visually-hidden"><b id="heroTotal">0</b><b id="heroCats">0</b><b id="heroCrit">0</b><b id="heroPct">0%</b></span>
+</div>
+
+<div class="layout">
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <aside class="sidebar" id="sidebar">
+    <button class="sidebar-close-btn" id="sidebarCloseBtn" type="button" aria-label="Close menu">
+      <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
+    </button>
+    <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" title="Collapse sidebar" aria-label="Collapse sidebar" aria-pressed="false">
+      <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>
+    </button>
+    <div class="profile-bar">
+      <select id="profileSelect" title="Switch engagement"></select>
+      <button class="pbtn" id="profileNewBtn" title="New engagement" aria-label="Create new engagement">+</button>
+      <button class="pbtn" id="profileRenameBtn" title="Rename engagement" aria-label="Rename engagement"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.8 3.5a2.5 2.5 0 0 1 3.5 3.5L8.2 19.1l-4.2 1 1-4.2L16.8 3.5z"/><line x1="14.9" y1="5.4" x2="18.4" y2="8.9"/></svg></button>
+      <button class="pbtn" id="profileDeleteBtn" title="Delete engagement" aria-label="Delete engagement"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6.5" x2="20" y2="6.5"/><path d="M8 6.5V4.8a1.5 1.5 0 0 1 1.5-1.5h5a1.5 1.5 0 0 1 1.5 1.5v1.7m2.5 0-.8 12.8a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 6.5"/><line x1="10.2" y1="10.5" x2="10.2" y2="16.5"/><line x1="13.8" y1="10.5" x2="13.8" y2="16.5"/></svg></button>
+    </div>
+    <div class="radar">
+      <svg width="180" height="180" viewBox="0 0 180 180">
+        <defs>
+          <linearGradient id="radarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--accent-2)"/>
+            <stop offset="100%" stop-color="var(--accent)"/>
+          </linearGradient>
+        </defs>
+        <circle cx="90" cy="90" r="80" class="radar-track"/>
+        <circle cx="90" cy="90" r="80" class="radar-ring" id="radarFill" stroke="url(#radarGrad)" stroke-dasharray="502.4" stroke-dashoffset="502.4"/>
+      </svg>
+      <div class="radar-center">
+        <div class="radar-pct" id="radarPct">0%</div>
+        <div class="radar-label">Coverage</div>
+      </div>
+    </div>
+    <div class="summary-line"><span>Total cases</span><b id="statTotal">0</b></div>
+    <div class="summary-line"><span>Completed</span><b id="statDone">0</b></div>
+    <div class="summary-line"><span>Remaining</span><b id="statLeft">0</b></div>
+    <div class="summary-line"><span>Flagged for retest</span><b id="statFlagged">0</b></div>
+
+    <div class="sidebar-heading">Filter by severity</div>
+    <div class="sev-legend" id="sevLegend"></div>
+
+    <div class="sidebar-heading">Categories (testing order)</div>
+    <div class="cat-list" id="catList"></div>
+  </aside>
+
+  <main class="main">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:100%;height:100%"><circle cx="11" cy="11" r="7.2"/><line x1="20.8" y1="20.8" x2="16.4" y2="16.4"/></svg></span>
+        <input type="text" id="searchInput" maxlength="200" placeholder="Search test cases, CWE, tools, IDs… (press /)">
+      </div>
+      <div class="chip-row" id="statusChips">
+        <button class="chip active" data-status="all">All</button>
+        <button class="chip" data-status="open">Open</button>
+        <button class="chip" data-status="in-progress">In Progress</button>
+        <button class="chip" data-status="done">Passed</button>
+        <button class="chip" data-status="tested-fail">Failed</button>
+        <button class="chip" data-status="not-applicable">N/A</button>
+        <button class="chip" data-status="flagged">Flagged</button>
+      </div>
+      <select class="sortsel" id="sortSelect">
+        <option value="default">Sort: Testing Order</option>
+        <option value="severity">Sort: Severity ↓</option>
+        <option value="az">Sort: A–Z</option>
+        <option value="unchecked">Sort: Unchecked first</option>
+      </select>
+      <button class="btn" id="expandBtn" title="All 10 domain sections start collapsed — this toggles them all open/closed at once" aria-label="Expand or collapse all domain sections"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3.5H5.8a2.3 2.3 0 0 0-2.3 2.3v2.7"/><path d="M15.5 3.5h2.7a2.3 2.3 0 0 1 2.3 2.3v2.7"/><path d="M20.5 15.5v2.7a2.3 2.3 0 0 1-2.3 2.3h-2.7"/><path d="M3.5 15.5v2.7a2.3 2.3 0 0 0 2.3 2.3h2.7"/></svg><span class="lbl">Expand all</span></button>
+      <button class="btn primary" id="assessModeBtn" aria-label="Start Assessment Mode"><svg class="icn" viewBox="0 0 24 24" stroke="none"><polygon points="6.2,4.2 19.5,12 6.2,19.8" fill="currentColor"/></svg><span class="lbl">Start Assessment Mode</span></button>
+    </div>
+
+    <div id="results"></div>
+
+    <div class="domain-context-panel" id="domainContextPanel" style="display:none;">
+      <div class="ctx-header">
+        <span class="ctx-domain-name" id="ctxDomainName">Domain Context</span>
+        <span class="ctx-hint">Per-domain assessment scope &amp; authorization</span>
+      </div>
+      <div class="ctx-fields">
+        <div class="ctx-field">
+          <label for="ctx-scopeNotes">Scope Notes</label>
+          <textarea id="ctx-scopeNotes" rows="2" placeholder="In-scope targets, exclusions, special rules…"></textarea>
+        </div>
+        <div class="ctx-field">
+          <label for="ctx-targetDetails">Target Details</label>
+          <textarea id="ctx-targetDetails" rows="2" placeholder="IP ranges, hostnames, application URLs…"></textarea>
+        </div>
+        <div class="ctx-field">
+          <label for="ctx-engagementDates">Engagement Dates</label>
+          <input type="text" id="ctx-engagementDates" placeholder="e.g. 2026-07-15 to 2026-07-30">
+        </div>
+        <div class="ctx-field">
+          <label for="ctx-authorizationRef">Authorization Reference</label>
+          <input type="text" id="ctx-authorizationRef" placeholder="Rules of Engagement / signed auth letter ref #">
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <span id="filterSummary">Showing all test cases</span>
+      <button class="btn danger" id="resetBtn"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 3.5v5.2h5.2"/><path d="M4.3 14a8.5 8.5 0 1 0 2.2-8.7L3.5 8.7"/></svg> Reset checklist</button>
+    </div>
+  </main>
+</div>
+
+<!-- Populated by buildReportHTML() in assessment.js just before printing.
+     Hidden on screen at all times; @media print hides everything else
+     and shows only this, so "Print / Save as PDF" produces a proper
+     formatted report instead of a printout of the interactive checklist. -->
+<div id="reportRoot" class="report-root"></div>
+
+<div class="fab-stack">
+  <div class="fab" id="fabNext" title="Jump to next incomplete test in sequence"><span class="icon"><svg class="icn" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,4.2 15,12 5,19.8" fill="currentColor" stroke="none"/><line x1="19" y1="4.2" x2="19" y2="19.8"/></svg></span><span class="lbl2">Next test</span></div>
+</div>
+
+<div class="assess-overlay" id="assessOverlay">
+  <div class="assess-card">
+    <div class="assess-progress-track"><div class="assess-progress-fill" id="assessProgressFill"></div></div>
+    <div class="assess-head">
+      <span class="assess-counter" id="assessCounter">Test 1 / 524</span>
+      <button class="assess-close" id="assessClose" aria-label="Close assessment mode"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+    <div class="assess-body" id="assessBody">
+      <!-- populated by JS -->
+    </div>
+  </div>
+</div>
+
+<div class="stats-overlay" id="statsOverlay">
+  <div class="stats-card">
+    <div class="stats-head">
+      <h3>Assessment Dashboard</h3>
+      <button class="assess-close" id="statsClose" aria-label="Close dashboard"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+    <div class="stats-grid" id="statsGrid">
+      <!-- populated by JS -->
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Badges / XP / Streak dashboard -->
+<div class="stats-overlay" id="badgesOverlay">
+  <div class="stats-card">
+    <div class="stats-head">
+      <h3>Progress, XP &amp; Badges</h3>
+      <button class="assess-close" id="badgesClose" aria-label="Close badges"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+    <div id="badgesBody"><!-- populated by JS --></div>
+  </div>
+</div>
+
+<!-- Analyst Toolkit: CVSS calculator / payload cheat-sheet / report builder -->
+<div class="stats-overlay" id="toolkitOverlay">
+  <div class="stats-card toolkit-card">
+    <div class="stats-head">
+      <h3>Analyst Toolkit</h3>
+      <button class="assess-close" id="toolkitClose" aria-label="Close toolkit"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+    <div class="toolkit-tabs" id="toolkitTabs">
+      <button class="ttab active" data-tab="cvss">CVSS Calculator</button>
+      <button class="ttab" data-tab="payloads">Payload Cheat-Sheet</button>
+      <button class="ttab" data-tab="drills">OSCP Drills</button>
+      <button class="ttab" data-tab="report">Report Builder</button>
+      <button class="ttab" data-tab="scanimport">Scan Import</button>
+      <button class="ttab" data-tab="chains">Attack Chains</button>
+      <button class="ttab" data-tab="customcases">Custom Cases</button>
+      <button class="ttab" data-tab="coverage">Coverage &amp; Risk</button>
+    </div>
+    <div class="toolkit-pane" id="toolkitPane"><!-- populated by JS --></div>
+  </div>
+</div>
+
+<!-- Command palette (Ctrl/Cmd+K) -->
+<div class="palette-overlay" id="paletteOverlay">
+  <div class="palette-card">
+    <div class="palette-search">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:100%;height:100%"><circle cx="11" cy="11" r="7.2"/><line x1="20.8" y1="20.8" x2="16.4" y2="16.4"/></svg></span>
+      <input type="text" id="paletteInput" maxlength="200" placeholder="Jump to any test case by name, ID, or CWE…" autocomplete="off">
+      <kbd>esc</kbd>
+    </div>
+    <div class="palette-results" id="paletteResults"></div>
+  </div>
+</div>
+
+<!-- Test-case data is fetched at runtime from data/*.json (one file per domain) -->
+<script src="js/storage.js"></script>
+<script src="js/primers.js"></script>
+<script src="js/filters.js"></script>
+<script src="js/search.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/core.js"></script>
+<script src="js/rendering.js"></script>
+<script src="js/interactions.js"></script>
+<script src="js/assessment.js"></script>
+<script src="js/features.js"></script>
+<script src="js/toolkit.js"></script>
+<script src="js/effects-identity.js"></script>
+<script src="js/boot.js"></script>
+</body>
+</html>

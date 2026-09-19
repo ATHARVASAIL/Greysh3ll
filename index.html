@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreySh3ll — Dashboard</title>
+<meta name="description" content="524 VAPT test cases across network, web, API, LLM/AI, cloud, mobile, thick client, wireless, source code and social engineering — ordered the way a real assessment runs.">
+<meta name="theme-color" content="#0a0e14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230a0e14'/%3E%3Ctext x='50' y='68' font-size='58' font-family='monospace' font-weight='700' fill='%232f8cff' text-anchor='middle'%3E%3E_%3C/text%3E%3C/svg%3E">
+<meta property="og:title" content="GreySh3ll — 524-case penetration testing checklist">
+<meta property="og:description" content="GreySh3ll — an offline-first, multi-page VAPT assessment console: 524 test cases across 10 domains, with real payloads, an Analyst Toolkit, and gamified progress tracking.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/responsive-performance.css">
+<link rel="stylesheet" href="css/theme-extras.css">
+</head>
+<body>
+
+<div class="boot-loader" id="bootLoader">
+  <div class="boot-spinner"></div>
+  <span>Loading 524 test cases…</span>
+</div>
+
+<div class="bg-grid"></div>
+<canvas id="particleCanvas"></canvas>
+<canvas id="confettiCanvas"></canvas>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <span class="title">GREY//<span>SH3LL</span></span>
+    <span class="ver">v1.2</span>
+  </div>
+  <div class="topbar-actions" style="margin-left:auto;">
+    <button class="theme-toggle" id="themeToggle" title="Toggle light/dark theme" aria-label="Toggle light or dark theme"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.4 14.7A8.5 8.5 0 1 1 9.3 3.6a7 7 0 0 0 11.1 11.1z"/></svg></button>
+    <a class="btn primary" href="assessment.html">
+      <svg class="icn" viewBox="0 0 24 24" stroke="none"><polygon points="6.2,4.2 19.5,12 6.2,19.8" fill="currentColor"/></svg>
+      <span class="lbl">Open Workspace</span>
+    </a>
+  </div>
+</header>
+
+<div class="identity-wrap">
+  <div class="identity" id="identityCard">
+    <div class="identity-actions">
+      <button class="identity-collapse-btn" id="identityCollapseBtn" type="button" title="Collapse" aria-label="Collapse identity card" aria-pressed="false">
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
+        <span class="lbl">Collapse</span>
+      </button>
+      <button class="identity-edit-btn" id="identityEditBtn" type="button" title="Edit name, subtitle &amp; tagline" aria-label="Edit name, subtitle and tagline" aria-pressed="false">
+        <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.8 3.5a2.5 2.5 0 0 1 3.5 3.5L8.2 19.1l-4.2 1 1-4.2L16.8 3.5z"/></svg>
+        <span class="lbl">Edit</span>
+      </button>
+    </div>
+    <div class="identity-top">
+      <div class="identity-avatar" id="identityAvatar">
+        <svg class="avatar-ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg>
+        <span class="avatar-initials" id="avatarInitials">AS</span>
+      </div>
+      <div class="identity-top-text">
+        <div class="identity-eyebrow">$ whoami<span class="caret"></span></div>
+        <h1 id="typedName" contenteditable="false" spellcheck="false" data-placeholder="YOUR NAME">ATHARVA SAIL</h1>
+        <h2 id="identitySubtitle" contenteditable="false" spellcheck="false" data-placeholder="Your subtitle">VAPT // Vulnerability Assessment &amp; Penetration Testing Checklist</h2>
+      </div>
+    </div>
+    <p class="tagline" id="identityTagline" contenteditable="false" spellcheck="false">524 test cases across 10 categories, ordered the way a real engagement actually runs — network recon first, then web, API, LLM/AI application security, cloud, mobile, thick client, wireless, source code, and human-layer testing last. Pick a domain below, or jump straight into the full <b style="color:var(--text-bright)">Assessment Workspace</b>. Progress, notes, and flags save automatically in this browser.</p>
+  </div>
+</div>
+
+<main class="dash-main">
+
+  <div class="dash-section-title">Coverage Overview</div>
+  <div class="dash-overview">
+    <div class="dash-ring-card">
+      <svg class="dash-ring" viewBox="0 0 140 140">
+        <circle class="dash-ring-track" cx="70" cy="70" r="60"/>
+        <circle class="dash-ring-fill" id="dashRingFill" cx="70" cy="70" r="60" transform="rotate(-90 70 70)"/>
+      </svg>
+      <div class="dash-ring-label">
+        <b id="dashPct">0%</b>
+        <span>Complete</span>
+      </div>
+    </div>
+    <div class="dash-stat-row">
+      <div class="dash-stat-card">
+        <span class="dash-stat-icn"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.2"/></svg></span>
+        <b id="dashTotal">0</b><span>Total cases</span>
+      </div>
+      <div class="dash-stat-card dash-stat-good">
+        <span class="dash-stat-icn"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5L9.5 18L20 6"/></svg></span>
+        <b id="dashDone">0</b><span>Completed</span>
+      </div>
+      <div class="dash-stat-card">
+        <span class="dash-stat-icn"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 1.9"/></svg></span>
+        <b id="dashLeft">0</b><span>Remaining</span>
+      </div>
+      <div class="dash-stat-card dash-stat-warn">
+        <span class="dash-stat-icn"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7c1 3.6-3.4 4.9-3.6 8.7a3.7 3.7 0 0 0 7.4.2c.2-1.5-.6-2.4-.6-2.4s1.6 1 1.5 3.4a5.6 5.6 0 0 1-11.2.3c-.4-4.6 2.8-6 3.3-8.6.2 1.6 1 2.5 1.7 2.5-.1-1.7 0-2.9 1.5-4.1z"/></svg></span>
+        <b id="dashCrit">0</b><span>Critical open</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-section-title">Severity Breakdown</div>
+  <div class="dash-sev-row" id="dashSevRow"><!-- populated by home.js --></div>
+
+  <div class="dash-cta">
+    <svg class="icn" viewBox="0 0 24 24" stroke="none"><polygon points="6.2,4.2 19.5,12 6.2,19.8" fill="currentColor"/></svg>
+    <span id="dashCtaLabel">Ready to test? </span>
+    <a class="btn primary" href="assessment.html" id="dashCtaLink" style="margin-left:6px;">Open Assessment Workspace →</a>
+  </div>
+
+  <form class="dash-search" id="dashSearchForm" role="search">
+    <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.3" y1="15.3" x2="20.5" y2="20.5"/></svg>
+    <input type="text" id="dashSearchInput" placeholder="Jump to a test case — try an ID, CWE, or keyword…" autocomplete="off">
+    <button type="submit" class="btn" aria-label="Search"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg><span class="lbl">Search</span></button>
+  </form>
+
+  <div class="dash-section-title">Categories (testing order)</div>
+  <div class="domain-grid" id="domainGrid"><!-- populated by home.js --></div>
+
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/core.js"></script>
+<script src="js/effects-identity.js"></script>
+<script src="js/home.js"></script>
+</body>
+</html>
