@@ -17,7 +17,7 @@
       "severityLabel": "Low",
       "cwe": "CWE-200",
       "prerequisites": "No special access is required beyond a standard internet connection; this is entirely passive, unauthenticated reconnaissance. Written authorization should explicitly name which employees (or 'all publicly-identifiable staff') may be profiled and state whether any follow-on phishing/vishing/physical phase may use the collected data. OSINT tooling (theHarvester, Maltego Community Edition, Sherlock, exiftool) and, if in scope, a Have I Been Pwned API key for domain-breach cross-referencing.",
-      "whatItIs": "This is about how much useful attack-planning information leaks out just from employees' public social media (LinkedIn, X, Instagram, GitHub) and the company's own public materials. No single post is a problem by itself — a job title here, a badge photo there, an out-of-office message somewhere else. But put dozens of these small details together across many employees and platforms, and an attacker can build a surprisingly detailed picture of the company, good enough to craft a very convincing pretext, without ever touching the network.",
+      "whatItIs": "This is about how much useful attack-planning information leaks out just from employees' public social media (LinkedIn, X, Instagram, GitHub) and the company's own public materials. No single post is a problem by itself \u2014 a job title here, a badge photo there, an out-of-office message somewhere else. But put dozens of these small details together across many employees and platforms, and an attacker can build a surprisingly detailed picture of the company, good enough to craft a very convincing pretext, without ever touching the network.",
       "rootCause": "Nobody is actually watching for this. There's no process that defines what counts as 'sensitive when combined with other posts,' and no one is responsible for periodically searching for and flagging this kind of accumulated exposure before an attacker finds it first.",
       "impact": "An attacker assembles an accurate email-naming-convention guess, a working org chart, and a set of highly personalized pretexts (e.g. referencing a project a specific employee posted about), which materially raises phishing and vishing success rates. Badge photos or office-interior details visible in employee posts can also directly assist physical-intrusion planning by revealing badge design, floor layout, or signage.",
       "stepsToIdentify": [
@@ -26,7 +26,7 @@
         "Search image metadata and visual backgrounds of employee-posted photos (conference badges, office selfies, whiteboards) for badge designs, internal tool UI, or asset tags.",
         "Check breach-data aggregators for the organization's own domain to see whether employee credentials appear in historical breaches, compounding the OSINT picture with real password patterns.",
         "Review job postings and vendor case studies for technology-stack disclosure (named security products, ticketing systems, SSO providers) that narrows pretext design.",
-        "Score the aggregate exposure — org-chart completeness, email-format certainty, named tool inventory, physical-layout clues — since the finding is about the combination, not any single item."
+        "Score the aggregate exposure \u2014 org-chart completeness, email-format certainty, named tool inventory, physical-layout clues \u2014 since the finding is about the combination, not any single item."
       ],
       "exploitationSteps": [
         "Confirm the rules of engagement authorize OSINT collection against named employees and explicitly define whether the output may feed a later phishing, vishing, or physical-access phase.",
@@ -34,7 +34,7 @@
         "Draft one or two sample pretext scenarios that demonstrate how the aggregated OSINT could be used, strictly as a documented illustration for the report rather than live use outside an authorized follow-on phase.",
         "Where the statement of work includes a follow-on phishing/vishing/physical phase, hand the dossier to that phase's operators as scoped; otherwise stop at documentation.",
         "Record which specific posts or platforms contributed the highest-value information so the report can point to fixable sources instead of a generic 'reduce your footprint' recommendation.",
-        "Do not contact, connect with, or message any employee's personal account during this phase — the activity is observation-only."
+        "Do not contact, connect with, or message any employee's personal account during this phase \u2014 the activity is observation-only."
       ],
       "examplePayloads": [
         {
@@ -102,12 +102,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-002",
@@ -119,13 +114,13 @@
       "severityLabel": "High",
       "cwe": "CWE-287",
       "prerequisites": "Written authorization specifically covering live pretext calls against the help desk, naming which real (or pre-arranged decoy) accounts may be targeted, an agreed safe-word to halt a call before a real reset completes, and a point of contact who can vouch for the test if escalated. A phone/VoIP line for outbound calling and, ideally, an OSINT dossier from a prior recon phase to make the pretext credible.",
-      "whatItIs": "Help desks often reset a password or re-register MFA based only on things the caller says over the phone — employee ID, date of birth, manager's name — instead of confirming identity through a channel the caller can't fake. Since that kind of personal info is often findable online or from an old data breach, an attacker can simply call in, pretend to be the employee, and walk away with a working login — no phishing email required.",
+      "whatItIs": "Help desks often reset a password or re-register MFA based only on things the caller says over the phone \u2014 employee ID, date of birth, manager's name \u2014 instead of confirming identity through a channel the caller can't fake. Since that kind of personal info is often findable online or from an old data breach, an attacker can simply call in, pretend to be the employee, and walk away with a working login \u2014 no phishing email required.",
       "rootCause": "Identity checks for sensitive help-desk requests rely on knowledge (things you know) instead of an independent channel the attacker can't also control, like calling back a verified number. On top of that, help-desk staff are usually measured on how fast they handle calls, which pushes them to skip careful verification when a caller sounds normal and mildly urgent.",
-      "impact": "A successful reset yields a working credential — and, if MFA re-enrollment is bundled into the same call, a fresh MFA factor bound to the attacker's own device — providing initial access equivalent to a phished credential without requiring the victim to click anything. The legitimate user typically has no reason to suspect a problem until they themselves are locked out.",
+      "impact": "A successful reset yields a working credential \u2014 and, if MFA re-enrollment is bundled into the same call, a fresh MFA factor bound to the attacker's own device \u2014 providing initial access equivalent to a phished credential without requiring the victim to click anything. The legitimate user typically has no reason to suspect a problem until they themselves are locked out.",
       "stepsToIdentify": [
         "Review the help desk's documented reset/re-enrollment procedure directly (the runbook or knowledge-base article), rather than relying on what agents say from memory.",
         "Assess whether the verification data points the procedure requires (employee ID, manager name, department, DOB) are independently discoverable via OSINT or public breach data.",
-        "Determine whether the flow includes any out-of-band confirmation — a callback to a number already on file, a notification to the user's manager, a push to a previously enrolled device — that an attacker couldn't also intercept.",
+        "Determine whether the flow includes any out-of-band confirmation \u2014 a callback to a number already on file, a notification to the user's manager, a push to a previously enrolled device \u2014 that an attacker couldn't also intercept.",
         "Check whether MFA re-enrollment is bundled into the same call as a password reset, since that is a materially higher-risk action than a password reset alone.",
         "With client permission, review a sample of recent reset tickets for prior instances where verification was skipped, rushed, or escalated under caller pressure.",
         "Compare the IT help desk's process against any parallel channel (HR, facilities) handling similar 'locked out' requests, since the weakest channel sets the organization's real exposure."
@@ -172,10 +167,10 @@
         "SIM-swap-adjacent variant testing whether the help desk would action a registered phone-number change for MFA SMS delivery under the same weak verification."
       ],
       "mitigation": [
-        "Require a verification factor the impersonator cannot also supply — a callback to the number already on file in HR systems, not the number the caller is currently using.",
+        "Require a verification factor the impersonator cannot also supply \u2014 a callback to the number already on file in HR systems, not the number the caller is currently using.",
         "Separate password reset from MFA re-enrollment procedurally; require a stronger, manager-notified process specifically for re-enrolling MFA or changing a registered device or phone number.",
         "Route any request framed with urgency or emotional pressure through a mandatory second-approver step regardless of how convincing the caller sounds.",
-        "Train help-desk staff specifically on pretexting patterns — manufactured urgency, minor plausible confusion about their own details, authority-adjacent name-dropping — rather than generic awareness content.",
+        "Train help-desk staff specifically on pretexting patterns \u2014 manufactured urgency, minor plausible confusion about their own details, authority-adjacent name-dropping \u2014 rather than generic awareness content.",
         "Log and periodically audit a sample of reset calls against the documented procedure, with findings routed to help-desk management rather than treated as isolated incidents.",
         "Consider self-service identity-proofing (push notification to a previously enrolled device, or a verified identity-proofing flow) that removes the human judgment call for the riskiest actions entirely.",
         "Recognize and reward agents who correctly refuse or escalate a suspicious request, rather than measuring only average call-handling time."
@@ -203,12 +198,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-003",
@@ -220,9 +210,9 @@
       "severityLabel": "High",
       "cwe": "CWE-1263",
       "prerequisites": "Written authorization naming the specific facility/floor in scope, an escort or point of contact who can vouch for the assessor if security or staff intervene, and a pre-agreed identification method (assessment ID card, letter of authorization) to present if challenged. A visitor badge or cover pretext consistent with the SOW, and a camera/notebook for evidence capture.",
-      "whatItIs": "This looks at the physical security protecting a server room or data closet as a whole system, not just one door — where the badge readers are, whether there's a mantrap or anti-passback logic, whether visitors actually sign in and get escorted, whether alarms and cameras cover the right spots, and how fast anyone actually notices a door propped open or forced.",
-      "rootCause": "Physical access control usually gets designed once, during the original construction, and is never re-checked against how the space is actually used day to day. Each individual piece — a badge reader, a door alarm, a camera — can look fine on its own, while the system as a whole still lets an unbadged person walk up to sensitive equipment, because nobody owns testing the whole chain end to end.",
-      "impact": "Physical access to a server room bypasses essentially every network-layer control — an intruder can attach a rogue device to the switch, image a drive directly, install a hardware keylogger, or simply remove equipment, and physical compromise is far harder to detect after the fact than a network intrusion since it often leaves no log trail at all.",
+      "whatItIs": "This looks at the physical security protecting a server room or data closet as a whole system, not just one door \u2014 where the badge readers are, whether there's a mantrap or anti-passback logic, whether visitors actually sign in and get escorted, whether alarms and cameras cover the right spots, and how fast anyone actually notices a door propped open or forced.",
+      "rootCause": "Physical access control usually gets designed once, during the original construction, and is never re-checked against how the space is actually used day to day. Each individual piece \u2014 a badge reader, a door alarm, a camera \u2014 can look fine on its own, while the system as a whole still lets an unbadged person walk up to sensitive equipment, because nobody owns testing the whole chain end to end.",
+      "impact": "Physical access to a server room bypasses essentially every network-layer control \u2014 an intruder can attach a rogue device to the switch, image a drive directly, install a hardware keylogger, or simply remove equipment, and physical compromise is far harder to detect after the fact than a network intrusion since it often leaves no log trail at all.",
       "stepsToIdentify": [
         "Walk the facility's public and semi-public areas to map every path that could reach the server room, including secondary/emergency doors, loading docks, and shared-tenant corridors in multi-tenant buildings.",
         "Observe badge reader type and placement at each entry point (proximity vs. multi-factor, single door vs. mantrap) and note any door propped open for delivery or smoking-break convenience during the observation window.",
@@ -235,8 +225,8 @@
         "Confirm the SOW authorizes physical-access testing at this specific site, defines the safe-word/ID-presentation procedure if challenged by staff or security, and lists an emergency contact reachable during the test window.",
         "Attempt to reach the server room's outer perimeter using only publicly available access (front desk, unlocked secondary doors) without presenting any credential, and stop at the first door requiring genuine authentication if no weakness is found.",
         "Where a weakness is found (propped door, unattended visitor sign-in, tailgating opportunity), proceed only as far as needed to demonstrate reach to the server room door itself; do not enter the room or touch equipment unless the SOW explicitly authorizes it.",
-        "If challenged by staff, immediately present the pre-agreed authorization method and stand down rather than attempting to argue past a suspicious employee — a correctly suspicious employee is a passing result for the organization, not a test failure.",
-        "Photograph (per SOW terms) the specific control gap exploited — the propped door, the unmonitored corridor, the missing escort — as evidence for the report.",
+        "If challenged by staff, immediately present the pre-agreed authorization method and stand down rather than attempting to argue past a suspicious employee \u2014 a correctly suspicious employee is a passing result for the organization, not a test failure.",
+        "Photograph (per SOW terms) the specific control gap exploited \u2014 the propped door, the unmonitored corridor, the missing escort \u2014 as evidence for the report.",
         "Note the elapsed time from initial building entry to reaching the server room door, since dwell time is itself a meaningful metric for the client's incident-response planning."
       ],
       "examplePayloads": [
@@ -303,12 +293,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-004",
@@ -320,8 +305,8 @@
       "severityLabel": "High",
       "cwe": "CWE-294",
       "prerequisites": "Written authorization explicitly covering RFID capture and duplication (this involves handling employees' physical credentials or their signals and needs its own explicit line in the SOW, separate from general physical-testing authorization). An RFID read/write tool (Proxmark3 or Flipper Zero) and, for MIFARE Classic assessment, mfoc/mfcuk or libnfc. Physical proximity to badge readers or badge-carrying employees within the card's normal read range.",
-      "whatItIs": "A lot of organizations still use old 125kHz proximity cards (like HID Prox) that just broadcast a fixed, unencrypted ID number with zero verification — or 13.56MHz MIFARE Classic cards, whose encryption was cracked years ago. Either way, someone standing a few centimeters away (or further, with a stronger antenna) can read your card's ID and write an identical copy onto a blank card.",
-      "rootCause": "125kHz proximity cards have no authentication at all — the reader just trusts any device that sends a valid-looking ID number, so 'security' here really just means the number is hard to guess, not hard to copy. MIFARE Classic does have an authentication scheme, but its encryption is broken badly enough that recovering the keys and cloning the card is practical with cheap, widely available tools. Newer card types (DESFire EV2/EV3, iCLASS SE) use modern, unbroken encryption and aren't practically cloneable the same way.",
+      "whatItIs": "A lot of organizations still use old 125kHz proximity cards (like HID Prox) that just broadcast a fixed, unencrypted ID number with zero verification \u2014 or 13.56MHz MIFARE Classic cards, whose encryption was cracked years ago. Either way, someone standing a few centimeters away (or further, with a stronger antenna) can read your card's ID and write an identical copy onto a blank card.",
+      "rootCause": "125kHz proximity cards have no authentication at all \u2014 the reader just trusts any device that sends a valid-looking ID number, so 'security' here really just means the number is hard to guess, not hard to copy. MIFARE Classic does have an authentication scheme, but its encryption is broken badly enough that recovering the keys and cloning the card is practical with cheap, widely available tools. Newer card types (DESFire EV2/EV3, iCLASS SE) use modern, unbroken encryption and aren't practically cloneable the same way.",
       "impact": "A cloned badge grants the same physical access as the original without the legitimate holder's knowledge, defeating every downstream physical control (server room, executive floor, data center cage) that relies on that badge for authorization, and because the clone is a working duplicate rather than a stolen physical object, the legitimate employee has no reason to report a lost card.",
       "stepsToIdentify": [
         "Identify the card technology in use by passive RF fingerprinting (frequency band and modulation) from an authorized vantage point, without attempting to read any specific employee's card content yet.",
@@ -404,12 +389,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-005",
@@ -421,9 +401,9 @@
       "severityLabel": "Medium",
       "cwe": "CWE-451",
       "prerequisites": "Written authorization naming the specific locations/events where QR codes may be placed (lobby, parking validation signage, conference booth) and confirming they will be removed at test conclusion. A QR-generation tool, a controlled landing page under a domain the assessor owns, and click/scan analytics to measure engagement without capturing anything beyond what the SOW authorizes.",
-      "whatItIs": "This attack puts a QR code somewhere an employee would naturally scan it without thinking twice — a fake parking-validation sticker, a 'scan for the WiFi password' table sign, a flyer stuck over a real poster. It works because a QR code doesn't visually show where it leads, so the normal 'let me check this link before I click it' instinct never kicks in the way it would for a suspicious URL.",
-      "rootCause": "QR codes are designed to hide their destination — you can't tell where one goes just by looking at it, and most phone cameras only show a small, easy-to-miss preview of the actual link before opening it. So the habit people have built up for spotting a shady link in an email simply doesn't transfer to a scanned code.",
-      "impact": "A scanned malicious code can redirect to a credential-harvesting login clone, prompt installation of a malicious mobile profile/app, or simply confirm the target is a receptive victim for a follow-on vishing or phishing attempt — and because scanning happens on a personal or lightly-managed mobile device, it often falls outside the visibility of corporate email/web security controls entirely.",
+      "whatItIs": "This attack puts a QR code somewhere an employee would naturally scan it without thinking twice \u2014 a fake parking-validation sticker, a 'scan for the WiFi password' table sign, a flyer stuck over a real poster. It works because a QR code doesn't visually show where it leads, so the normal 'let me check this link before I click it' instinct never kicks in the way it would for a suspicious URL.",
+      "rootCause": "QR codes are designed to hide their destination \u2014 you can't tell where one goes just by looking at it, and most phone cameras only show a small, easy-to-miss preview of the actual link before opening it. So the habit people have built up for spotting a shady link in an email simply doesn't transfer to a scanned code.",
+      "impact": "A scanned malicious code can redirect to a credential-harvesting login clone, prompt installation of a malicious mobile profile/app, or simply confirm the target is a receptive victim for a follow-on vishing or phishing attempt \u2014 and because scanning happens on a personal or lightly-managed mobile device, it often falls outside the visibility of corporate email/web security controls entirely.",
       "stepsToIdentify": [
         "Survey existing legitimate QR code usage across the facility (parking, menus, event signage, badge check-in) to understand what a plausible fake would need to visually match.",
         "Assess whether any organizational guidance or training addresses QR-specific caution, distinct from general phishing-link awareness.",
@@ -469,7 +449,7 @@
       "variants": [
         "Parking-validation or 'scan to pay' overlay sticker placed on a legitimate payment or validation kiosk.",
         "Conference/event badge-swap variant, where the code is on a fake sponsor flyer inside a real event.",
-        "Malicious mobile configuration-profile variant (iOS/Android) testing whether the landing page could prompt a profile install rather than just a web redirect — assessed at the disclosure/consent level only, not deployed against real devices without explicit separate authorization.",
+        "Malicious mobile configuration-profile variant (iOS/Android) testing whether the landing page could prompt a profile install rather than just a web redirect \u2014 assessed at the disclosure/consent level only, not deployed against real devices without explicit separate authorization.",
         "Combined bait variant pairing the QR code with a physical item (a USB drive, a branded pen) to test whether visual/physical plausibility compounds the effect."
       ],
       "mitigation": [
@@ -504,12 +484,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-006",
@@ -520,12 +495,12 @@
       "severity": "medium",
       "severityLabel": "Medium",
       "cwe": "CWE-212",
-      "prerequisites": "Written authorization specifically covering examination of the organization's discarded materials (this is legally sensitive in some jurisdictions and must be scoped precisely — waste on the organization's own premises/dumpsters, not a third-party waste hauler's property, unless separately cleared). Gloves, a flashlight, and a way to photograph findings in place before returning materials undisturbed.",
-      "whatItIs": "This checks whether sensitive material — printed passwords, org charts, network diagrams, unshredded financial documents, old hard drives or backup tapes — can be found in the company's trash or recycling before it's collected. It's a gap in how documents and old equipment get disposed of, not a digital vulnerability.",
-      "rootCause": "A document-destruction policy exists on paper, but it isn't actually followed at the point where someone throws something away — shredders are often slow, inconvenient, or far from where people work, so staff just use the regular trash bin instead. Old computers and drives sometimes skip the official wipe/destroy process entirely if they're handled outside IT's normal process for retiring equipment.",
+      "prerequisites": "Written authorization specifically covering examination of the organization's discarded materials (this is legally sensitive in some jurisdictions and must be scoped precisely \u2014 waste on the organization's own premises/dumpsters, not a third-party waste hauler's property, unless separately cleared). Gloves, a flashlight, and a way to photograph findings in place before returning materials undisturbed.",
+      "whatItIs": "This checks whether sensitive material \u2014 printed passwords, org charts, network diagrams, unshredded financial documents, old hard drives or backup tapes \u2014 can be found in the company's trash or recycling before it's collected. It's a gap in how documents and old equipment get disposed of, not a digital vulnerability.",
+      "rootCause": "A document-destruction policy exists on paper, but it isn't actually followed at the point where someone throws something away \u2014 shredders are often slow, inconvenient, or far from where people work, so staff just use the regular trash bin instead. Old computers and drives sometimes skip the official wipe/destroy process entirely if they're handled outside IT's normal process for retiring equipment.",
       "impact": "Recovered material can directly supply a follow-on pretext (an org chart, a vendor invoice with real account details, a temporary password on a sticky note) or, in the case of improperly wiped drives/media, expose the underlying data directly without any exploitation effort at all.",
       "stepsToIdentify": [
-        "Identify all disposal points in scope — interior bins, exterior dumpsters, recycling containers, and any e-waste/hardware-retirement staging area — and confirm which are accessible without trespass beyond what the SOW authorizes.",
+        "Identify all disposal points in scope \u2014 interior bins, exterior dumpsters, recycling containers, and any e-waste/hardware-retirement staging area \u2014 and confirm which are accessible without trespass beyond what the SOW authorizes.",
         "Observe the collection schedule to time the assessment shortly before pickup, maximizing the realistic volume of material available without needing to disturb a freshly-emptied container.",
         "Note whether shredding bins/services are present and whether their placement (e.g. one shredder for an entire floor) plausibly explains any observed non-compliance.",
         "Check whether any decommissioned hardware (drives, backup tapes, printed reports) appears in general disposal rather than the organization's IT asset-retirement stream.",
@@ -603,12 +578,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-007",
@@ -621,8 +591,8 @@
       "cwe": "CWE-287",
       "prerequisites": "Written authorization specifically covering live impersonation of internal IT support and any resulting request to install or accept remote-access software, plus a hard stop condition before any real remote-access session is established against a production endpoint (or explicit authorization to proceed against a pre-arranged decoy machine). A phone/VoIP line and, ideally, OSINT identifying the organization's actual IT support naming conventions and ticketing tools.",
       "whatItIs": "The tester calls, messages, or files a fake ticket pretending to be internal IT support, and tries to convince an employee to install remote-access software (like AnyDesk or TeamViewer) or accept an unexpected remote session. If a real attacker pulled this off, they'd get full, interactive control of that computer.",
-      "rootCause": "Employees are trained to respond quickly and helpfully to IT requests, and they have no reliable way to check whether a caller claiming to be internal IT actually is — especially when the caller mentions something plausible and mildly urgent, like a pending update or a 'flagged' account. There's usually no standard habit of calling back through a verified number or checking a ticket number before handing over remote access.",
-      "impact": "A successful session grants the same level of control a legitimate remote-support session would — full desktop access, file transfer, and often local administrative rights — making this one of the highest-impact social engineering outcomes tested, comparable to a successful malware execution via phishing but achieved through voice/chat persuasion alone.",
+      "rootCause": "Employees are trained to respond quickly and helpfully to IT requests, and they have no reliable way to check whether a caller claiming to be internal IT actually is \u2014 especially when the caller mentions something plausible and mildly urgent, like a pending update or a 'flagged' account. There's usually no standard habit of calling back through a verified number or checking a ticket number before handing over remote access.",
+      "impact": "A successful session grants the same level of control a legitimate remote-support session would \u2014 full desktop access, file transfer, and often local administrative rights \u2014 making this one of the highest-impact social engineering outcomes tested, comparable to a successful malware execution via phishing but achieved through voice/chat persuasion alone.",
       "stepsToIdentify": [
         "Confirm what remote-access tools the organization's actual IT support uses and whether that tool is allow-listed/blocked for anything else, since a pretext using an unexpected tool is easier for a suspicious employee to catch.",
         "Assess whether employees have any established way to verify an IT contact's legitimacy (a callback number, a ticket-number lookup, a known internal chat channel) before granting remote access.",
@@ -704,12 +674,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-008",
@@ -721,8 +686,8 @@
       "severityLabel": "High",
       "cwe": "CWE-451",
       "prerequisites": "Written authorization defining the target population, the specific pretext theme(s) approved for use, what constitutes a 'compliance' event (link click vs. credential entry vs. attachment execution), and explicit sign-off that no real credential harvesting will retain submitted values. A phishing-simulation platform (GoPhish, King Phisher, or a commercial equivalent), a sending domain that will not permanently damage the organization's own domain reputation, and coordination with the mail security team to avoid unrelated incident-response activity being triggered.",
-      "whatItIs": "A controlled, authorized phishing campaign sent to some or all employees to measure, realistically, how many people click the link, how many enter their credentials, and how many report it — against a specific pretext. This gives the organization a baseline number to track over time and figure out where training is actually needed.",
-      "rootCause": "Email gives a busy employee very few quick, reliable clues to tell a well-made fake from the real thing — the sender's display name is trivial to fake, lookalike domains are cheap to register, and the urgent, authoritative tone of a good phishing email is specifically written to stop someone from pausing to think.",
+      "whatItIs": "A controlled, authorized phishing campaign sent to some or all employees to measure, realistically, how many people click the link, how many enter their credentials, and how many report it \u2014 against a specific pretext. This gives the organization a baseline number to track over time and figure out where training is actually needed.",
+      "rootCause": "Email gives a busy employee very few quick, reliable clues to tell a well-made fake from the real thing \u2014 the sender's display name is trivial to fake, lookalike domains are cheap to register, and the urgent, authoritative tone of a good phishing email is specifically written to stop someone from pausing to think.",
       "impact": "A real-world equivalent of a successful campaign delivers credential harvest at scale or an initial malware foothold via attachment/link, and the simulation's measured click and submission rates give the organization a concrete, trackable baseline of how many real incidents a similarly-crafted live campaign would likely produce.",
       "stepsToIdentify": [
         "Confirm with the client which pretext themes are in scope (IT/password reset, HR/benefits, shipping notification, executive request) and which are explicitly excluded (no genuine crisis, medical, or emotionally exploitative themes).",
@@ -805,12 +770,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-009",
@@ -821,13 +781,13 @@
       "severity": "high",
       "severityLabel": "High",
       "cwe": "CWE-1263",
-      "prerequisites": "Written authorization naming the specific entry points in scope, a pre-agreed identification method and stop condition if challenged, and an emergency point of contact. A plausible cover item consistent with the SOW (a box, a coffee cup, a laptop bag) and, unlike SOCIAL-003's architecture review, no need for badge/reader technical access — this test targets human behavior at the door, not the access-control system design.",
-      "whatItIs": "Tailgating (also called piggybacking) means following an authorized person through a badge-controlled door without swiping your own badge — relying on the fact that most people feel awkward challenging a stranger, or hold a door open as a simple courtesy, or assume someone carrying boxes shouldn't have to stop and badge in.",
-      "rootCause": "Holding a door for someone is a normal, socially rewarded courtesy, and employees usually don't have a simple, low-awkwardness way to challenge someone who looks like they belong (business clothes, a laptop bag, walking confidently) — everyone assumes someone else will handle it if something seems off. The badge reader itself is only as strong as the human behavior around it, and that behavior undermines it completely.",
+      "prerequisites": "Written authorization naming the specific entry points in scope, a pre-agreed identification method and stop condition if challenged, and an emergency point of contact. A plausible cover item consistent with the SOW (a box, a coffee cup, a laptop bag) and, unlike SOCIAL-003's architecture review, no need for badge/reader technical access \u2014 this test targets human behavior at the door, not the access-control system design.",
+      "whatItIs": "Tailgating (also called piggybacking) means following an authorized person through a badge-controlled door without swiping your own badge \u2014 relying on the fact that most people feel awkward challenging a stranger, or hold a door open as a simple courtesy, or assume someone carrying boxes shouldn't have to stop and badge in.",
+      "rootCause": "Holding a door for someone is a normal, socially rewarded courtesy, and employees usually don't have a simple, low-awkwardness way to challenge someone who looks like they belong (business clothes, a laptop bag, walking confidently) \u2014 everyone assumes someone else will handle it if something seems off. The badge reader itself is only as strong as the human behavior around it, and that behavior undermines it completely.",
       "impact": "A successful tailgate bypasses the badge system entirely, granting the same physical reach as a genuine badge holder without leaving an access-log entry tied to the actual person who entered, which is precisely why this often has higher real-world impact than the badge-cloning finding: it requires no technical tooling at all and leaves no electronic trace to investigate afterward.",
       "stepsToIdentify": [
         "Observe each badge-controlled entry point during peak ingress periods (shift start, post-lunch) to characterize typical door-holding behavior and queue density.",
-        "Note whether any physical control beyond the badge reader exists to counter tailgating specifically — a mantrap, a turnstile, or a staffed security desk with a visual headcount check.",
+        "Note whether any physical control beyond the badge reader exists to counter tailgating specifically \u2014 a mantrap, a turnstile, or a staffed security desk with a visual headcount check.",
         "Assess whether carrying a visually plausible prop (boxes, coffee, a phone to the ear) measurably changes whether employees hold the door, based on prior awareness-test data or direct observation.",
         "Review whether employees receive any specific tailgating-challenge training, distinct from general security-awareness content, and whether they're empowered (and psychologically supported) to challenge a stranger.",
         "Check whether badge-in counts are reconciled against occupancy or camera-based headcounts at any point, which would surface tailgating even without catching it live.",
@@ -837,7 +797,7 @@
         "Confirm the SOW's authorized entry points, stop condition if challenged, and identification method to present immediately if stopped by staff or security.",
         "Approach the target entry point during an observed high-traffic window carrying a plausible prop, and follow an authorized employee through without presenting a credential.",
         "If the employee holds the door without hesitation, proceed only as far as the SOW authorizes (reaching a defined checkpoint) rather than continuing deeper into the facility unnecessarily.",
-        "If challenged at any point, immediately present the pre-agreed authorization and stand down — this is a passing result for the organization and should be logged as such, not treated as a failed test attempt.",
+        "If challenged at any point, immediately present the pre-agreed authorization and stand down \u2014 this is a passing result for the organization and should be logged as such, not treated as a failed test attempt.",
         "Note the specific behavioral factor that enabled entry (prop plausibility, queue density, time of day, whether the employee made eye contact) since this is more actionable for training than a simple success/failure count.",
         "Repeat across two to three entry points and time windows to distinguish an isolated lapse from a systemic pattern, without oversaturating any single employee's exposure to the test."
       ],
@@ -904,12 +864,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-010",
@@ -922,7 +877,7 @@
       "cwe": "CWE-451",
       "prerequisites": "Written authorization defining the target phone-number list (typically corporate mobile numbers, sourced from the client, not scraped independently), the approved pretext theme, and confirmation the campaign complies with applicable telecom/anti-spam regulations for the jurisdiction (e.g. TCPA-equivalent rules) since SMS carries different legal considerations than email. An SMS gateway/sending platform (Twilio or equivalent) and an assessor-controlled landing domain.",
       "whatItIs": "A controlled test sending SMS text messages to see whether employees click a link or reply to a message pretending to be from IT, HR, a delivery company, or something similarly believable. Text messages generally get far less spam filtering than corporate email, and people often read them on a personal phone that IT barely manages, if at all.",
-      "rootCause": "SMS has nothing like email's sender-verification systems (SPF/DKIM/DMARC) — the sender name is easy to fake or spoof, phones usually show only a truncated link with little or no preview, and most employees have received far less security training and tooling for their phone's messaging app than for their work email.",
+      "rootCause": "SMS has nothing like email's sender-verification systems (SPF/DKIM/DMARC) \u2014 the sender name is easy to fake or spoof, phones usually show only a truncated link with little or no preview, and most employees have received far less security training and tooling for their phone's messaging app than for their work email.",
       "impact": "A successful smish can drive the same credential-harvest or malicious-app-install outcomes as email phishing but often bypasses the corporate security stack entirely, since messages arrive over the cellular network rather than through any monitored gateway, and personal devices frequently used for this channel add another layer of reduced visibility for the security team.",
       "stepsToIdentify": [
         "Confirm the source and scope of the phone-number list to be used (client-provided corporate directory only, not independently scraped or purchased data).",
@@ -1003,12 +958,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-011",
@@ -1020,11 +970,11 @@
       "severityLabel": "Low",
       "cwe": "CWE-359",
       "prerequisites": "Written authorization covering direct observation of employees in open work areas, common spaces, and public-facing transit (elevators, cafes near the office) if in scope. No special tooling required beyond discreet observation and note-taking; a zoom-capable camera may be used only if the SOW explicitly authorizes photographic evidence of screens/keypads.",
-      "whatItIs": "This checks whether sensitive information — a typed password, a PIN being entered, customer data on a screen, a visible access code — can be casually seen by someone standing nearby, with zero technical effort involved, just because of how a desk or counter is arranged, or a habit like saying a PIN out loud.",
-      "rootCause": "Open-plan offices, shared desks, and customer service counters are designed for collaboration and efficient use of space, not visual privacy — so screens, keypads, and paperwork often end up facing hallways, shared tables, or customers, simply because no one deliberately checked what's visible from those angles.",
+      "whatItIs": "This checks whether sensitive information \u2014 a typed password, a PIN being entered, customer data on a screen, a visible access code \u2014 can be casually seen by someone standing nearby, with zero technical effort involved, just because of how a desk or counter is arranged, or a habit like saying a PIN out loud.",
+      "rootCause": "Open-plan offices, shared desks, and customer service counters are designed for collaboration and efficient use of space, not visual privacy \u2014 so screens, keypads, and paperwork often end up facing hallways, shared tables, or customers, simply because no one deliberately checked what's visible from those angles.",
       "impact": "An observed credential or PIN can be used directly and immediately, with no technical exploitation step required at all, and observed customer or employee PII displayed on an unshielded screen can constitute a reportable data-exposure incident on its own even without any further action by the observer.",
       "stepsToIdentify": [
-        "Map high-risk sightlines in open work areas — desks facing walkways, monitors visible from shared meeting rooms, reception-area screens visible to waiting visitors.",
+        "Map high-risk sightlines in open work areas \u2014 desks facing walkways, monitors visible from shared meeting rooms, reception-area screens visible to waiting visitors.",
         "Observe login and PIN-entry behavior (badge PIN pads, POS terminals, workstation unlock) for any pattern of unshielded entry or verbal recitation of a code.",
         "Note whether privacy screens (physical filters) are deployed at any high-risk desks, and whether their absence correlates with roles handling more sensitive data (finance, HR, customer support).",
         "Check common areas (cafes, elevators, shared transit) near the facility for employees visibly working on sensitive material where the public could observe.",
@@ -1074,7 +1024,7 @@
       "mitigation": [
         "Deploy physical privacy screens on monitors at desks with walkway-facing or shared-space sightlines, prioritized by role sensitivity (finance, HR, customer support, executive assistants).",
         "Reposition high-risk workstations (customer service counters, badge/PIN entry points) away from public or shared-space sightlines where feasible.",
-        "Train staff on PIN/password entry hygiene — shielding the keypad, avoiding verbal recitation of codes — as a specific, concrete behavior rather than generic 'be aware of your surroundings' guidance.",
+        "Train staff on PIN/password entry hygiene \u2014 shielding the keypad, avoiding verbal recitation of codes \u2014 as a specific, concrete behavior rather than generic 'be aware of your surroundings' guidance.",
         "Enforce a clean-desk policy with periodic spot checks for sensitive printed material left unattended at shared desks or printer stations.",
         "Extend awareness training to cover remote/public workspace behavior (cafes, transit, co-working spaces) for staff who regularly work outside the office.",
         "Apply automatic screen-lock timeouts aggressively at high-risk desks so a brief unattended moment doesn't compound a shoulder-surfing exposure into an unattended, unlocked session.",
@@ -1101,12 +1051,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-012",
@@ -1118,7 +1063,7 @@
       "severityLabel": "Medium",
       "cwe": "CWE-1188",
       "prerequisites": "Written authorization explicitly covering physical media drop testing, the specific 'payload' behavior authorized (a benign beacon-only callback vs. anything further), and confirmation the drives will only ever phone home to an assessor-controlled endpoint. Blank/prepared USB drives (or a BadUSB-style HID-emulating device for the more advanced variant) and, for the beacon variant, a controlled listening endpoint to log check-ins.",
-      "whatItIs": "A USB drop attack leaves branded, official-looking USB drives somewhere employees pass by often — a parking lot, the lobby, a break room — betting that curiosity ('what's on this?') or a helpful instinct ('I should figure out whose this is') gets someone to plug it into a work computer. Depending on the setup, that might trigger an autorun-style payload, or a more modern variant where the drive pretends to be a keyboard and types out commands. In this test, the payload is harmless and just logs that it ran.",
+      "whatItIs": "A USB drop attack leaves branded, official-looking USB drives somewhere employees pass by often \u2014 a parking lot, the lobby, a break room \u2014 betting that curiosity ('what's on this?') or a helpful instinct ('I should figure out whose this is') gets someone to plug it into a work computer. Depending on the setup, that might trigger an autorun-style payload, or a more modern variant where the drive pretends to be a keyboard and types out commands. In this test, the payload is harmless and just logs that it ran.",
       "rootCause": "Company computers often still allow unmanaged USB drives to be plugged in and read (or even autorun content) with no restriction, and there's usually no policy or training addressing the very well-documented human habit of picking up a found USB drive and plugging it in out of curiosity or a sense of duty to return it.",
       "impact": "A real malicious drop can deliver anything from a simple beacon (confirming the target is compromisable) to a full initial-access foothold or credential harvester, entirely bypassing network-perimeter and email-security controls since the delivery mechanism is physical rather than digital.",
       "stepsToIdentify": [
@@ -1135,7 +1080,7 @@
         "Place drives in the authorized locations, using plausible but non-deceptive branding (a generic label, not impersonating a specific real employee or executive by name).",
         "Monitor the controlled endpoint for check-ins, logging timestamp and originating network context only, without collecting any further data from the connecting machine.",
         "Retrieve or account for all un-triggered drives at the agreed end time, since an un-retrieved physical drive left in place indefinitely is itself a residual risk to manage.",
-        "Where a check-in is received, do not proceed beyond the pre-agreed benign action even if further access appears technically possible — report the successful connection as the finding, not as a jumping-off point for deeper access."
+        "Where a check-in is received, do not proceed beyond the pre-agreed benign action even if further access appears technically possible \u2014 report the successful connection as the finding, not as a jumping-off point for deeper access."
       ],
       "examplePayloads": [
         {
@@ -1201,12 +1146,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-013",
@@ -1218,9 +1158,9 @@
       "severityLabel": "Medium",
       "cwe": "CWE-613",
       "prerequisites": "Written authorization to observe unattended workstations in open areas and, where explicitly permitted, to briefly approach an unlocked, unattended machine to confirm the session is genuinely active (without entering credentials, opening files, or taking any action beyond confirming the lock state). No special tooling required beyond observation and timing.",
-      "whatItIs": "This checks whether the company's screen-lock timeout is actually enforced by policy — and, just as importantly, whether people actually respect it. If an employee steps away from their desk, does the machine sit unlocked and exposed to anyone walking by until the timeout kicks in? Or does it never lock at all because someone's turned that setting off?",
+      "whatItIs": "This checks whether the company's screen-lock timeout is actually enforced by policy \u2014 and, just as importantly, whether people actually respect it. If an employee steps away from their desk, does the machine sit unlocked and exposed to anyone walking by until the timeout kicks in? Or does it never lock at all because someone's turned that setting off?",
       "rootCause": "An already-unlocked session has no further login check standing between a random passerby and everything on that screen. If the timeout is set too long, applied inconsistently across different device types, or routinely disabled by employees for convenience, the control looks fine on paper but doesn't actually protect anything in practice.",
-      "impact": "A walk-up attacker with access to an unlocked session inherits the full access of the logged-in user instantly — email, file shares, internal systems — with no exploitation effort required at all, and because no credential was used, the activity may not appear anomalous to monitoring that specifically watches for unusual authentication events.",
+      "impact": "A walk-up attacker with access to an unlocked session inherits the full access of the logged-in user instantly \u2014 email, file shares, internal systems \u2014 with no exploitation effort required at all, and because no credential was used, the activity may not appear anomalous to monitoring that specifically watches for unusual authentication events.",
       "stepsToIdentify": [
         "Confirm the organization's configured group policy or MDM setting for screen-lock inactivity timeout, and compare it against the value actually observed on a sample of real workstations.",
         "Observe open work areas during natural break periods (lunch, coffee runs, meetings) for unattended, unlocked screens rather than relying on policy documentation alone.",
@@ -1230,7 +1170,7 @@
         "Identify any process or technical exception (a long-running batch job, a presentation display) that legitimately requires a longer timeout, so the finding can distinguish a genuine business exception from an unmanaged gap."
       ],
       "exploitationSteps": [
-        "Confirm the SOW's authorization to observe and, if permitted, briefly approach an unattended unlocked workstation solely to confirm and time the lock state — not to interact with any application or data.",
+        "Confirm the SOW's authorization to observe and, if permitted, briefly approach an unattended unlocked workstation solely to confirm and time the lock state \u2014 not to interact with any application or data.",
         "During normal business activity, observe unattended workstations and record the elapsed time from the employee stepping away to either a manual lock, an automatic lock, or continued exposure.",
         "Where approach is authorized, confirm the session is genuinely active (rather than already locked and merely appearing active from a distance) without touching the keyboard/mouse beyond what's needed to observe the lock indicator.",
         "Do not open any application, file, or browser tab, and do not move the mouse in a way that could be mistaken for actual use of the session.",
@@ -1299,12 +1239,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-014",
@@ -1316,8 +1251,8 @@
       "severityLabel": "Medium",
       "cwe": "CWE-451",
       "prerequisites": "Written authorization defining the target population, approved pretext theme(s), and what constitutes success (information disclosed vs. action taken), plus a pre-agreed disclosure/safe-word procedure. A phone/VoIP line, and ideally an OSINT dossier from a prior phase to make the pretext realistic; note that call-ID spoofing carries jurisdiction-specific legal restrictions and requires its own explicit authorization if used at all.",
-      "whatItIs": "Vishing tests whether employees give up sensitive information, or take an action they're asked to, during a live phone call from someone pretending to be a trusted person — internal IT, a vendor, an executive's assistant. Unlike the help-desk pretext (SOCIAL-002) or the IT remote-access pretext (SOCIAL-007), this covers a broader range of asks: org details, someone's schedule, a minor policy exception — not one specific goal like a password reset.",
-      "rootCause": "A phone call carries a lot of unearned trust — a confident tone, the right jargon, a bit of urgency — and there's essentially no equivalent to email's sender-verification systems for voice calls. Most security-awareness training has spent years focused on email, so employees rarely apply the same level of caution to a phone call.",
+      "whatItIs": "Vishing tests whether employees give up sensitive information, or take an action they're asked to, during a live phone call from someone pretending to be a trusted person \u2014 internal IT, a vendor, an executive's assistant. Unlike the help-desk pretext (SOCIAL-002) or the IT remote-access pretext (SOCIAL-007), this covers a broader range of asks: org details, someone's schedule, a minor policy exception \u2014 not one specific goal like a password reset.",
+      "rootCause": "A phone call carries a lot of unearned trust \u2014 a confident tone, the right jargon, a bit of urgency \u2014 and there's essentially no equivalent to email's sender-verification systems for voice calls. Most security-awareness training has spent years focused on email, so employees rarely apply the same level of caution to a phone call.",
       "impact": "A successful call can extract organizational details that feed a later, more damaging attack (a name-drop for the next pretext, a confirmed absence for a BEC attempt) or directly achieve a minor but real policy exception (an unauthorized information disclosure, a bypassed verification step), and because it leaves no artifact for the security team to later inspect the way a phishing email does, it's also harder to detect and investigate after the fact.",
       "stepsToIdentify": [
         "Confirm the specific information-disclosure or action goals in scope for this test, distinguishing it clearly from the help-desk-reset and IT-remote-access pretexts covered elsewhere.",
@@ -1400,12 +1335,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-015",
@@ -1416,10 +1346,10 @@
       "severity": "critical",
       "severityLabel": "Critical",
       "cwe": "CWE-451",
-      "prerequisites": "Written authorization explicitly naming BEC/financial-fraud pretext testing as in scope, including which finance/AP staff may be targeted and a hard cap on any simulated transaction amount. Sign-off from finance leadership on the exact wording of the simulated request and confirmation that no real funds will move even if the target complies. A spoofable or look-alike sender identity (with client IT's cooperation — e.g., a cousin domain or a From-header spoof test account) and knowledge of the organization's actual approval chain for wire transfers, gathered from the scoping call or public sources (OSINT-style, overlapping with SOCIAL-001).",
-      "whatItIs": "Business Email Compromise (BEC) is a targeted attack where the tester pretends to be a senior executive (or a trusted outsider, like a lawyer or auditor) over email, and instructs someone in Accounts Payable to make an urgent, confidential wire transfer or change a vendor's banking details — deliberately using urgency, authority, and 'keep this quiet' framing to skip the normal approval steps.",
-      "rootCause": "The company's process for approving wire transfers or vendor banking changes relies on whether the email 'looks right' to the person reading it, instead of requiring an independent, out-of-band confirmation — like calling a phone number that was already on file, not one provided in the email — before any money moves.",
-      "impact": "A successful real-world BEC attack directly moves money out of the organization — the FBI's IC3 consistently ranks BEC among the highest-dollar-loss cybercrime categories — and unlike most social-engineering findings, this one has an immediate, quantifiable, board-visible financial impact rather than a downstream security consequence. It also frequently serves as the actual, final objective of a broader phishing/OSINT campaign rather than a stepping stone to something else.",
+      "prerequisites": "Written authorization explicitly naming BEC/financial-fraud pretext testing as in scope, including which finance/AP staff may be targeted and a hard cap on any simulated transaction amount. Sign-off from finance leadership on the exact wording of the simulated request and confirmation that no real funds will move even if the target complies. A spoofable or look-alike sender identity (with client IT's cooperation \u2014 e.g., a cousin domain or a From-header spoof test account) and knowledge of the organization's actual approval chain for wire transfers, gathered from the scoping call or public sources (OSINT-style, overlapping with SOCIAL-001).",
+      "whatItIs": "Business Email Compromise (BEC) is a targeted attack where the tester pretends to be a senior executive (or a trusted outsider, like a lawyer or auditor) over email, and instructs someone in Accounts Payable to make an urgent, confidential wire transfer or change a vendor's banking details \u2014 deliberately using urgency, authority, and 'keep this quiet' framing to skip the normal approval steps.",
+      "rootCause": "The company's process for approving wire transfers or vendor banking changes relies on whether the email 'looks right' to the person reading it, instead of requiring an independent, out-of-band confirmation \u2014 like calling a phone number that was already on file, not one provided in the email \u2014 before any money moves.",
+      "impact": "A successful real-world BEC attack directly moves money out of the organization \u2014 the FBI's IC3 consistently ranks BEC among the highest-dollar-loss cybercrime categories \u2014 and unlike most social-engineering findings, this one has an immediate, quantifiable, board-visible financial impact rather than a downstream security consequence. It also frequently serves as the actual, final objective of a broader phishing/OSINT campaign rather than a stepping stone to something else.",
       "stepsToIdentify": [
         "Confirm with the client exactly which finance/AP staff and which type of request (wire transfer vs. vendor banking-detail change) are in scope, and agree a hard-cap simulated amount and a same-day debrief commitment regardless of outcome.",
         "Identify a plausible executive to impersonate (CFO, CEO, or a known outside counsel/vendor contact) using OSINT (org chart, LinkedIn, press releases) to make the pretext specific and credible.",
@@ -1432,30 +1362,30 @@
         "Confirm final wording and target(s) with the client sign-off obtained during scoping, and never exceed the agreed simulated transaction cap under any circumstance.",
         "Send a pretext email impersonating the chosen executive or trusted third party, using urgency and confidentiality framing consistent with real BEC campaigns (e.g., 'time-sensitive, don't discuss with the team yet').",
         "Request either a wire transfer to a test account explicitly provided by the client for this purpose, or a vendor banking-detail change to a test record, never a real destination.",
-        "If the target requests verification, observe whether they attempt the correct out-of-band channel (calling a known-good number) versus replying to the same email thread or calling a number provided within the pretext email itself (the latter is a fail — the attacker-controlled channel would just confirm the fraud).",
-        "If the target proceeds without any verification, stop immediately once compliance is confirmed (e.g., they reply 'processing now') — do not need to see an actual transaction execute, and immediately disclose the test to the target's manager per the engagement's real-time-fail protocol.",
+        "If the target requests verification, observe whether they attempt the correct out-of-band channel (calling a known-good number) versus replying to the same email thread or calling a number provided within the pretext email itself (the latter is a fail \u2014 the attacker-controlled channel would just confirm the fraud).",
+        "If the target proceeds without any verification, stop immediately once compliance is confirmed (e.g., they reply 'processing now') \u2014 do not need to see an actual transaction execute, and immediately disclose the test to the target's manager per the engagement's real-time-fail protocol.",
         "Document the full timeline: time to open, time to reply/act, whether verification was attempted and through which channel, and whether the request matched a known amount/wording pattern that should have raised suspicion."
       ],
       "examplePayloads": [
         {
           "label": "Urgent CEO wire-request pretext (opening line)",
-          "command": "Hi [Name], I'm in back-to-back meetings and need you to process a time-sensitive wire today — please keep this confidential until I brief the team. Can you confirm you're able to action this in the next hour?"
+          "command": "Hi [Name], I'm in back-to-back meetings and need you to process a time-sensitive wire today \u2014 please keep this confidential until I brief the team. Can you confirm you're able to action this in the next hour?"
         },
         {
           "label": "Confidentiality/urgency framing follow-up",
-          "command": "This relates to a pending acquisition, so please don't loop in anyone else yet — I'll explain fully once we're through this. Let me know once it's sent."
+          "command": "This relates to a pending acquisition, so please don't loop in anyone else yet \u2014 I'll explain fully once we're through this. Let me know once it's sent."
         },
         {
           "label": "Vendor banking-detail change pretext (as 'accounts payable' contact)",
-          "command": "Please note our banking details have changed as of this week due to a transition in our finance provider — attached is the updated remittance form for future payments."
+          "command": "Please note our banking details have changed as of this week due to a transition in our finance provider \u2014 attached is the updated remittance form for future payments."
         },
         {
           "label": "Attacker-controlled 'verification' number embedded in pretext (fail condition if used)",
-          "command": "If you need to confirm, you can reach me directly on my direct line: [test-controlled number] — easier than email right now."
+          "command": "If you need to confirm, you can reach me directly on my direct line: [test-controlled number] \u2014 easier than email right now."
         },
         {
           "label": "Reply-thread pressure escalation (if initial request stalls)",
-          "command": "Just checking in — this needs to go out before end of day, can you prioritize it? Happy to jump on a quick call if that's faster."
+          "command": "Just checking in \u2014 this needs to go out before end of day, can you prioritize it? Happy to jump on a quick call if that's faster."
         },
         {
           "label": "Look-alike domain construction (for authorized spoof testing only)",
@@ -1469,12 +1399,12 @@
         "Gift-card BEC, a lower-dollar but very common variant asking an employee to urgently purchase gift cards 'for a client' and send the codes."
       ],
       "mitigation": [
-        "Require mandatory out-of-band verification (a callback to a previously-known, independently-sourced phone number — never one provided in the request itself) for any wire transfer or vendor banking-detail change, with no exceptions regardless of seniority or urgency framing.",
+        "Require mandatory out-of-band verification (a callback to a previously-known, independently-sourced phone number \u2014 never one provided in the request itself) for any wire transfer or vendor banking-detail change, with no exceptions regardless of seniority or urgency framing.",
         "Implement DMARC enforcement (p=reject or at minimum p=quarantine) alongside SPF and DKIM to block exact-domain spoofing, and deploy look-alike-domain monitoring to catch cousin-domain registrations targeting the organization.",
         "Configure email clients to always display the full sender address, not just the display name, and apply an external-sender banner so a spoofed 'internal-looking' email is visibly flagged.",
         "Set a hard secondary-approval threshold (dual authorization) for wire transfers and banking-detail changes above a defined dollar amount, independent of any single approver's judgment.",
         "Run recurring BEC-specific awareness training for finance/AP staff specifically, distinct from general phishing training, since BEC pretexts exploit authority and urgency rather than malicious links or attachments.",
-        "Establish a clear, no-blame reporting culture so an employee who suspects a BEC attempt (even after acting on it) reports immediately rather than staying silent out of embarrassment — time-to-detection is the main lever for fund recovery."
+        "Establish a clear, no-blame reporting culture so an employee who suspects a BEC attempt (even after acting on it) reports immediately rather than staying silent out of embarrassment \u2014 time-to-detection is the main lever for fund recovery."
       ],
       "reference": {
         "standard": "NIST SP 800-53 Rev. 5 - AT-2 (Literacy Training and Awareness) / IA-5 (Authenticator Management)",
@@ -1485,7 +1415,7 @@
           "DMARC/SPF/DKIM analyzers (e.g., MXToolbox) for pre-test control verification"
         ],
         "links": [
-          "FBI IC3 — Business Email Compromise reporting and loss statistics",
+          "FBI IC3 \u2014 Business Email Compromise reporting and loss statistics",
           "NIST SP 800-53 Rev. 5 (AT-2, IA-5)",
           "CWE-451 (User Interface (UI) Misrepresentation of Critical Information)"
         ]
@@ -1497,12 +1427,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-016",
@@ -1515,7 +1440,7 @@
       "cwe": "CWE-451",
       "prerequisites": "Written authorization covering invoice-fraud pretext testing against Accounts Payable staff, with client sign-off on the specific fake vendor identity and invoice amount used. Knowledge of at least one real (or plausible) vendor relationship the organization has, gathered from public sources (press releases, case studies, job postings mentioning tools/vendors) or provided directly by the client for realism. A test-controlled email domain resembling a vendor's real domain, and a template invoice/PO document.",
       "whatItIs": "This pretext tests whether Accounts Payable will pay a fake invoice from a fabricated (or impersonated real) supplier, usually referencing a plausible-but-made-up purchase order. It works because invoice processing is routine and high-volume, so a slightly-off invoice can easily slip through without close attention.",
-      "rootCause": "Invoice approval usually just checks whether the surface details (vendor name, amount, PO number) look right, without an independent step to confirm the invoice actually came from the real vendor through a channel the attacker doesn't control. It's the same underlying gap as BEC — no out-of-band verification — just aimed at the procurement process instead of a fake executive request.",
+      "rootCause": "Invoice approval usually just checks whether the surface details (vendor name, amount, PO number) look right, without an independent step to confirm the invoice actually came from the real vendor through a channel the attacker doesn't control. It's the same underlying gap as BEC \u2014 no out-of-band verification \u2014 just aimed at the procurement process instead of a fake executive request.",
       "impact": "Direct financial loss if a fraudulent invoice is paid, and reputational/relationship damage with the real vendor once the fraud is discovered (since the real vendor may be blamed or drawn into the investigation). Because invoice fraud can be run at scale and low individual amounts to stay under approval thresholds, it can also serve as a persistent low-and-slow revenue drain rather than a single incident.",
       "stepsToIdentify": [
         "Confirm scope, target AP staff, the vendor identity to be impersonated, and a hard-cap simulated invoice amount with the client before any contact.",
@@ -1529,7 +1454,7 @@
         "Send the fabricated invoice from a test-controlled, vendor-look-alike email address to the identified AP intake point, referencing a plausible PO number and reasonable line-item description.",
         "Include mild urgency ('payment overdue, please prioritize to avoid late fees') without escalating to obvious pressure tactics, mirroring realistic invoice-fraud emails rather than a full BEC-style urgent pretext.",
         "Observe whether AP staff attempt any verification (checking the PO against a purchasing system, calling the vendor's known number, checking with the requesting department) before approving payment.",
-        "If the process would proceed to payment, stop at the point of approval confirmation — do not have any real or test funds actually transferred — and immediately notify the engagement point of contact per the real-time-fail protocol.",
+        "If the process would proceed to payment, stop at the point of approval confirmation \u2014 do not have any real or test funds actually transferred \u2014 and immediately notify the engagement point of contact per the real-time-fail protocol.",
         "If AP correctly flags the invoice (mismatched PO, unfamiliar contact, no receiving record), document exactly which control caught it, since this identifies what's actually working and shouldn't be weakened by a remediation effort.",
         "Repeat with a variant lacking a PO reference at all, to test whether three-way matching is genuinely enforced or only checked when convenient."
       ],
@@ -1540,7 +1465,7 @@
         },
         {
           "label": "Mild urgency follow-up (no response after several days)",
-          "command": "Following up on the attached invoice — this is now past due and we'd like to avoid any late fees on the account. Could you confirm expected payment date?"
+          "command": "Following up on the attached invoice \u2014 this is now past due and we'd like to avoid any late fees on the account. Could you confirm expected payment date?"
         },
         {
           "label": "Look-alike vendor domain construction (authorized test only)",
@@ -1548,15 +1473,15 @@
         },
         {
           "label": "Response to a verification query, redirecting to attacker-controlled channel",
-          "command": "Happy to confirm — you can reach our accounts team directly at [test-controlled number] for faster verification than email."
+          "command": "Happy to confirm \u2014 you can reach our accounts team directly at [test-controlled number] for faster verification than email."
         },
         {
           "label": "PO-less variant (testing three-way-match enforcement)",
-          "command": "Please process the attached invoice for professional services rendered in Q2 — PO was issued verbally, happy to follow up if a reference number is required."
+          "command": "Please process the attached invoice for professional services rendered in Q2 \u2014 PO was issued verbally, happy to follow up if a reference number is required."
         },
         {
           "label": "Vendor-master-file change bundled with invoice (escalation variant, if separately scoped)",
-          "command": "Also note our banking details have updated as of this billing cycle — please use the remittance details on the attached invoice going forward."
+          "command": "Also note our banking details have updated as of this billing cycle \u2014 please use the remittance details on the attached invoice going forward."
         }
       ],
       "variants": [
@@ -1582,7 +1507,7 @@
           "MXToolbox or similar for pre-test SPF/DKIM/DMARC verification"
         ],
         "links": [
-          "FBI IC3 — Business Email Compromise / vendor fraud reporting",
+          "FBI IC3 \u2014 Business Email Compromise / vendor fraud reporting",
           "NIST SP 800-53 Rev. 5 (AT-2, SA-9)",
           "CWE-451 (User Interface (UI) Misrepresentation of Critical Information)"
         ]
@@ -1594,12 +1519,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-017",
@@ -1611,8 +1531,8 @@
       "severityLabel": "High",
       "cwe": "CWE-451",
       "prerequisites": "Written authorization explicitly covering pretext testing against HR/recruiting staff, including agreement on whether a real (benign, non-executable) attachment will be used and confirmation of the client's malware-simulation policy (e.g., using a harmless canary file rather than a real payload). A fabricated candidate identity/persona and a realistic resume/cover-letter document, or alternatively a fake recruiter persona if testing the inverse direction (outbound pretext toward the organization's own hiring managers on LinkedIn).",
-      "whatItIs": "This exploits the recruiting process, where HR and hiring managers routinely open unsolicited attachments — resumes, portfolios — from people they've never met, which is a much more permissive habit than almost any other department has. The test checks whether a weaponized document, or a malicious link disguised as a work sample, would actually get opened.",
-      "rootCause": "Recruiting inherently trusts unsolicited attachments, because opening them is the whole point of the job — and that trust usually isn't offset by any extra technical safety net (sandboxing attachments, blocking macros, rewriting links) specifically for the recruiting inbox. That makes HR both the most attachment-permissive department and often the least technically protected one.",
+      "whatItIs": "This exploits the recruiting process, where HR and hiring managers routinely open unsolicited attachments \u2014 resumes, portfolios \u2014 from people they've never met, which is a much more permissive habit than almost any other department has. The test checks whether a weaponized document, or a malicious link disguised as a work sample, would actually get opened.",
+      "rootCause": "Recruiting inherently trusts unsolicited attachments, because opening them is the whole point of the job \u2014 and that trust usually isn't offset by any extra technical safety net (sandboxing attachments, blocking macros, rewriting links) specifically for the recruiting inbox. That makes HR both the most attachment-permissive department and often the least technically protected one.",
       "impact": "A successful pretext here delivers initial access or credential-harvesting directly through a department that typically has broad internal reach (HR systems containing PII, payroll data, and organizational structure) and is a less-monitored entry point than IT or finance, making it an attractive initial-foothold vector for anyone who has profiled the organization's departments.",
       "stepsToIdentify": [
         "Confirm scope and target roles (recruiters, HR generalists, hiring managers) and agree the exact simulated-attachment mechanism (canary/tracking file vs. a benign macro-enabled document) with the client before sending anything.",
@@ -1628,12 +1548,12 @@
         "Include a plausible cover note referencing the specific job posting to raise realism and the likelihood of the attachment being opened.",
         "If targeting the inverse direction, send a fake recruiter outreach message via LinkedIn or email to the identified employee, referencing a role at a fabricated or real-but-impersonated company, including a link to a 'job description' or 'portfolio review' page.",
         "Track open/click/beacon events over an agreed observation window, then disclose the test to the organization regardless of outcome.",
-        "Document exactly which control (or absence of one) allowed the interaction — no sandboxing, no macro-blocking policy, no link-rewriting — since each has a different remediation owner (IT security vs. HR process)."
+        "Document exactly which control (or absence of one) allowed the interaction \u2014 no sandboxing, no macro-blocking policy, no link-rewriting \u2014 since each has a different remediation owner (IT security vs. HR process)."
       ],
       "examplePayloads": [
         {
           "label": "Application email referencing a real open posting",
-          "command": "Hello, I'm very interested in the [Job Title] role posted on your careers page — please find my resume and portfolio link attached. Happy to discuss availability for an interview."
+          "command": "Hello, I'm very interested in the [Job Title] role posted on your careers page \u2014 please find my resume and portfolio link attached. Happy to discuss availability for an interview."
         },
         {
           "label": "Resume-attachment cover note (canary/tracking file only, per client agreement)",
@@ -1641,11 +1561,11 @@
         },
         {
           "label": "Fake recruiter LinkedIn outreach (inverse-direction variant)",
-          "command": "Hi [Name], I came across your profile and think you'd be a strong fit for a [Role] opening at [Company] — would you be open to a quick chat? Here's a bit more detail on the role: [tracked link]"
+          "command": "Hi [Name], I came across your profile and think you'd be a strong fit for a [Role] opening at [Company] \u2014 would you be open to a quick chat? Here's a bit more detail on the role: [tracked link]"
         },
         {
           "label": "Follow-up nudge after no response",
-          "command": "Just following up in case my earlier message got buried — happy to send over more detail on compensation and the team if you're interested."
+          "command": "Just following up in case my earlier message got buried \u2014 happy to send over more detail on compensation and the team if you're interested."
         },
         {
           "label": "Portfolio-link pretext (credential-harvest simulation, if separately scoped)",
@@ -1667,7 +1587,7 @@
         "Standardize the application intake channel around a single, monitored careers-site upload form rather than direct-to-recruiter email attachments where feasible, reducing the raw attack surface.",
         "Apply link-rewriting/URL reputation scanning to the recruiting inbox equivalent to what's applied elsewhere in the organization.",
         "Provide HR/recruiting-specific security awareness training addressing the unique pattern of this department (high volume of legitimate unsolicited external contact), rather than assuming general phishing training covers it.",
-        "Establish a lightweight verification habit for hiring managers approached by unfamiliar external recruiters — a quick check of the recruiter's company and LinkedIn history before engaging further.",
+        "Establish a lightweight verification habit for hiring managers approached by unfamiliar external recruiters \u2014 a quick check of the recruiter's company and LinkedIn history before engaging further.",
         "Segment HR systems and endpoints so a compromised recruiting workstation doesn't have a direct path to broader HR/payroll data stores or other internal systems."
       ],
       "reference": {
@@ -1691,12 +1611,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-018",
@@ -1707,50 +1622,50 @@
       "severity": "high",
       "severityLabel": "High",
       "cwe": "CWE-1263",
-      "prerequisites": "Written physical-access-testing authorization explicitly covering front-desk/reception pretext testing, including an agreed 'get out of jail' letter the tester carries at all times, a defined escalation/abort procedure if challenged or if law enforcement is contacted, and a named client emergency contact reachable during the test window. A plausible pretext identity (delivery courier, HVAC/maintenance contractor, auditor) with props consistent with the client's actual site (e.g., a real courier company's uniform styling is NOT to be used without that courier's separate consent — use a generic/unbranded pretext instead unless explicitly cleared).",
-      "whatItIs": "This test checks whether front-desk or reception staff will let an unverified visitor — posing as a delivery courier or maintenance worker — past the public lobby without following the company's actual visitor-verification and escort rules.",
-      "rootCause": "Reception staff are trained to be helpful and not create friction for legitimate visitors and regular vendors, and that helpful-by-default attitude usually isn't balanced by an equally consistent verification step — checking ID against a pre-approved visitor list, calling the actual person they're visiting, requiring an escort — especially when someone's in a hurry or has a believable reason to skip it.",
+      "prerequisites": "Written physical-access-testing authorization explicitly covering front-desk/reception pretext testing, including an agreed 'get out of jail' letter the tester carries at all times, a defined escalation/abort procedure if challenged or if law enforcement is contacted, and a named client emergency contact reachable during the test window. A plausible pretext identity (delivery courier, HVAC/maintenance contractor, auditor) with props consistent with the client's actual site (e.g., a real courier company's uniform styling is NOT to be used without that courier's separate consent \u2014 use a generic/unbranded pretext instead unless explicitly cleared).",
+      "whatItIs": "This test checks whether front-desk or reception staff will let an unverified visitor \u2014 posing as a delivery courier or maintenance worker \u2014 past the public lobby without following the company's actual visitor-verification and escort rules.",
+      "rootCause": "Reception staff are trained to be helpful and not create friction for legitimate visitors and regular vendors, and that helpful-by-default attitude usually isn't balanced by an equally consistent verification step \u2014 checking ID against a pre-approved visitor list, calling the actual person they're visiting, requiring an escort \u2014 especially when someone's in a hurry or has a believable reason to skip it.",
       "impact": "Physical access beyond the lobby enables a wide range of follow-on actions: planting a network-connected device (rogue AP, drop-box), visual reconnaissance of screens/whiteboards/badge-printer locations, direct access to unattended workstations, or simply establishing a credible presence that enables a longer on-site pretext later. Physical access is frequently the highest-value single foothold in a red-team-style engagement because it bypasses most network-perimeter controls entirely.",
       "stepsToIdentify": [
         "Confirm the physical-testing authorization, abort/escalation procedure, and emergency contact are all in place and that the tester is carrying the authorization letter before approaching the site.",
         "Conduct passive reconnaissance of the target site's entrance, badge system, and typical visitor flow (e.g., observing from public areas) to build a plausible pretext.",
         "Select a pretext role (delivery, maintenance, auditor) that is plausible for the specific site and time of day, and prepare minimal, generic props consistent with that role without infringing any real third party's branding.",
-        "Determine, from the engagement scoping, whether reception is expected to check ID, call the stated host/department, and/or require a signed-in visitor badge — this is the specific control being tested.",
+        "Determine, from the engagement scoping, whether reception is expected to check ID, call the stated host/department, and/or require a signed-in visitor badge \u2014 this is the specific control being tested.",
         "Identify a fallback pretext-appropriate reason for being unable to immediately reach the stated host (to test whether reception holds the line or escalates around it), without using any real employee's name gathered through separately-unauthorized means.",
         "Time the approach for a plausible window (e.g., a delivery pretext during normal business hours, a maintenance pretext during less-monitored periods if in scope) as agreed with the client."
       ],
       "exploitationSteps": [
         "Approach reception with the prepared pretext, presenting confidently but not aggressively, and provide a plausible reason for the visit consistent with the role (e.g., 'scheduled delivery for the facilities team').",
         "Observe whether reception asks for photo ID, checks a pre-notified visitor/delivery list, or calls the stated host/department to confirm before granting any access beyond the lobby.",
-        "If challenged, comply immediately and calmly, present the authorization letter if requested, and do not attempt to argue past a firm refusal — a refusal is a pass for this control, not a test failure.",
-        "If granted unescorted access beyond the lobby, proceed only as far as needed to demonstrate the finding (e.g., reaching a general office floor) — do not access any workstation, document, or system, and do not linger beyond what's needed for evidence.",
-        "Capture only the minimum evidence needed (time-stamped notes, a photo of the tester's own badge/prop or public common-area signage — never of employees or their screens without separate authorization) to substantiate the finding.",
+        "If challenged, comply immediately and calmly, present the authorization letter if requested, and do not attempt to argue past a firm refusal \u2014 a refusal is a pass for this control, not a test failure.",
+        "If granted unescorted access beyond the lobby, proceed only as far as needed to demonstrate the finding (e.g., reaching a general office floor) \u2014 do not access any workstation, document, or system, and do not linger beyond what's needed for evidence.",
+        "Capture only the minimum evidence needed (time-stamped notes, a photo of the tester's own badge/prop or public common-area signage \u2014 never of employees or their screens without separate authorization) to substantiate the finding.",
         "Exit and immediately debrief with the client contact per the engagement's same-day disclosure commitment for any physical-access finding, since this class of finding often warrants immediate awareness for that specific site."
       ],
       "examplePayloads": [
         {
           "label": "Delivery-courier pretext opening line",
-          "command": "Hi, I've got a delivery for the facilities/office manager — is there somewhere I can drop this off, or do I need someone to sign for it?"
+          "command": "Hi, I've got a delivery for the facilities/office manager \u2014 is there somewhere I can drop this off, or do I need someone to sign for it?"
         },
         {
           "label": "Maintenance/contractor pretext opening line",
-          "command": "Hi, I'm here for the scheduled HVAC/fire-alarm inspection on this floor — should be in and out within the hour, just need to know where the access point is."
+          "command": "Hi, I'm here for the scheduled HVAC/fire-alarm inspection on this floor \u2014 should be in and out within the hour, just need to know where the access point is."
         },
         {
           "label": "Response if asked to wait for host confirmation (compliant, non-pushy)",
-          "command": "Of course, happy to wait — take your time reaching them."
+          "command": "Of course, happy to wait \u2014 take your time reaching them."
         },
         {
           "label": "Fallback if host is 'unreachable' (testing escalation behavior)",
-          "command": "No problem at all — is there someone else on the facilities team who could let me know where to go, or should I reschedule?"
+          "command": "No problem at all \u2014 is there someone else on the facilities team who could let me know where to go, or should I reschedule?"
         },
         {
           "label": "Response if challenged / ID requested",
-          "command": "Of course — here's my ID. [present authorization letter if requested] I'm actually here as part of an authorized security assessment — happy to have you verify with [client emergency contact name/number]."
+          "command": "Of course \u2014 here's my ID. [present authorization letter if requested] I'm actually here as part of an authorized security assessment \u2014 happy to have you verify with [client emergency contact name/number]."
         },
         {
           "label": "Graceful exit if access is denied",
-          "command": "Understood, thanks for checking — I'll follow up through the proper channel. Have a good day."
+          "command": "Understood, thanks for checking \u2014 I'll follow up through the proper channel. Have a good day."
         }
       ],
       "variants": [
@@ -1788,12 +1703,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-019",
@@ -1804,9 +1714,9 @@
       "severity": "medium",
       "severityLabel": "Medium",
       "cwe": "CWE-345",
-      "prerequisites": "Written authorization covering pretext testing that impersonates an internal compliance, legal, or audit function, with client sign-off on which department(s) may be targeted and explicit agreement on what category of data may be requested (fabricated/canary data only — never a request that would actually succeed in extracting real sensitive records). Familiarity with the organization's actual compliance/audit cadence (e.g., known annual audit periods) gathered from public filings or client-provided context, to make the pretext timing plausible.",
-      "whatItIs": "This pretext impersonates an internal compliance, legal, or internal-audit team to request sensitive information or system access from an employee. It works because employees are naturally deferential to audit-sounding requests, and real audit requests genuinely do sometimes ask for unusual or broad information on short notice — making a fake one hard to distinguish from a real one.",
-      "rootCause": "Employees usually have no trained, reliable way to tell a genuine internal-audit or compliance request apart from a made-up one — both look the same on the surface: an internally-styled email or call, some policy or regulatory language, a bit of time pressure. And no one expects an independent verification step before complying.",
+      "prerequisites": "Written authorization covering pretext testing that impersonates an internal compliance, legal, or audit function, with client sign-off on which department(s) may be targeted and explicit agreement on what category of data may be requested (fabricated/canary data only \u2014 never a request that would actually succeed in extracting real sensitive records). Familiarity with the organization's actual compliance/audit cadence (e.g., known annual audit periods) gathered from public filings or client-provided context, to make the pretext timing plausible.",
+      "whatItIs": "This pretext impersonates an internal compliance, legal, or internal-audit team to request sensitive information or system access from an employee. It works because employees are naturally deferential to audit-sounding requests, and real audit requests genuinely do sometimes ask for unusual or broad information on short notice \u2014 making a fake one hard to distinguish from a real one.",
+      "rootCause": "Employees usually have no trained, reliable way to tell a genuine internal-audit or compliance request apart from a made-up one \u2014 both look the same on the surface: an internally-styled email or call, some policy or regulatory language, a bit of time pressure. And no one expects an independent verification step before complying.",
       "impact": "A successful pretext can extract sensitive data (HR records, financial data, access credentials 'for audit purposes') or induce a policy exception (temporary access grant, control bypass 'just for this audit') directly from an employee who believes they're fulfilling a legitimate compliance obligation, without needing to compromise any system directly. Because compliance requests are often legitimately broad, this pretext can extract more in one interaction than many narrower phishing attempts.",
       "stepsToIdentify": [
         "Confirm scope, target department(s), and the exact category of fabricated/canary data or access that may be requested, ensuring the pretext can never actually succeed in obtaining real sensitive data.",
@@ -1821,17 +1731,17 @@
         "Request only the pre-agreed category of fabricated/canary information or a simulated access grant, framed as a standard part of the stated review.",
         "Observe whether the target verifies the request (checking an internal directory, calling the real compliance team's known number/ticketing system) before complying.",
         "If the target requests verification, comply immediately, confirm the test is authorized if pressed by the real department, and record this as the control working correctly.",
-        "If the target proceeds to comply without verification, stop at the point where compliance is confirmed — do not have them actually transmit any real sensitive data even in the test flow — and immediately disclose to the engagement contact.",
+        "If the target proceeds to comply without verification, stop at the point where compliance is confirmed \u2014 do not have them actually transmit any real sensitive data even in the test flow \u2014 and immediately disclose to the engagement contact.",
         "Document whether the organization has a real, known internal-audit verification channel at all, since its absence is itself a finding independent of whether any individual target complied."
       ],
       "examplePayloads": [
         {
           "label": "Internal-audit outreach opening (email or phone)",
-          "command": "Hi [Name], I'm reaching out from Internal Audit as part of our quarterly access-control review — I'll need a few details from your team to complete this cycle's sample testing."
+          "command": "Hi [Name], I'm reaching out from Internal Audit as part of our quarterly access-control review \u2014 I'll need a few details from your team to complete this cycle's sample testing."
         },
         {
           "label": "Regulatory-deadline framing",
-          "command": "This is tied to our upcoming [framework] certification renewal, so we're on a tight timeline to close out this sample — appreciate your help getting this back to us today if possible."
+          "command": "This is tied to our upcoming [framework] certification renewal, so we're on a tight timeline to close out this sample \u2014 appreciate your help getting this back to us today if possible."
         },
         {
           "label": "Fabricated/canary data request (specific, pre-agreed category only)",
@@ -1839,15 +1749,15 @@
         },
         {
           "label": "Response if the target asks to verify",
-          "command": "Absolutely, happy for you to confirm — feel free to check with [real compliance team name] or route it through the usual ticketing process if that's easier on your end."
+          "command": "Absolutely, happy for you to confirm \u2014 feel free to check with [real compliance team name] or route it through the usual ticketing process if that's easier on your end."
         },
         {
           "label": "Graceful acceptance of a firm decline",
-          "command": "No problem at all, I understand — I'll follow up through the standard audit-request process instead. Thanks for your time."
+          "command": "No problem at all, I understand \u2014 I'll follow up through the standard audit-request process instead. Thanks for your time."
         },
         {
           "label": "Follow-up nudge (mild, non-coercive)",
-          "command": "Just a gentle follow-up on this when you get a chance — no rush, just want to make sure it's on your radar before the review window closes."
+          "command": "Just a gentle follow-up on this when you get a chance \u2014 no rush, just want to make sure it's on your radar before the review window closes."
         }
       ],
       "variants": [
@@ -1858,7 +1768,7 @@
       ],
       "mitigation": [
         "Establish and publicize a single, known, verifiable channel (a ticketing system or a named, directory-listed internal audit contact) through which all legitimate compliance/audit requests are routed, and train staff to expect and require it.",
-        "Train employees that internal audit, legal, and compliance requests are just as subject to verification as any other sensitive request — authority framing alone is not verification.",
+        "Train employees that internal audit, legal, and compliance requests are just as subject to verification as any other sensitive request \u2014 authority framing alone is not verification.",
         "Require any request for access grants or sensitive data 'for audit purposes' to go through the same formal access-request/change-control process as any other request, with no compliance-labeled shortcut.",
         "Maintain an internal directory that makes it easy for any employee to independently look up and confirm a claimed internal-audit or compliance contact.",
         "Include this specific pretext category in security-awareness training, since employees are typically well-trained against generic phishing but rarely against an authority-themed internal impersonation.",
@@ -1885,12 +1795,7 @@
         "affectedEndpoints": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-020",
@@ -1902,9 +1807,9 @@
       "severityLabel": "Critical",
       "cwe": "CWE-1021",
       "prerequisites": "Written authorisation naming the target population and explicitly covering credential and session-token capture, since a successful test yields live authenticated sessions. A reverse-proxy phishing framework (Evilginx, Modlishka) or an equivalent purpose-built harness, plus a registered look-alike domain and a valid TLS certificate for it. Agreement with the client on where captured session material is stored, who may access it, and when it is destroyed. A named client contact reachable during testing to halt the exercise immediately if it affects live operations.",
-      "whatItIs": "Traditional phishing captures a password, which multi-factor authentication then blocks. These two techniques defeat that. In an adversary-in-the-middle attack the phishing site is a live reverse proxy: it relays the victim's input to the real login page in real time, so the genuine MFA prompt appears, the victim satisfies it, and the attacker captures the resulting session cookie rather than the password — a token that is already past MFA. Push fatigue is cruder: with a password already in hand, the attacker triggers approval prompts repeatedly until the target approves one to stop the interruptions.",
-      "rootCause": "Most MFA methods prove that a valid factor was presented at some moment, not that the person approving is the person actually signing in, and not that the session belongs to the device that completed the challenge. A one-time code or a push approval is a shared secret in transit, so anything positioned between the user and the identity provider can relay it. Push notifications compound this by asking for approval with no context about where the request originated, and by allowing unlimited retries — which converts an authentication control into an interruption the user is motivated to dismiss.",
-      "impact": "The attacker obtains an authenticated session that has already cleared MFA, so re-prompting does not stop them and a password reset alone does not evict them. That typically grants mailbox access, single-sign-on reach into every connected application, and the ability to register a new MFA method of their own for durable persistence. Because the session was established through the genuine identity provider, sign-in logs show a successful, fully-compliant authentication for the real user — which is precisely why this class routinely goes undetected until damage surfaces elsewhere.",
+      "whatItIs": "Traditional phishing captures a password, which multi-factor authentication then blocks. These two techniques defeat that. In an adversary-in-the-middle attack the phishing site is a live reverse proxy: it relays the victim's input to the real login page in real time, so the genuine MFA prompt appears, the victim satisfies it, and the attacker captures the resulting session cookie rather than the password \u2014 a token that is already past MFA. Push fatigue is cruder: with a password already in hand, the attacker triggers approval prompts repeatedly until the target approves one to stop the interruptions.",
+      "rootCause": "Most MFA methods prove that a valid factor was presented at some moment, not that the person approving is the person actually signing in, and not that the session belongs to the device that completed the challenge. A one-time code or a push approval is a shared secret in transit, so anything positioned between the user and the identity provider can relay it. Push notifications compound this by asking for approval with no context about where the request originated, and by allowing unlimited retries \u2014 which converts an authentication control into an interruption the user is motivated to dismiss.",
+      "impact": "The attacker obtains an authenticated session that has already cleared MFA, so re-prompting does not stop them and a password reset alone does not evict them. That typically grants mailbox access, single-sign-on reach into every connected application, and the ability to register a new MFA method of their own for durable persistence. Because the session was established through the genuine identity provider, sign-in logs show a successful, fully-compliant authentication for the real user \u2014 which is precisely why this class routinely goes undetected until damage surfaces elsewhere.",
       "stepsToIdentify": [
         "Establish which MFA methods the organisation actually permits, and specifically whether phishing-resistant options (FIDO2 or hardware security keys) are enforced or merely offered alongside weaker ones.",
         "Determine whether number matching, geographic context, or application context is displayed in push approvals, since their absence is what makes push fatigue viable.",
@@ -1916,7 +1821,7 @@
       "exploitationSteps": [
         "Confirm scope, the target list, and the agreed halt procedure in writing before standing anything up, and verify that the look-alike domain will not be mistaken for a genuine service outside the engagement.",
         "Stand up the reverse proxy against a test account first and validate the full capture chain end to end, so the technique is proven before any real employee is contacted.",
-        "Send the lure to the agreed population only, and record delivery, click, credential-entry and MFA-completion rates as separate figures — they measure different controls and conflate badly when merged.",
+        "Send the lure to the agreed population only, and record delivery, click, credential-entry and MFA-completion rates as separate figures \u2014 they measure different controls and conflate badly when merged.",
         "On capturing a session token, verify it works with a single minimal read-only action that only confirms authentication, then stop; do not browse mailboxes or documents.",
         "For the push-fatigue component, agree a strict prompt ceiling in advance, target a small number of consenting participants rather than the general population, and stop at the first approval or the ceiling.",
         "Destroy captured session tokens and credentials at the end of the engagement, ask the client to revoke the affected sessions and rotate credentials, and confirm both in writing."
@@ -1928,7 +1833,7 @@
         },
         {
           "label": "Look-alike domain candidates to test detection",
-          "command": "login-<brand>.com  ·  <brand>-sso.com  ·  <brand>.secure-login.com"
+          "command": "login-<brand>.com  \u00b7  <brand>-sso.com  \u00b7  <brand>.secure-login.com"
         },
         {
           "label": "Lure framing (session-expiry pretext)",
@@ -1948,18 +1853,18 @@
         }
       ],
       "variants": [
-        "Device-code phishing, where the victim is asked to enter a legitimate device code on the real provider's page — no look-alike domain is needed, so domain-reputation defences do not apply.",
+        "Device-code phishing, where the victim is asked to enter a legitimate device code on the real provider's page \u2014 no look-alike domain is needed, so domain-reputation defences do not apply.",
         "Consent phishing, which requests OAuth application permissions instead of credentials, producing durable access via a token grant that survives password resets entirely.",
         "MFA-fatigue combined with a follow-up vishing call impersonating IT to talk the target through approving the prompt, which substantially raises the success rate.",
         "QR-code delivery of the proxy link, moving the click onto a personal phone that sits outside corporate email filtering and endpoint controls."
       ],
       "mitigation": [
-        "Enforce phishing-resistant MFA (FIDO2 or hardware security keys) for all privileged accounts and, where feasible, everyone — the credential is bound to the origin, so a proxy cannot relay it.",
+        "Enforce phishing-resistant MFA (FIDO2 or hardware security keys) for all privileged accounts and, where feasible, everyone \u2014 the credential is bound to the origin, so a proxy cannot relay it.",
         "Require number matching and display application and location context in every push approval, which removes the blind Approve button that push fatigue depends on.",
         "Bind session tokens to a compliant, managed device via conditional access, so a stolen cookie is unusable from attacker infrastructure.",
         "Rate-limit approval prompts per sign-in attempt and alert on repeated denials, which is a reliable and specific indicator of an active push-fatigue attempt.",
         "Monitor for impossible travel, new-device sign-ins, and anomalous token use, since this attack yields a legitimate-looking authentication that only behavioural signals will surface.",
-        "Train staff on the specific instruction that an unexpected MFA prompt should be denied and reported, never approved to make it stop — and make reporting one tap, with no blame attached."
+        "Train staff on the specific instruction that an unexpected MFA prompt should be denied and reported, never approved to make it stop \u2014 and make reporting one tap, with no blame attached."
       ],
       "reference": {
         "standard": "Social Engineering - Credential Harvesting",
@@ -1983,12 +1888,7 @@
         "attachments": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     },
     {
       "id": "SOCIAL-021",
@@ -2002,7 +1902,7 @@
       "prerequisites": "Explicit written authorisation from an executive whose likeness or voice will be synthesised, obtained separately from general engagement authorisation, since this involves creating a synthetic representation of a real, identifiable person. A narrowly scoped target list and a defined financial or access request that will be halted before completion. Publicly available recordings of the impersonated executive (conference talks, earnings calls, interviews). Agreement on destruction of all synthetic media at engagement end, and a legal review, since synthetic likeness is regulated differently across jurisdictions.",
       "whatItIs": "Voice cloning now requires only seconds of reference audio, and real-time video synthesis is viable on consumer hardware. This removes the strongest instinctive authenticity check people have: recognising a familiar voice or face. A finance employee who would question an emailed wire request will often act on what appears to be a live call from their CFO, and the request arrives with the urgency and authority that made the pretext plausible in the first place. Real-world losses in the tens of millions have followed from single video calls with multiple synthetic participants.",
       "rootCause": "Approval processes are built around recognising a person rather than verifying a channel, and voice and face were historically expensive to forge convincingly. That assumption no longer holds, but the processes that depend on it have not been rewritten. Compounding this, executives publish large volumes of high-quality reference audio and video through entirely legitimate activity, so the raw material is freely available. Organisations also rarely define an out-of-band verification step for high-value requests, leaving 'it sounded like him' as the operative control.",
-      "impact": "The immediate impact is fraudulent payment or unauthorised access granted through a process that behaved exactly as designed, because the authorisation appeared to come from a recognised person. Beyond the direct loss, a successful synthetic impersonation undermines every voice-based verification the organisation relies on — help-desk identity checks, verbal payment approvals, and executive instructions — and there is no straightforward technical fix that restores them. Recovery of funds after a same-day wire transfer is rare, so prevention and process design carry essentially all of the weight.",
+      "impact": "The immediate impact is fraudulent payment or unauthorised access granted through a process that behaved exactly as designed, because the authorisation appeared to come from a recognised person. Beyond the direct loss, a successful synthetic impersonation undermines every voice-based verification the organisation relies on \u2014 help-desk identity checks, verbal payment approvals, and executive instructions \u2014 and there is no straightforward technical fix that restores them. Recovery of funds after a same-day wire transfer is rare, so prevention and process design carry essentially all of the weight.",
       "stepsToIdentify": [
         "Assess how much high-quality reference audio and video of key executives is publicly available, since that determines how convincing a synthetic impersonation could be and is itself a reportable exposure.",
         "Map every process where a verbal or video instruction alone can authorise a payment, a credential reset, or an access grant, and note which have a documented out-of-band verification step.",
@@ -2013,9 +1913,9 @@
       ],
       "exploitationSteps": [
         "Obtain separate written consent from the impersonated executive before generating any synthetic media, and confirm legal review has cleared the approach in the relevant jurisdiction.",
-        "Keep the synthetic content minimal and strictly scoped to the agreed scenario — enough to test the process, never enough to be reusable as a general-purpose artefact.",
+        "Keep the synthetic content minimal and strictly scoped to the agreed scenario \u2014 enough to test the process, never enough to be reusable as a general-purpose artefact.",
         "Halt the scenario at the decision point: the finding is whether the target was willing to proceed, so stop before any transfer is initiated or access is actually granted.",
-        "Record which verification step, if any, the target attempted, since that determines whether the finding is a process gap or a training gap — the remediations differ entirely.",
+        "Record which verification step, if any, the target attempted, since that determines whether the finding is a process gap or a training gap \u2014 the remediations differ entirely.",
         "Debrief the participant promptly and supportively, making explicit that convincing synthetic media defeats trained professionals routinely and that this is a process finding, not a personal failure.",
         "Destroy all synthetic audio, video and reference material at the end of the engagement and confirm destruction in writing to both the client and the impersonated executive."
       ],
@@ -2026,11 +1926,11 @@
         },
         {
           "label": "Urgency + confidentiality pretext framing",
-          "command": "I'm between sessions and can't email — we're closing the acquisition today and it must stay off the record until announced. I need you to action the transfer now."
+          "command": "I'm between sessions and can't email \u2014 we're closing the acquisition today and it must stay off the record until announced. I need you to action the transfer now."
         },
         {
           "label": "Authority + process-exception framing",
-          "command": "I know this skips the usual approval. I'm authorising it directly — treat this call as the approval and we'll document it afterwards."
+          "command": "I know this skips the usual approval. I'm authorising it directly \u2014 treat this call as the approval and we'll document it afterwards."
         },
         {
           "label": "Verification-resistance probe",
@@ -2052,7 +1952,7 @@
         "Hybrid delivery where a compromised or spoofed executive email account establishes the pretext first and the synthetic call arrives as the expected follow-up confirmation."
       ],
       "mitigation": [
-        "Require out-of-band verification for every high-value or unusual request, using a phone number already held in company records — never one supplied during the request itself.",
+        "Require out-of-band verification for every high-value or unusual request, using a phone number already held in company records \u2014 never one supplied during the request itself.",
         "Mandate dual authorisation above a defined threshold, so no single person can complete a payment regardless of how convincing the instruction was.",
         "Agree a verification challenge for executive requests and ensure staff know that using it is expected and welcomed rather than an accusation.",
         "Give staff explicit permission to pause and verify a request from any senior figure, and make clear in policy that no genuine executive will penalise them for it.",
@@ -2081,12 +1981,7 @@
         "attachments": [],
         "status": "not-tested"
       },
-      "flagged": false,
-      "icon": "🔬",
-      "tags": [
-        "test"
-      ],
-      "difficulty": "intermediate"
+      "flagged": false
     }
   ]
 }

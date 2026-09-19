@@ -346,25 +346,21 @@ function renderDetailInner(item){
   // Uses the same synchronous-click, no-observer collapse pattern as
   // the category sections, so it can't suffer the same "stuck until an
   // unrelated click" bug that pattern caused elsewhere.
-  const chapter = (key, title, bodyHtml, openByDefault, count) => {
-    const countLabel = count !== undefined ? `<span class="detail-chapter-count">${count} item${count !== 1 ? 's' : ''}</span>` : '';
-    return `
+  const chapter = (key, title, bodyHtml, openByDefault) => `
     <div class="detail-chapter ${openByDefault ? 'open' : ''}" data-chapter="${key}">
       <button class="detail-chapter-head" type="button" data-action="chapter-toggle" data-id="${item.id}">
         <span class="chev">${chevSvg()}</span>
         <span class="detail-chapter-title">${title}</span>
-        ${countLabel}
       </button>
       <div class="detail-chapter-body">
         <div class="detail-chapter-body-inner">${bodyHtml}</div>
       </div>
     </div>`;
-  };
 
   const overviewHtml = `
-    ${item.prerequisites ? `<div class="detail-section"><div class="sec-label">Prerequisites — what you need before starting</div><div class="detail-prereq"><span class="pill">NEED</span><span>${escapeHtml(item.prerequisites)}</span></div></div>` : ''}
+    ${item.prerequisites ? `<div class="detail-section"><div class="sec-label">Prerequisites — what you need before starting</div><div class="detail-prereq"><span class="pill">need</span><span>${escapeHtml(item.prerequisites)}</span></div></div>` : ''}
     <div class="detail-section"><div class="sec-label">What it is</div><div class="detail-desc">${escapeHtml(item.whatItIs)}</div></div>
-    <div class="detail-section"><div class="sec-label">Root cause</div><div class="detail-text" data-prefix="ROOT CAUSE">${escapeHtml(item.rootCause)}</div></div>
+    <div class="detail-section"><div class="sec-label">Root cause</div><div class="detail-text">${escapeHtml(item.rootCause)}</div></div>
     <div class="detail-section"><div class="sec-label">Impact</div><div class="detail-impact">${escapeHtml(item.impact)}</div></div>
   `;
   const testStepsHtml = `
@@ -387,11 +383,6 @@ function renderDetailInner(item){
     </div>
   `;
 
-  const sSteps = (item.stepsToIdentify||[]).length + (item.exploitationSteps||[]).length;
-  const sPayloads = (item.examplePayloads||[]).length;
-  const sVariants = (item.variants||[]).length;
-  const sMitigation = (item.mitigation||[]).length;
-
   return `
     <div class="detail-inner">
       <div class="detail-section">
@@ -409,9 +400,9 @@ function renderDetailInner(item){
       </div>
 
       ${chapter('overview', 'Overview — what it is, why it matters', overviewHtml, true)}
-      ${chapter('steps', 'Test Steps — identify &amp; exploit', testStepsHtml, false, sSteps)}
-      ${chapter('payloads', 'Payloads — ready-to-use commands', payloadsHtml, false, sPayloads)}
-      ${chapter('fixref', 'Variants, Mitigation &amp; Reference', fixRefHtml, false, sVariants + sMitigation)}
+      ${chapter('steps', 'Test Steps — identify &amp; exploit', testStepsHtml, false)}
+      ${chapter('payloads', 'Payloads — ready-to-use commands', payloadsHtml, false)}
+      ${chapter('fixref', 'Variants, Mitigation &amp; Reference', fixRefHtml, false)}
 
       <div class="detail-section">
         <div class="sec-label">Assessor Notes</div>
