@@ -6,8 +6,13 @@
 (function particles(){
   const canvas = document.getElementById('particleCanvas');
   if(!canvas || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const ctx = canvas.getContext('2d');
-  let w,h,pts, running = true;
+  /* getContext returns null when 2D canvas is unavailable (some hardened
+     browser configurations, headless contexts). Decoration is never worth a
+     TypeError inside an animation frame, so bail out rather than guard every
+     draw call below. */
+  const ctx = canvas.getContext && canvas.getContext('2d');
+  if(!ctx) return;
+  let w,h,pts, running = true, scheduled = false;
   function resize(){ w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
   function init(){
     resize();
@@ -17,7 +22,17 @@
       vx:(Math.random()-0.5)*0.22, vy:(Math.random()-0.5)*0.22, r:Math.random()*1.5+0.4,
     }));
   }
+  function schedule(){
+    /* One loop, ever. visibilitychange can fire more than once with the same
+       hidden value, and each extra rAF here would start a second self-
+       perpetuating loop that never ends — particles would silently speed up
+       every time the tab was backgrounded and restored. */
+    if(scheduled || !running) return;
+    scheduled = true;
+    requestAnimationFrame(tick);
+  }
   function tick(){
+    scheduled = false;
     if(!running) return;
     ctx.clearRect(0,0,w,h);
     ctx.fillStyle = 'rgba(47,140,255,0.3)';
@@ -33,24 +48,45 @@
         if(dist<100){ ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.stroke(); }
       }
     }
-    requestAnimationFrame(tick);
+    schedule();
   }
   document.addEventListener('visibilitychange', ()=>{
     running = !document.hidden;
-    if(running) requestAnimationFrame(tick);
+    schedule();
   });
   window.addEventListener('resize', resize);
-  init(); requestAnimationFrame(tick);
+  init(); schedule();
 })();
 
 /* =========================================================
    CONFETTI
 ========================================================= */
+let confettiRunning = false;
 function burstConfetti(){
   const canvas = document.getElementById('confettiCanvas'); if(!canvas) return;
-  const ctx = canvas.getContext('2d');
+  /* Honour reduced-motion the same way the particle background does. A full-
+     screen burst of moving objects is exactly what that setting exists to
+     suppress, and celebrating a milestone is not worth overriding it. */
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const ctx = canvas.getContext && canvas.getContext('2d');
+  if(!ctx) return;
+  /* Two badges can complete on the same action. Without this, each call runs
+     its own loop over the same canvas, and whichever finishes first clears
+     the frames of the one still running. */
+  if(confettiRunning) return;
+  confettiRunning = true;
   canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-  const colors = ['#2F8CFF','#FFB000','#2FD9FF','#FFD866','#FF3B3B'];
+  /* Read the product's own severity/accent tokens rather than restating hex
+     values here — a hardcoded copy is how the palette silently drifts. */
+  const cs = getComputedStyle(document.documentElement);
+  const token = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback;
+  const colors = [
+    token('--accent',   '#2F8CFF'),
+    token('--accent-2', '#FFB000'),
+    token('--info',     '#2FD9FF'),
+    token('--med',      '#FFD866'),
+    token('--crit',     '#FF4D4D'),
+  ];
   const pieces = Array.from({length:120}, ()=>({
     x: Math.random()*canvas.width, y: -20-Math.random()*canvas.height*0.3,
     vx:(Math.random()-0.5)*3, vy:2+Math.random()*4, size:4+Math.random()*5,
@@ -68,7 +104,8 @@ function burstConfetti(){
       ctx.fillStyle=p.color; ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6);
       ctx.restore();
     });
-    if(anyVisible && frame<380) requestAnimationFrame(tick); else ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(anyVisible && frame<380){ requestAnimationFrame(tick); }
+    else { ctx.clearRect(0,0,canvas.width,canvas.height); confettiRunning = false; }
   }
   requestAnimationFrame(tick);
 }

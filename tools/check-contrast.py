@@ -36,7 +36,7 @@ SURFACE_TOKENS = ['bg', 'surface-1', 'surface-2', 'surface-3', 'surface-4']
 # contrast requirement would force the whole palette lighter for no benefit.
 TEXT_TOKENS = [
     'text-bright', 'text', 'text-dim', 'text-faint',
-    'crit', 'high', 'med', 'low', 'info', 'fail', 'na',
+    'crit', 'high', 'med', 'low', 'info', 'fail', 'na', 'accepted',
     'accent', 'accent-2',
 ]
 

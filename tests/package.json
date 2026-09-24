@@ -1,0 +1,15 @@
+{
+  "name": "greysh3ll-tests",
+  "private": true,
+  "version": "1.9.3",
+  "description": "Regression suite for the GreySh3ll VAPT console",
+  "scripts": {
+    "test": "node run.js core.test.js storage_safe.test.js chunk.test.js import.test.js csp.test.js logic.test.js ui.test.js",
+    "audit": "node audit.js",
+    "responsive": "python3 responsive_check.py",
+    "fullcheck": "python3 full_check.py"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  }
+}

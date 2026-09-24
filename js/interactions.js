@@ -4,6 +4,7 @@
    EVENT BINDING
 ========================================================= */
 function bindResultEvents(root){
+  if(typeof applyCspStyles==="function") applyCspStyles(root);
   root.querySelectorAll('.cat-head').forEach(el=>{
     el.addEventListener('click', ()=>{
       const section = el.closest('.cat-section');
@@ -41,12 +42,18 @@ function bindResultEvents(root){
       const itemEl = root.querySelector(`.test-item[data-id="${CSS.escape(id)}"]`);
       if(!itemEl) return;
       const holder = itemEl.querySelector('.detail-panel');
+      /* aria-expanded must track the real state, otherwise a screen reader
+         announces the opposite of what is on screen — worse than omitting it. */
+      const setExpanded = (v)=> itemEl.querySelectorAll('[data-action="expand"][aria-expanded]')
+        .forEach(el=> el.setAttribute('aria-expanded', v ? 'true' : 'false'));
       if(state.expanded.has(id)){
         state.expanded.delete(id);
         itemEl.classList.remove('expanded');
+        setExpanded(false);
       } else {
         state.expanded.add(id);
         itemEl.classList.add('expanded');
+        setExpanded(true);
         if(!holder.innerHTML){
           /* Detail fields are fetched per domain on first use. Expand
              immediately with a placeholder so the panel feels responsive,
@@ -209,6 +216,9 @@ function bindAttachmentEvents(root){
       const idx = parseInt(btn.dataset.idx, 10);
       const item = allData.find(d=>d.id===id);
       if(!item || !item.assessorNotes.attachments) return;
+      /* Evidence screenshots are often the only copy the assessor holds —
+         they are compressed into localStorage, not stored as files. */
+      if(!confirm('Remove this evidence screenshot? It is not stored anywhere else and cannot be recovered.')) return;
       item.assessorNotes.attachments.splice(idx, 1);
       detailCache.delete(id);
       const grid = document.querySelector(`[data-role="attachment-grid-${CSS.escape(id)}"]`);
@@ -306,7 +316,7 @@ function toggleFlag(id){
 }
 
 function persist(){ saveProgress(); updateGamification(); }
-function renderAll(){ renderProfileBar(); renderSidebar(); renderResults(); renderXpBar(); }
+function renderAll(){ renderProfileBar(); renderSidebar(); renderResults(); renderXpBar(); if(typeof applyCspStyles==='function') applyCspStyles(); }
 
 /* =========================================================
    IN-PLACE ITEM UPDATE
@@ -363,7 +373,7 @@ function refreshCategoryHeader(domainCode){
   const na = items.filter(i=>i.status==='not-applicable').length;
   const sevSegs = SEVERITIES.map(s=>{
     const n = items.filter(i=>i.severity===s.key).length;
-    if(!n) return ''; return `<div style="width:${(n/total*100)}%; background:${s.color}"></div>`;
+    if(!n) return ''; return `<div class="csp-w csp-sevbar" data-pct="${(n/total*100)}" data-sev="${s.key}"></div>`;
   }).join('');
   const nextItem = items.find(i => i.status === 'not-tested');
   const nextHint = nextItem
@@ -374,7 +384,7 @@ function refreshCategoryHeader(domainCode){
   const catCount = section.querySelector('.cat-count');
   const nextBar = section.querySelector('.cat-next-bar');
   if(miniStack) miniStack.innerHTML = sevSegs;
-  if(catCount) catCount.innerHTML = `${pass}/${total} ${fail?`<span style="color:var(--fail)">${fail}f</span>`:''} ${na?`<span style="color:var(--na)">${na}na</span>`:''}`;
+  if(catCount) catCount.innerHTML = `${pass}/${total} ${fail?`<span class="u-fail">${fail}f</span>`:''} ${na?`<span class="u-na">${na}na</span>`:''}`;
   if(nextBar) nextBar.innerHTML = nextHint ? svgIcon('skipforward') + ' ' + nextHint : '';
 }
 
@@ -410,7 +420,7 @@ function renderResults(){
     const na = items.filter(i=>i.status==='not-applicable').length;
     const sevSegs = SEVERITIES.map(s=>{
       const n = items.filter(i=>i.severity===s.key).length;
-      if(!n) return ''; return `<div style="width:${(n/total*100)}%; background:${s.color}"></div>`;
+      if(!n) return ''; return `<div class="csp-w csp-sevbar" data-pct="${(n/total*100)}" data-sev="${s.key}"></div>`;
     }).join('');
 
     const nextItem = items.find(i => i.status === 'not-tested');
@@ -423,8 +433,14 @@ function renderResults(){
     // difference between instantly rendering a header and building
     // ~150 DOM nodes nobody can even see yet. It's rendered lazily the
     // first time the section is actually expanded (see bindResultEvents).
+    /* Expanded sections are NOT built inline here either. Doing so bypassed
+       the chunking entirely on every path that re-renders with sections
+       already open — "Expand all" (all 524 rows in one blocking pass) and
+       boot's dashboard-search path (every matching domain pre-expanded).
+       The body is left empty and marked unrendered for both cases; the
+       expanded ones are then filled by ensureCategoryBodyRendered() below,
+       which chunks at CATEGORY_CHUNK_SIZE and installs the sentinel. */
     const isCollapsed = state.collapsed.has(c.code);
-    const bodyHtml = isCollapsed ? '' : items.map(item=>renderItemSummary(item)).join('');
 
     html += `<div class="cat-section ${isCollapsed?'collapsed':''}" data-cat="${c.code}" data-catidx="${catIdx}">
       <div class="cat-head">
@@ -434,32 +450,127 @@ function renderResults(){
           <div class="desc">${escapeHtml(c.desc)}</div>
         </div>
         <div class="mini-stack">${sevSegs}</div>
-        <div class="cat-count">${pass}/${total} ${fail?`<span style="color:var(--fail)">${fail}f</span>`:''} ${na?`<span style="color:var(--na)">${na}na</span>`:''}</div>
+        <div class="cat-count">${pass}/${total} ${fail?`<span class="u-fail">${fail}f</span>`:''} ${na?`<span class="u-na">${na}na</span>`:''}</div>
       </div>
       <div class="cat-next-bar">${nextHint ? svgIcon('skipforward') + ' ' + nextHint : ''}</div>
       <div class="cat-body">
-        <div class="cat-body-inner" data-rendered="${isCollapsed ? '0' : '1'}">
-          ${isCollapsed ? '' : renderDomainPrimer(c.code)}
-          ${bodyHtml}
-        </div>
+        <div class="cat-body-inner" data-rendered="0"></div>
       </div>
     </div>`;
   });
 
   resultsEl.innerHTML = html;
   bindResultEvents(resultsEl);
+
+  /* Fill the sections that are open. Each one goes through the chunked
+     renderer, so an expanded NET (150) or a full "Expand all" (524) costs
+     one 30-row pass per section up front instead of one long blocking task,
+     with the rest streaming in behind an IntersectionObserver sentinel. */
+  resultsEl.querySelectorAll('.cat-section:not(.collapsed)').forEach(sec => ensureCategoryBodyRendered(sec));
 }
 
 /* Builds and inserts a collapsed section's item rows the first time it's
    actually expanded, then marks it rendered so later toggles are free. */
+/* Guarantees the row for `id` actually exists in the DOM, then returns it.
+   Three things can hide a row: its section is collapsed, its section body has
+   not been rendered yet, or chunked rendering has not reached it. Any caller
+   that wants to scroll to or focus a specific case must go through here —
+   otherwise the jump silently does nothing, which reads as a broken feature
+   rather than a missing row. */
+function ensureItemRendered(id){
+  const item = allData.find(d => d.id === id);
+  if(!item) return null;
+
+  // Expand the owning section so its body is rendered at all.
+  state.collapsed.delete(item.domain);
+  const section = document.querySelector(`.cat-section[data-cat="${CSS.escape(item.domain)}"]`);
+  if(!section) return null;
+  section.classList.remove('collapsed');
+  ensureCategoryBodyRendered(section);
+
+  let el = section.querySelector(`.test-item[data-id="${CSS.escape(id)}"]`);
+  if(el) return el;
+
+  /* Still absent means chunked rendering has not reached it. Flush the
+     remaining chunks rather than waiting for a scroll that may never happen,
+     since the user explicitly asked to go to this case. */
+  const inner = section.querySelector('.cat-body-inner');
+  const sentinel = inner && inner.querySelector('.cat-chunk-sentinel');
+  if(sentinel && typeof inner._flushChunks === 'function'){
+    inner._flushChunks();
+    el = section.querySelector(`.test-item[data-id="${CSS.escape(id)}"]`);
+  }
+  return el || null;
+}
+
+/* Rows rendered in the first pass when a section is expanded. Sized so the
+   initial paint covers roughly two screens on a laptop — enough that the list
+   never looks truncated, while keeping the blocking work small. NET (150) and
+   WEB (146) previously built every row in a single synchronous pass, which is
+   a long task on a mid-range phone and shows up as a stall on tap. */
+const CATEGORY_CHUNK_SIZE = 30;
+
 function ensureCategoryBodyRendered(section){
   const inner = section.querySelector('.cat-body-inner');
   if(!inner || inner.dataset.rendered === '1') return;
   const code = section.dataset.cat;
   const items = sortItems(allData.filter(d => d.domain === code && matchesFilters(d)), state.sort);
-  inner.innerHTML = renderDomainPrimer(code) + items.map(item => renderItemSummary(item)).join('');
+
+  // Small sections render in one pass — chunking them would add machinery
+  // for no benefit and a visible sentinel for no reason.
+  if(items.length <= CATEGORY_CHUNK_SIZE){
+    inner.innerHTML = renderDomainPrimer(code) + items.map(renderItemSummary).join('');
+    inner.dataset.rendered = '1';
+    bindResultEvents(inner);
+    return;
+  }
+
+  inner.innerHTML = renderDomainPrimer(code)
+    + items.slice(0, CATEGORY_CHUNK_SIZE).map(renderItemSummary).join('')
+    + `<div class="cat-chunk-sentinel" aria-hidden="true"></div>`;
   inner.dataset.rendered = '1';
   bindResultEvents(inner);
+
+  let cursor = CATEGORY_CHUNK_SIZE;
+  const sentinel = inner.querySelector('.cat-chunk-sentinel');
+
+  const renderNextChunk = () => {
+    const slice = items.slice(cursor, cursor + CATEGORY_CHUNK_SIZE);
+    if(!slice.length) return true;   // done
+    const frag = document.createElement('div');
+    frag.innerHTML = slice.map(renderItemSummary).join('');
+    const added = Array.from(frag.children);
+    added.forEach(el => sentinel.parentNode.insertBefore(el, sentinel));
+    added.forEach(el => bindResultEvents(el));
+    cursor += slice.length;
+    return cursor >= items.length;
+  };
+
+  /* Exposed so ensureItemRendered() can force the remaining rows into the DOM
+     when the user jumps directly to a case further down the list. */
+  inner._flushChunks = () => {
+    while(!renderNextChunk()){ /* keep going until every row exists */ }
+    if(sentinel && sentinel.parentNode) sentinel.remove();
+    inner._flushChunks = null;
+  };
+
+  /* IntersectionObserver is the right tool here, but it is not guaranteed —
+     if it is unavailable, render everything immediately rather than leaving
+     the user with a list that silently stops partway. Correctness first. */
+  if(typeof IntersectionObserver !== 'function'){
+    inner._flushChunks();
+    return;
+  }
+
+  const io = new IntersectionObserver((entries)=>{
+    if(!entries.some(e => e.isIntersecting)) return;
+    if(renderNextChunk()){
+      io.disconnect();
+      if(sentinel && sentinel.parentNode) sentinel.remove();
+      inner._flushChunks = null;
+    }
+  }, { root: null, rootMargin: '400px 0px' });   // start early so it feels seamless
+  io.observe(sentinel);
 }
 
 /* =========================================================
@@ -522,13 +633,13 @@ function setSidebarRail(collapsed){
     btn.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
     btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
   }
-  try{ localStorage.setItem(SIDEBAR_RAIL_KEY, collapsed ? '1' : '0'); }catch(e){}
+  safeStoragePref(SIDEBAR_RAIL_KEY, collapsed ? '1' : '0');
 }
 (function initSidebarRail(){
   const btn = document.getElementById('sidebarCollapseBtn');
   if(!btn) return;
   let saved = null;
-  try{ saved = localStorage.getItem(SIDEBAR_RAIL_KEY); }catch(e){}
+  saved = safeStorageGet(SIDEBAR_RAIL_KEY);
   // Collapsed by default on first visit — expand explicitly to see full labels.
   setSidebarRail(saved === null ? true : saved === '1');
   btn.addEventListener('click', ()=>{
@@ -544,7 +655,7 @@ function applyTheme(theme){
   document.documentElement.setAttribute('data-theme', theme);
   const btn = document.getElementById('themeToggle');
   if(btn) btn.innerHTML = theme === 'light' ? svgIcon('sun') : svgIcon('moon');
-  try{ localStorage.setItem(THEME_KEY, theme); }catch(e){}
+  safeStoragePref(THEME_KEY, theme);
 }
 document.getElementById('themeToggle').addEventListener('click', ()=>{
   const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
@@ -552,7 +663,7 @@ document.getElementById('themeToggle').addEventListener('click', ()=>{
 });
 (function initTheme(){
   let saved = null;
-  try{ saved = localStorage.getItem(THEME_KEY); }catch(e){}
+  saved = safeStorageGet(THEME_KEY);
   applyTheme(saved || 'dark');
 })();
 
@@ -602,7 +713,9 @@ document.getElementById('fabNext').addEventListener('click', ()=>{
   state.expanded.add(next.id);
   renderAll();
   requestAnimationFrame(()=>{
-    const el = document.querySelector(`.test-item[data-id="${CSS.escape(next.id)}"]`);
+    // Same reason as the palette jump: the next case may sit beyond the
+    // first rendered chunk, so force it into the DOM before scrolling.
+    const el = ensureItemRendered(next.id);
     if(el){
       el.scrollIntoView({behavior:'smooth', block:'center'});
       el.classList.add('highlight-next');

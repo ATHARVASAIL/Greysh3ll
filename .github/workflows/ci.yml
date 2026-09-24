@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        working-directory: tests
+        run: npm install --no-audit --no-fund
+
+      - name: Regression suite
+        working-directory: tests
+        run: npm test
+
+      - name: End-to-end audit
+        working-directory: tests
+        run: npm run audit
+
+      - name: Colour contrast gate
+        run: python3 tools/check-contrast.py
+
+      - name: Browser layout check
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+          cd tests && python3 full_check.py
+
+      - name: Generated data is current
+        run: |
+          python3 tools/build-data.py
+          if ! git diff --quiet -- data/; then
+            echo "::error::data/index.json, data/toolkit.json or data/detail/ is"
+            echo "::error::out of date — run: python3 tools/build-data.py"
+            git --no-pager diff --stat -- data/
+            exit 1
+          fi
+
+      - name: Case counts match the data
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+          total = len(json.load(open('data/index.json'))['items'])
+          # Anchored to the phrasings actually used, rather than any number
+          # near the word "cases" — a loose pattern matched CSS values and
+          # produced false failures.
+          patterns = [
+              r'\b(\d{3,4})\s+(?:VAPT\s+)?test\s+cases?\b',
+              r'\b(\d{3,4})-case\b',
+              r'\bTest\s+1\s*/\s*(\d{3,4})\b',
+              r'\b0\s*/\s*(\d{3,4})\b',
+          ]
+          bad = []
+          for path in ('README.md', 'index.html', 'assessment.html'):
+              text = open(path, encoding='utf-8').read()
+              for pat in patterns:
+                  for n in set(re.findall(pat, text)):
+                      if int(n) != total:
+                          bad.append(f'{path}: found {n} where the data says {total}')
+          if bad:
+              print('\n'.join(sorted(set(bad)))); sys.exit(1)
+          print(f'case count consistent at {total}')
+          PY

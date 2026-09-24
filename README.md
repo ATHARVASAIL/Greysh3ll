@@ -1,17 +1,17 @@
 <div align="center">
 
-<img src="https://readme-typing-svg.demolab.com/?font=Fira+Code&size=32&pause=1200&color=2F8CFF&center=true&vCenter=true&width=650&lines=GreySh3ll;VAPT+Assessment+Console;524+Test+Cases+%C2%B7+10+Domains;Zero+Backend+%C2%B7+100%25+Client-Side" alt="GreySh3ll" />
+<img src="https://readme-typing-svg.demolab.com/?font=Fira+Code&size=32&pause=1200&color=2F8CFF&center=true&vCenter=true&width=650&lines=GreySh3ll;VAPT+Assessment+Console;577+Test+Cases+%C2%B7+10+Domains;Zero+Backend+%C2%B7+100%25+Client-Side" alt="GreySh3ll" />
 
 **A multi-page, offline-first penetration-testing checklist & assessment console.**
 
-[![Live Demo](https://img.shields.io/badge/%F0%9F%94%97_live_demo-atharvasail.github.io%2Fgreysh3ll-2f8cff?style=for-the-badge)](https://atharvasail.github.io/greysh3ll/)
+[![Live Demo](https://img.shields.io/badge/%F0%9F%94%97_live_demo-atharvasail.github.io%2FGreySh3ll-2f8cff?style=for-the-badge)](https://atharvasail.github.io/GreySh3ll/)
 
-[![Deploy Status](https://img.shields.io/github/actions/workflow/status/ATHARVASAIL/greysh3ll/deploy.yml?branch=main&label=deploy&logo=github&style=flat-square)](../../actions/workflows/deploy.yml)
+[![Deploy Status](https://img.shields.io/github/actions/workflow/status/ATHARVASAIL/GreySh3ll/deploy.yml?branch=main&label=deploy&logo=github&style=flat-square)](../../actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2f8cff.svg?style=flat-square)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.2-blueviolet?style=flat-square)](#-changelog)
 [![Backend](https://img.shields.io/badge/backend-none-informational?style=flat-square)](#)
 [![Stack](https://img.shields.io/badge/stack-HTML·CSS·vanilla_JS-2f8cff?style=flat-square)](#)
-[![Last Commit](https://img.shields.io/github/last-commit/ATHARVASAIL/greysh3ll?style=flat-square&color=2f8cff)](../../commits/main)
+[![Last Commit](https://img.shields.io/github/last-commit/ATHARVASAIL/GreySh3ll?style=flat-square&color=2f8cff)](../../commits/main)
 
 </div>
 
@@ -19,7 +19,7 @@
 
 <div align="center">
 
-**524 test cases · 10 domains · real payloads · zero backend**
+**577 test cases · 10 domains · real payloads · zero backend**
 
 </div>
 
@@ -37,12 +37,14 @@
   - [4. Search & Command Palette](#4-search--command-palette)
   - [5. Working a test case](#5-working-a-test-case)
   - [6. The Analyst Toolkit](#6-the-analyst-toolkit)
-  - [7. Progress, XP & badges](#7-progress-xp--badges)
-  - [8. Saving, exporting & reporting](#8-saving-exporting--reporting)
-  - [9. Themes & keyboard shortcuts](#9-themes--keyboard-shortcuts)
+  - [7. Remediation & retest tracking](#7-remediation--retest-tracking)
+  - [8. Progress, XP & badges](#8-progress-xp--badges)
+  - [9. Saving, exporting & reporting](#9-saving-exporting--reporting)
+  - [10. Themes & keyboard shortcuts](#10-themes--keyboard-shortcuts)
 - [Running It Locally](#-running-it-locally)
+- [Tests and Verification](#-tests-and-verification)
 - [Project Layout](#-project-layout)
-- [Editing Test-Case Data](#️-editing-test-case-data)
+- [Editing Test-Case Data](#-editing-test-case-data)
 - [Changelog](#-changelog)
 - [Scope & Responsible Use](#-scope--responsible-use)
 - [License](#-license)
@@ -52,7 +54,7 @@
 ## 🧠 What is GreySh3ll
 
 **GreySh3ll** is a terminal-styled, gamified checklist for running
-structured penetration tests. It walks a tester through **524 test
+structured penetration tests. It walks a tester through **577 test
 cases across 10 domains** — in the order a real engagement actually
 runs: recon first, then application layers, then the human layer last.
 
@@ -80,18 +82,19 @@ progress, notes, and flags to your browser's `localStorage`.
 |:-:|---|:-:|---|
 | 01 | **NET** | 150 | Network & infrastructure recon, protocol, and configuration testing |
 | 02 | **WEB** | 146 | Web application — auth, access control, injection, business logic |
-| 03 | **API** | 35 | REST/GraphQL authorization & OWASP API Security Top 10 |
-| 04 | **LLM** | 10 | LLM/AI application security — OWASP Top 10 for LLM Apps (2025) |
-| 05 | **CLOUD** | 30 | Cloud IAM, storage, and container/orchestration misconfiguration |
-| 06 | **MOBILE** | 33 | iOS/Android local storage, binary protection, network communication |
-| 07 | **THICK** | 28 | Desktop/native client binaries, local storage, IPC |
-| 08 | **WIFI** | 26 | Wi-Fi & short-range RF layer attacks |
-| 09 | **SRC** | 35 | White-box source code review |
-| 10 | **SOCIAL** | 19 | Human-layer & physical security — phishing, vishing, BEC/invoice fraud, pretexting, physical access |
+| 03 | **API** | 41 | REST/GraphQL authorization & OWASP API Security Top 10 |
+| 04 | **LLM** | 24 | LLM/AI application security — OWASP Top 10 for LLM Apps (2025) |
+| 05 | **CLOUD** | 39 | Cloud IAM, storage, and container/orchestration misconfiguration |
+| 06 | **MOBILE** | 39 | iOS/Android local storage, binary protection, network communication |
+| 07 | **THICK** | 36 | Desktop/native client binaries, local storage, IPC |
+| 08 | **WIFI** | 33 | Wi-Fi & short-range RF layer attacks |
+| 09 | **SRC** | 41 | White-box source code review |
+| 10 | **SOCIAL** | 28 | Human-layer & physical security — phishing, vishing, BEC/invoice fraud, pretexting, physical access |
 
-> API, LLM, CLOUD, MOBILE, THICK, WIFI, SRC, and SOCIAL are actively
-> being expanded to close the gap with NET/WEB. SOCIAL was the first
-> pass (14 → 19); see the [Changelog](#-changelog).
+> Every domain has now had an expansion pass: LLM (16 → 24),
+> SOCIAL (21 → 28), WIFI (27 → 33), THICK (29 → 36), CLOUD (32 → 39),
+> MOBILE (33 → 39), API (35 → 41) and SRC (35 → 41). See the
+> [Changelog](#-changelog).
 
 ---
 
@@ -102,7 +105,7 @@ progress, notes, and flags to your browser's `localStorage`.
 <td width="50%" valign="top">
 
 **🎯 Assessment Mode**
-Walk all 524 cases one at a time, in engagement order, with a live
+Walk all 577 cases one at a time, in engagement order, with a live
 progress counter.
 
 **🔍 Command Palette & Dashboard Search**
@@ -160,11 +163,11 @@ GreySh3ll is two pages, not one long scroll:
 | Page | What it's for |
 |---|---|
 | **`index.html`** — Dashboard | Your identity, overall coverage, severity breakdown, and a card per domain. This is where you land and decide what to work on. |
-| **`assessment.html`** — Workspace | The actual full-screen checklist — search, filters, the 524 test cases, Assessment Mode, and every modal (Toolkit/Badges/Stats/Command Palette). |
+| **`assessment.html`** — Workspace | The actual full-screen checklist — search, filters, the 577 test cases, Assessment Mode, and every modal (Toolkit/Badges/Stats/Command Palette). |
 
 ### 1. The Dashboard
 
-Open the [live dashboard](https://atharvasail.github.io/greysh3ll/) (or
+Open the [live dashboard](https://atharvasail.github.io/GreySh3ll/) (or
 run it locally — see [below](#-running-it-locally)). On first load:
 
 1. Click **Edit** on the hero identity card to set your display name,
@@ -178,7 +181,7 @@ run it locally — see [below](#-running-it-locally)). On first load:
    you left off, or the **search box** to jump straight to a specific
    test case, or click any category card to open the Workspace
    pre-filtered to that domain (`assessment.html?domain=WEB`).
-4. Your progress starts at **0 / 524** — everything else is ready to go.
+4. Your progress starts at **0 / 577** — everything else is ready to go.
 
 ### 2. Assessment Mode
 
@@ -190,7 +193,7 @@ This is the recommended way to run a real engagement, from the Workspace:
 3. For each case, read the **prerequisites → identify → exploit →
    mitigate** flow, mark it **Pass / Fail / Not Applicable / Flagged**,
    and move to the next.
-4. The counter in the top bar (`Test X / 524`) tracks exactly where you
+4. The counter in the top bar (`Test X / 577`) tracks exactly where you
    are — close the tab and come back later, your position is saved.
 
 ### 3. Browsing & filtering the checklist
@@ -253,12 +256,12 @@ leaving the app:
 - **OSCP-style Drills** — short practice scenarios to sharpen specific
   techniques between real engagements.
 - **Scan Import** — paste raw Nmap/Nuclei/Burp output; it's parsed and
-  matched against the 524 test cases by port/service and finding-name
+  matched against the 577 test cases by port/service and finding-name
   keywords, ranked by confidence, with a one-click "Add as evidence."
 - **Attack Chains** — link findings that chain together ("A enables
   B"), with multi-hop sequences auto-grouped for the report.
 - **Custom Cases** — add your own test cases alongside the built-in
-  524, scoped to the current engagement.
+  577, scoped to the current engagement.
 
 ### 7. Remediation & retest tracking
 
@@ -284,7 +287,7 @@ a streak. Open **Badges** in the top bar to see:
 This is designed to make long, repetitive assessments — hundreds of
 checks across ten domains — noticeably less tedious.
 
-### 8. Saving, exporting & reporting
+### 9. Saving, exporting & reporting
 
 - **Save** (top bar) — exports your entire progress state (statuses,
   notes, flags, identity) as a JSON file. Reload it anytime via
@@ -301,7 +304,7 @@ checks across ten domains — noticeably less tedious.
 > Nothing is ever sent anywhere. Export/import is local file I/O only —
 > there is no server component to leak data to.
 
-### 9. Themes & keyboard shortcuts
+### 10. Themes & keyboard shortcuts
 
 - Toggle **light/dark** via the sun/moon icon in the top bar (works the
   same on both pages, and stays in sync between them).
@@ -325,6 +328,50 @@ python3 -m http.server 8000
 Any static file server works equally well — `npx serve`, VS Code's Live
 Server extension, etc. No dependencies, no build step, no `npm install`.
 
+### The one external request
+
+Everything the app needs is in this repository, with a single exception:
+both pages request the JetBrains Mono and Fira Code webfonts from Google
+Fonts. That means one outbound request per visitor, and Google sees the
+requesting IP address.
+
+The app is fully functional without it — every font stack declares a
+`monospace` fallback, so a blocked or offline load changes the typeface
+and nothing else. But "no telemetry" deserves the caveat, and if you are
+deploying this somewhere the request matters, self-host the two fonts and
+drop `fonts.googleapis.com` from the `style-src` and `font-src`
+directives in both pages' Content-Security-Policy.
+
+---
+
+## ✅ Tests and Verification
+
+```bash
+cd tests && npm install
+npm test          # 118 tests across seven suites
+npm run audit     # end-to-end driver over both real pages
+npm run responsive  # real-browser layout check, 6 viewports
+npm run fullcheck   # exhaustive: 18 viewports x every feature
+cd .. && python3 tools/check-contrast.py   # WCAG AA gate
+```
+
+`npm test` and `npm run audit` need only Node and jsdom. The two browser
+checks need `pip install playwright && playwright install chromium`.
+`npm run responsive` is the quick six-viewport pass; `npm run fullcheck`
+is the exhaustive one — 18 viewports from a 320px phone to a 1920px
+desktop, including phone landscape and the WCAG 1.4.10 reflow condition,
+driving every feature at each one: dashboard search, theme, sidebar, all
+status filters, search, sort, expanding the two largest domains, case
+detail, expand-all, the command palette, assessment mode, stats, and all
+eight toolkit tabs. At every step it checks for horizontal overflow
+(naming the offending element), text clipped with no ellipsis or scroll,
+overlays that do not fit the viewport, controls below 44px on coarse
+pointers, and console errors. It runs in batches
+(`python3 full_check.py <start> <end>`) so a long sweep is resumable. All of this runs on every push via `.github/workflows/ci.yml`,
+which additionally fails the build if the generated data in `data/` is out
+of date or if the case count in the README or the pages disagrees with the
+data.
+
 ---
 
 ## 📁 Project Layout
@@ -334,7 +381,7 @@ Server extension, etc. No dependencies, no build step, no `npm install`.
 
 ```
 index.html                     Dashboard — identity, coverage, category cards
-assessment.html                Workspace — full-screen checklist, all 524 cases
+assessment.html                Workspace — full-screen checklist, all 577 cases
 
 css/
   base.css                     design tokens (:root), reset, base type
@@ -428,6 +475,143 @@ ones: 6 identification steps, 6 exploitation steps, 6 labeled payloads,
 
 ## 📋 Changelog
 
+- **v1.9.3 — exhaustive responsive verification.** A new
+  `tests/full_check.py` drives 18 viewports x every feature and found a
+  further set of undersized touch targets that the six-viewport pass had
+  missed, because it did not cover text inputs, the toolkit tab strip or
+  overlay close buttons. The command palette input was **16px tall** and
+  the dashboard search 33px; the toolkit tabs and CVSS metric buttons were
+  29-30px; overlay close buttons were 32px; row checkboxes were 19px. All
+  now meet 44px, except the row checkbox which is raised to the WCAG 2.5.8
+  floor of 24px since the whole row is already the target — a 44px box
+  would dominate a dense list. Result across all 18 viewports: no
+  horizontal overflow, no clipped text, every overlay fits, and no console
+  errors. The checker now clicks the real toolkit tab buttons rather than
+  calling the renderer directly, and asserts the tab strip stays in sync
+  with the pane.
+
+- **v1.9.2 — social preview metadata.** Both pages carry `og:url`,
+  `og:image`, image dimensions and a `twitter:card` so a shared link
+  renders a preview card instead of a bare URL. The banner is committed as
+  `assets/og-banner.png` rather than left as a build artefact, because a
+  social preview needs a real resolvable URL; `.gitignore` exempts it
+  explicitly. Removed an empty `assets/` directory left over from an
+  earlier layout, and cleared stale duplicate copies of the promo text.
+
+- **v1.9.1 — project URL now uses the capitalised `GreySh3ll` path.**
+  Links, badges and the promo assets point at
+  `atharvasail.github.io/GreySh3ll`. The `vapt_console_*` localStorage
+  keys are unchanged, so saved engagements are unaffected. Casing is
+  applied by context rather than uniformly: URL paths use `GreySh3ll`,
+  README heading anchors stay lowercase because GitHub always lowercases
+  slugs, and generated filenames (`greysh3ll-progress-*.json`,
+  `greysh3ll-findings-*.csv`) stay lowercase to avoid case-sensitivity
+  surprises. The promo wordmark is emitted as two tspans (`GreySh` +
+  `3ll`) so the suffix can carry the accent colour; that split is now
+  commented, because a whole-name search does not match either half.
+
+- **v1.9 — pre-launch verification and repository readiness.** Added a
+  real-browser responsive check (`tests/responsive_check.py`) driving
+  headless Chromium through six viewports from 320px to 1440px. It closes
+  the gap jsdom structurally could not: jsdom performs no layout, so it
+  could never confirm the visual fixes from v1.5. Result: **no horizontal
+  overflow at any viewport**, and the severity dots that rendered as
+  invisible transparent circles before v1.5 are confirmed coloured. It also
+  found a genuine accessibility problem the code-level checks missed —
+  there was no `pointer: coarse` handling at all, leaving the theme toggle
+  18px wide and the per-row flag and expand buttons at 24-25px. Touch
+  targets now meet 44px on coarse pointers, with full-width rows held to a
+  comfortable 36px. Repository scaffolding added: `.gitignore`,
+  `.nojekyll`, `SECURITY.md`, `CONTRIBUTING.md`, and a CI workflow that
+  runs the suite, the audit and the contrast gate, and fails if generated
+  data is stale or the case counts drift from the data. Fixed two broken
+  README anchors and a section-numbering drift that left two sections both
+  numbered 8. Documented the single external request the app makes.
+
+- **v1.8.1 — promo assets regenerated; builder no longer restates counts.**
+  `tools/build-promo.py` now reads domain counts and the case total from
+  `data/index.json` rather than holding its own copy, which is how they
+  went three versions stale. The severity colour per domain stays in the
+  script (it is a presentation choice); the numbers are derived, and the
+  script exits with an error if a new domain appears with no colour
+  mapping. Paths are now relative to the repository with `GS_APP` and
+  `GS_PROMO_OUT` overrides, so it runs outside the original sandbox.
+
+- **v1.8 — API, MOBILE and SRC expansion; every domain now covered (577
+  cases).** API grew 35 → 41 with gRPC service exposure and per-method
+  authorization gaps, inbound webhook signature verification, token
+  audience and scope validation at the resource server, unbounded
+  pagination and bulk export abuse, batch endpoint authorization bypass,
+  and missing authorization on WebSocket and SSE channels. MOBILE grew
+  33 → 39 with backend-as-a-service security rules, absent device
+  attestation, OAuth redirect handling, content provider injection,
+  sensitive data retained in memory, and keyboard/autofill caching. SRC
+  grew 35 → 41 with CI/CD workflow injection, dependency confusion and
+  lockfile integrity, secrets in version control history, prototype
+  pollution, disabled TLS certificate validation, and missing tenant
+  predicates in multi-tenant queries. This completes the expansion
+  programme: all ten domains have now had a pass.
+
+- **v1.7 — THICK and CLOUD expansion (577 cases).** THICK grew 29 → 36
+  with custom URI protocol handler argument injection, exposed localhost
+  HTTP API surface, OAuth/SSO token cache handling, installer repair-mode
+  privilege escalation, unsigned plugin and add-in loading, telemetry and
+  third-party SDK data exfiltration, and multi-user shared workstation
+  exposure. CLOUD grew 32 → 39 with public exposure via resource-based
+  policies on non-storage services, backup and snapshot ransomware
+  resilience, over-permissive Kubernetes RBAC, Kubernetes secret storage
+  and distribution, audit logging gaps and mutable trail configuration,
+  container registry exposure and unsigned image deployment, and workforce
+  identity federation trust misconfiguration. Seven of the ten domains have
+  now had an expansion pass.
+
+- **v1.6 — SOCIAL and WIFI expansion (577 cases).** SOCIAL grew 21 → 28
+  with callback phishing (telephone-oriented attack delivery), malicious
+  OAuth consent phishing, browser-in-the-browser fake SSO windows,
+  typosquatted domain and watering hole targeting, SIM swap against staff
+  authentication, collaboration-platform phishing via external federation,
+  and insider recruitment susceptibility. WIFI grew 27 → 33 with WPA3
+  transition-mode downgrade, OWE transition abuse, guest-to-corporate
+  segmentation failure, unauthorised tethering and ad-hoc bridging,
+  Wi-Fi Easy Connect (DPP) onboarding weaknesses, and IoT SoftAP
+  provisioning exposure. WIFI now exceeds the chunk size, so it renders
+  behind a sentinel like the other large domains — the chunk test now
+  derives that count from the data instead of hardcoding it.
+
+- **v1.5 — full end-to-end audit, eight new LLM/AI cases (577 total).**
+  An audit that drives both pages through every user flow found a set of
+  defects that all rendered without throwing. The **Coverage tab was
+  entirely broken** by a reference to an undefined variable, so it threw on
+  every open. **Fourteen elements carried two `class` attributes**, which
+  HTML silently discards — severity dots rendered as invisible circles, the
+  report preview lost its scroll bound, the CVSS score lost its severity
+  colour, and several spacing utilities never applied. Three more duplicates
+  in the pages themselves left the domain-context panel visible on load and
+  broke the dashboard topbar layout. Remediation counts were styled with
+  `data-sev` when remediation has its own `data-rem` scale, so they rendered
+  uncoloured. Canvas code now tolerates a null 2D context, confetti honours
+  `prefers-reduced-motion` and is re-entrant safe, and the particle loop can
+  no longer double-start on repeated `visibilitychange` events. Colour
+  constants that had drifted from the tokens were removed, and the
+  risk-accepted purple is now a checked `--accepted` token. The LLM/AI
+  domain grew from 16 to 24 cases covering MCP tool-description poisoning,
+  multimodal injection, persistent memory poisoning, training-data
+  extraction, confused-deputy tool authorisation, agent-fetch SSRF, model
+  extraction, and agent traceability gaps. Tests: 84 → 118, plus an
+  `npm run audit` end-to-end driver.
+
+- **v1.4 — chunking correctness, a shipped test suite, and copy polish.**
+  `renderResults()` no longer builds rows inline for already-expanded
+  sections, so "Expand all" and the dashboard-search entry path go through
+  chunked rendering instead of one 577-row blocking pass. The regression
+  suite is now part of the repo at `tests/` (84 tests, jsdom-backed) rather
+  than living only in a scratch directory. The report tab reports its own
+  progress — "Loading full test case detail — about 2.5 MB", with a live
+  "N of 10 domains loaded" counter in an `aria-live` region — instead of a
+  bare "Loading…" that reads as a hang. WEB-011 and API-034 prerequisites
+  rewritten from single run-on sentences; placeholder copy made consistent
+  (`https://…`, not `https://...`), with a test that keeps it that way.
+
 - **Scan-output ingestion, attack chains, custom test cases, and
   evidence attachments.** Toolkit now has three new tabs: **Scan
   Import** parses pasted Nmap (XML/greppable/text), Nuclei (JSON
@@ -437,7 +621,7 @@ ones: 6 identification steps, 6 exploitation steps, 6 labeled payloads,
   enables B") and auto-groups multi-hop links into sequences, included
   as their own section in the PDF report; **Custom Cases** lets you
   add client-specific or emerging techniques alongside the built-in
-  524, scoped per engagement and included in every export. Assessor
+  577, scoped per engagement and included in every export. Assessor
   Notes also gained **Evidence Attachments** — screenshots are
   compressed client-side and embedded directly in the printed report.
   Nothing here leaves your browser; scan parsing and image processing
@@ -525,7 +709,7 @@ ones: 6 identification steps, 6 exploitation steps, 6 labeled payloads,
 - **Assessment Mode is now filter-aware** — if the Workspace is scoped
   to a domain (e.g. arriving via `assessment.html?domain=WEB`),
   Assessment Mode walks only that domain's cases in sequence, instead
-  of always cycling through all 524 regardless of context.
+  of always cycling through all 577 regardless of context.
 - Removed a **duplicate Assessment Mode entry point** — a floating
   action button did the exact same thing as the toolbar's "Start
   Assessment Mode" button; kept only the toolbar one plus the
@@ -561,7 +745,7 @@ ones: 6 identification steps, 6 exploitation steps, 6 labeled payloads,
   leave freshly-rendered content unpainted until an unrelated click.
 - Status/flag/checkbox changes on a test case now patch just that item
   and its category header in place instead of re-rendering the entire
-  524-case list.
+  577-case list.
 - Fixed the Expand/Collapse-all toggle's label being out of sync with
   actual state, and a hero-card button that was rendering directly on
   top of another button at the same coordinates.
@@ -610,6 +794,115 @@ and looked fine on a desktop:
   returns to full opacity on scroll-stop, hover or focus, stays clickable while
   dimmed, and does not dim at all under `prefers-reduced-motion`.
 
+## Content quality standard
+
+All 577 cases are held to a measured standard rather than a subjective one:
+
+- **Technical completeness** — every case carries a CWE, reference links,
+  recommended tools, example payloads, identification steps, exploitation
+  steps and mitigations. Verified at 577/577 on each.
+- **Readability** — prose fields are checked for average sentence length.
+  Current figures: prerequisites 19.5 words/sentence, impact 21.5,
+  rootCause 29.1, whatItIs 29.9. No item in whatItIs, rootCause or impact
+  exceeds 50 words/sentence. Vocabulary sits at roughly 1.6-2.8% very-long
+  words across all fields.
+- **No duplication or padding** — checked by six-word-shingle similarity
+  across all cases, and by repeated-sentence detection within each field.
+
+Re-run these checks after editing content; the thresholds exist because
+"reads fine to the author" is not a reliable measure of whether a newcomer
+can follow it.
+
+## Accessibility
+
+Beyond colour contrast (below), the app was audited and fixed for:
+
+- **Status announcements** — the toast container is `role="status"`
+  `aria-live="polite"`, so save confirmations and, more importantly, storage
+  failures are announced rather than shown visually only.
+- **Labelled controls** — every input, select and textarea carries an
+  `aria-label` or placeholder.
+- **Expand state** — collapsible test cases expose `aria-expanded`, kept in
+  sync on toggle so it never announces the opposite of what is on screen.
+- **Destructive actions** — removing a custom test case, an attack chain link
+  or an evidence screenshot each require confirmation, and the prompt names
+  what is being lost.
+
+## Content-Security-Policy
+
+Both pages enforce a strict CSP with no `'unsafe-inline'`:
+
+```
+default-src 'self'; script-src 'self';
+style-src 'self' https://fonts.googleapis.com;
+font-src 'self' https://fonts.gstatic.com;
+img-src 'self' data:; connect-src 'self';
+object-src 'none'; base-uri 'none'; form-action 'none';
+```
+
+Dynamic colours (severity, test status, remediation state) use `data-sev`,
+`data-status` and `data-rem` attributes resolved by CSS custom property rules
+in `theme-extras.css`, not inline styles. Width bars and animation delays use
+`element.style.setProperty()` via `applyCspStyles()`, which is CSP-safe.
+
+The four remaining `style=` attributes all live inside the PDF report builder
+(`REPORT_SEV_COLOR`) which generates a printed document rather than a live page;
+CSS custom properties are not resolved in that context.
+
+**Do not add `style=` attributes to templates.** Add a `data-` attribute and
+a matching CSS rule instead.
+
+## Importing progress
+
+Import validates the file's shape before touching anything
+(`validateProgressPayload`). A file that parses as JSON but is not a GreySh3ll
+export is rejected with the reason, rather than importing nothing and reporting
+success. Before applying, a confirmation lists exactly what the file contains —
+statuses, notes, flags, custom cases, chain links — plus how many entries refer
+to test cases this build does not have and will be skipped. Import overwrites
+matching entries in the current engagement, so it asks first.
+
+## List rendering
+
+Domain sections start collapsed, so no rows are built until one is opened.
+Opening a large section (NET 150, WEB 146) then renders the first 30 rows and
+appends the rest in chunks via `IntersectionObserver` as you scroll — about an
+80% cut in initial blocking work on the biggest domains.
+
+`renderResults()` never builds item rows itself, for collapsed *or* expanded
+sections. It emits empty bodies marked `data-rendered="0"` and then calls
+`ensureCategoryBodyRendered()` on whichever sections are open. Building rows
+inline for open sections is what "Expand all" used to do, and it put all 577
+rows into one synchronous pass — the exact long task chunking exists to
+prevent, reached by a different route. Boot's dashboard-search path, which
+pre-expands every domain with a match, had the same problem.
+
+Anything that needs to scroll to a specific case must call
+`ensureItemRendered(id)` rather than querying the DOM directly. It expands the
+owning section, renders its body, and flushes remaining chunks so the target
+row is guaranteed to exist. Querying directly appears to work in testing and
+then silently fails for cases further down a long list.
+
+## Content Security Policy & inline styles
+
+`script-src` is `'self'` — the directive that prevents injected script from
+executing. `style-src` still permits `'unsafe-inline'`, a deliberate and
+documented decision: a small number of dynamic severity colours are emitted as
+inline styles. All static styles and every progress/width bar have been moved
+to utility classes and CSS custom properties applied via `applyCspStyles()`
+(a scripted property write, which CSP permits), cutting inline styles from 80 to
+~30. Removing `'unsafe-inline'` entirely requires converting the remaining
+dynamic-colour sites to classes and is tracked as follow-up work; doing it
+half-way would silently strip colours from the dashboard and toolkit.
+
+## Storage failure handling
+
+`localStorage` writes go through `safeStorageSet()`, which surfaces a single
+clear warning when a write fails — naming the data at risk and telling the user
+to export. Cosmetic preferences use `safeStoragePref()` and stay silent, so the
+real warning is never diluted by noise. There are no undocumented empty catch
+blocks in the codebase; the two intentional ones carry a comment explaining why.
+
 ## Accessibility: colour contrast
 
 Every text colour in the palette is verified against WCAG AA (4.5:1) on all five
@@ -626,13 +919,37 @@ It exits non-zero on failure, so it can gate a commit. Re-run it after touching
 the palette in `css/base.css` or the status colours in `js/storage.js` — the
 latter duplicate the tokens as hex and are checked too, since they drift.
 
+## Tests
+
+`tests/` holds an 84-test regression suite. It loads the real `js/*.js` into a
+jsdom window built from the real `assessment.html`, with `localStorage` and
+`fetch` replaced by controllable mocks, so it exercises the shipped code rather
+than a reimplementation of it.
+
+```bash
+cd tests && npm install && npm test
+```
+
+Five suites: `core` (data loading, toolkit bundle, scan ingestion, chains,
+remediation), `storage_safe` (quota detection and warn-once-then-re-arm),
+`chunk` (chunk arithmetic, sentinel lifecycle, `ensureItemRendered`, the
+Expand-all path), `import` (payload validation and application), and `csp`
+(policy, inline-style absence, `applyCspStyles`, placeholder copy). See
+`tests/README.md` for the harness hooks.
+
 ## Data build step
 
 The editable source of truth is `data/*.json` (one file per domain). The app
 does **not** read those directly at runtime — it reads two generated artifacts:
 
-- `data/index.json` — every test case with light fields only (~228 KB), fetched on startup
+- `data/index.json` — every test case with light fields only, fetched on startup
 - `data/detail/<domain>.json` — the heavy fields, fetched per domain on first use
+- `data/toolkit.json` — payloads plus a short description excerpt, used by the
+  payload cheat-sheet and drill tabs so they never pull the full detail set
+
+Peak memory by surface: startup ~236 KB · opening one domain ~907 KB · payload
+and drill tabs ~720 KB · building a report ~2.7 MB (it prints everything, so
+that one is unavoidable).
 
 After editing any source file, regenerate them:
 

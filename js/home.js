@@ -52,6 +52,7 @@ function renderDashboardStats(){
       ring.style.strokeDashoffset = (circumference * (1 - s.pct/100)).toFixed(1);
     });
   }
+  if(typeof applyCspStyles==="function") applyCspStyles();
 }
 
 function renderSeverityBreakdown(){
@@ -63,8 +64,8 @@ function renderSeverityBreakdown(){
     const done = items.filter(d=>d.status==='tested-pass').length;
     const pct = total ? Math.round(done/total*100) : 0;
     return `<div class="bar-row">
-      <span class="label" style="color:${sev.color}"><span class="sev-dot" style="background:${sev.color}"></span>${escapeHtml(sev.label)}</span>
-      <span class="track"><span class="fill" style="width:${pct}%; background:${sev.color};"></span></span>
+      <span class="label sev-text" data-sev="${sev.key}"><span class="sev-dot sev-badge" data-sev="${sev.key}"></span>${escapeHtml(sev.label)}</span>
+      <span class="track"><span class="fill csp-w csp-sevbar" data-pct="${pct}" data-sev="${sev.key}"></span></span>
       <span class="val">${done}/${total}</span>
     </div>`;
   }).join('');
@@ -98,7 +99,7 @@ function renderDomainCards(){
     const done = items.filter(d=>d.status==='tested-pass').length;
     const pct = total ? Math.round(done/total*100) : 0;
     const icon = DOMAIN_ICONS[c.code] || '<circle cx="12" cy="12" r="8"/>';
-    return `<a class="domain-card" href="assessment.html?domain=${encodeURIComponent(c.code)}" style="animation-delay:${Math.min(idx*35,300)}ms">
+    return `<a class="domain-card" href="assessment.html?domain=${encodeURIComponent(c.code)}" data-idx="${idx}">
       <div class="domain-card-head">
         <span class="domain-card-icn"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></span>
         <span class="domain-card-code">${idx+1}. ${escapeHtml(c.code)}</span>
@@ -106,7 +107,7 @@ function renderDomainCards(){
       </div>
       <div class="domain-card-name">${escapeHtml(c.name)}</div>
       <div class="domain-card-desc">${escapeHtml(c.desc)}</div>
-      <div class="domain-card-bar"><div class="domain-card-bar-fill" style="width:${pct}%"></div></div>
+      <div class="domain-card-bar"><div class="domain-card-bar-fill csp-w" data-pct="${pct}"></div></div>
       <div class="domain-card-foot">
         <span>${done}/${total} complete</span>
         <span class="domain-card-link">Assess
@@ -183,7 +184,7 @@ function setIdentityCollapsed(collapsed){
   const btn = document.getElementById('identityCollapseBtn');
   if(card) card.classList.toggle('identity-collapsed', collapsed);
   if(btn) btn.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
-  try{ localStorage.setItem(IDENTITY_COLLAPSED_KEY, collapsed ? '1' : '0'); }catch(e){}
+  safeStoragePref(IDENTITY_COLLAPSED_KEY, collapsed ? '1' : '0');
 }
 function initIdentityCollapse(){
   const btn = document.getElementById('identityCollapseBtn');
@@ -191,7 +192,7 @@ function initIdentityCollapse(){
   if(!btn) return;
 
   let savedPref = null;
-  try{ savedPref = localStorage.getItem(IDENTITY_COLLAPSED_KEY); }catch(e){}
+  savedPref = safeStorageGet(IDENTITY_COLLAPSED_KEY);
 
   if(savedPref !== null){
     setIdentityCollapsed(savedPref === '1');
@@ -227,11 +228,11 @@ function applyTheme(theme){
   document.documentElement.setAttribute('data-theme', theme);
   const btn = document.getElementById('themeToggle');
   if(btn) btn.innerHTML = theme === 'light' ? svgIcon('sun') : svgIcon('moon');
-  try{ localStorage.setItem(THEME_KEY, theme); }catch(e){}
+  safeStoragePref(THEME_KEY, theme);
 }
 (function initTheme(){
   let saved = null;
-  try{ saved = localStorage.getItem(THEME_KEY); }catch(e){}
+  saved = safeStorageGet(THEME_KEY);
   applyTheme(saved || 'dark');
 })();
 document.getElementById('themeToggle').addEventListener('click', ()=>{
@@ -277,7 +278,7 @@ loadAllData()
     console.error('GreySh3ll: failed to load test-case data', err);
     const bootLoader = document.getElementById('bootLoader');
     if(bootLoader){
-      bootLoader.innerHTML = '<span style="color:#FF5C5C">Failed to load test-case data from /data. '
+      bootLoader.innerHTML = '<span class="u-text-fail">Failed to load test-case data from /data. '
         + 'If you opened this file directly, serve the folder over HTTP (e.g. <code>python3 -m http.server</code>) '
         + 'and reload — browsers block fetch() on file:// URLs.</span>';
     }

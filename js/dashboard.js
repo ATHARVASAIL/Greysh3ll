@@ -141,10 +141,10 @@ function renderBadges(){
   const defs = allBadgeDefs();
   const unlockedCount = defs.filter(b=>prof.badges.includes(b.id)).length;
   body.innerHTML = `
-    <div class="stats-panel" style="margin-bottom:16px;">
+    <div class="stats-panel u-mb-16">
       <h4>Level ${lvl} · ${prof.xp} XP · ${svgIcon('flame')} ${prof.streak} day streak</h4>
-      <div class="bar-row"><span class="label">To level ${lvl+1}</span><div class="track"><div class="fill" style="width:${pct}%; background:var(--accent)"></div></div><span class="val">${pct}%</span></div>
-      <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-dim); margin-top:8px;">${unlockedCount}/${defs.length} badges unlocked for <b style="color:var(--text-bright)">${escapeHtml(prof.name)}</b></div>
+      <div class="bar-row"><span class="label">To level ${lvl+1}</span><div class="track"><div class="fill csp-w bar-accent" data-pct="${pct}"></div></div><span class="val">${pct}%</span></div>
+      <div class="u-note u-mt-8">${unlockedCount}/${defs.length} badges unlocked for <b class="u-bright">${escapeHtml(prof.name)}</b></div>
     </div>
     <div class="badge-grid">
       ${defs.map(b=>{
@@ -210,20 +210,20 @@ function openStats(){
   const sevHtml = SEVERITIES.map(s=>{
     const c = sevCounts[s.key];
     const pct = c.total ? Math.round(c.pass/c.total*100) : 0;
-    return `<div class="bar-row"><span class="label">${s.label}</span><div class="track"><div class="fill" style="width:${pct}%; background:${s.color}"></div></div><span class="val">${c.pass}/${c.total}</span></div>`;
+    return `<div class="bar-row"><span class="label">${s.label}</span><div class="track"><div class="fill csp-w csp-sevbar" data-pct="${pct}" data-sev="${s.key}"></div></div><span class="val">${c.pass}/${c.total}</span></div>`;
   }).join('');
 
   const catHtml = DOMAIN_META.map((c,i)=>{
     const cc = domainCounts[c.code];
     const pct = cc.total ? Math.round((cc.pass+cc.na)/cc.total*100) : 0;
-    return `<div class="bar-row"><span class="label">${i+1}. ${c.code}</span><div class="track"><div class="fill" style="width:${pct}%; background:var(--accent)"></div></div><span class="val">${pct}%</span></div>`;
+    return `<div class="bar-row"><span class="label">${i+1}. ${c.code}</span><div class="track"><div class="fill csp-w bar-accent" data-pct="${pct}"></div></div><span class="val">${pct}%</span></div>`;
   }).join('');
 
   const timeRows = DOMAIN_META.map((c,i)=>{
     const secs = (prof.timeSpent||{})[c.code] || 0;
     const maxSecs = Math.max(1, ...DOMAIN_META.map(cc=> (prof.timeSpent||{})[cc.code] || 0));
     const pct = Math.round(secs/maxSecs*100);
-    return `<div class="bar-row"><span class="label">${i+1}. ${c.code}</span><div class="track"><div class="fill" style="width:${pct}%; background:var(--accent-2)"></div></div><span class="val">${formatDuration(secs)}</span></div>`;
+    return `<div class="bar-row"><span class="label">${i+1}. ${c.code}</span><div class="track"><div class="fill csp-w bar-accent-2" data-pct="${pct}"></div></div><span class="val">${formatDuration(secs)}</span></div>`;
   }).join('');
 
   const stats = computeStats();
@@ -231,17 +231,17 @@ function openStats(){
     <div class="stats-panel"><h4>Coverage by severity</h4>${sevHtml}</div>
     <div class="stats-panel"><h4>Coverage by phase / category</h4>${catHtml}</div>
     <div class="stats-panel"><h4>Active testing time — ${escapeHtml(prof.name)}</h4>${timeRows}
-      <div style="margin-top:10px; font-family:var(--font-mono); font-size:11px; color:var(--text-dim);">Total logged: <b style="color:var(--text-bright)">${formatDuration(prof.totalSeconds||0)}</b></div>
+      <div class="u-note u-mt-10">Total logged: <b class="u-bright">${formatDuration(prof.totalSeconds||0)}</b></div>
     </div>
     <div class="stats-panel">
       <h4>Summary</h4>
-      <div style="display:flex; gap:24px; flex-wrap:wrap; font-family:var(--font-mono); font-size:12px; color:var(--text);">
-        <div><b style="color:var(--text-bright); font-size:20px; display:block;">${stats.total}</b>total</div>
-        <div><b style="color:var(--low); font-size:20px; display:block;">${stats.completed}</b>passed</div>
-        <div><b style="color:var(--med); font-size:20px; display:block;">${stats.inProgress}</b>in progress</div>
-        <div><b style="color:var(--fail); font-size:20px; display:block;">${stats.failed}</b>failed</div>
-        <div><b style="color:var(--na); font-size:20px; display:block;">${stats.na}</b>N/A</div>
-        <div><b style="color:var(--text-dim); font-size:20px; display:block;">${stats.remaining}</b>remaining</div>
+      <div class="u-legend-row">
+        <div><b class="u-text-bright-lg">${stats.total}</b>total</div>
+        <div><b class="u-text-low-lg">${stats.completed}</b>passed</div>
+        <div><b class="u-text-med-lg">${stats.inProgress}</b>in progress</div>
+        <div><b class="u-text-fail-lg">${stats.failed}</b>failed</div>
+        <div><b class="u-text-na-lg">${stats.na}</b>N/A</div>
+        <div><b class="u-text-dim-lg">${stats.remaining}</b>remaining</div>
       </div>
     </div>
   `;

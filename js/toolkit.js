@@ -54,13 +54,12 @@ function renderCvssVector(sel){
 function renderCvssTab(){
   const score = computeCvssScore(cvssSelection);
   const label = cvssSeverityLabel(score);
-  const sevColorMap = {None:'var(--text-dim)', Low:'var(--low)', Medium:'var(--med)', High:'var(--high)', Critical:'var(--crit)'};
   return `
     <div class="cvss-result">
-      <div class="cvss-score" style="color:${sevColorMap[label]}">${score.toFixed(1)}</div>
-      <div class="cvss-sevlabel" style="color:${sevColorMap[label]}">${label}</div>
-      <div style="margin-top:14px; font-family:var(--font-mono); font-size:11px; color:var(--text-dim); word-break:break-all;">${escapeHtml(renderCvssVector(cvssSelection))}</div>
-      <button class="btn" id="cvssCopyBtn" style="margin-top:12px;">Copy vector</button>
+      <div class="cvss-score sev-text" data-sev="${label.toLowerCase()}">${score.toFixed(1)}</div>
+      <div class="cvss-sevlabel sev-text" data-sev="${label.toLowerCase()}">${label}</div>
+      <div class="u-note u-mt-14 u-note-break">${escapeHtml(renderCvssVector(cvssSelection))}</div>
+      <button class="btn u-mt-12" id="cvssCopyBtn">Copy vector</button>
     </div>
     <div class="cvss-grid">
       ${CVSS_METRICS.map(m=>`
@@ -96,9 +95,12 @@ function bindCvssTab(pane){
 let toolkitCheatFilter = '';
 function renderPayloadCheatSheetTab(){
   const q = toolkitCheatFilter.toLowerCase();
+  /* Reads the lightweight toolkit bundle rather than allData, so this tab
+     never requires the full ~2.5 MB detail set to be resident. */
+  const source = (typeof toolkitData !== 'undefined' && toolkitData) ? toolkitData : allData;
   const sections = DOMAIN_META.map(c=>{
     const rows = [];
-    allData.filter(d=>d.domain===c.code).forEach(item=>{
+    source.filter(d=>d.domain===c.code).forEach(item=>{
       getPayloadList(item).forEach((p, i)=>{
         const hay = `${item.id} ${item.title} ${p.label||''} ${p.command||p.code||''}`.toLowerCase();
         if(q && !hay.includes(q)) return;
@@ -112,7 +114,7 @@ function renderPayloadCheatSheetTab(){
 
   return `
     <input type="text" id="cheatFilterInput" class="cheat-filter-input" placeholder="Filter payloads by test case, ID, or command…" value="${escapeHtml(toolkitCheatFilter)}">
-    <div class="drill-hint" style="margin:10px 0 16px;">${totalRows} payload${totalRows===1?'':'s'} match${q?` "${escapeHtml(toolkitCheatFilter)}"`:''}</div>
+    <div class="drill-hint u-my-block-b">${totalRows} payload${totalRows===1?'':'s'} match${q?` "${escapeHtml(toolkitCheatFilter)}"`:''}</div>
     <div class="cheatsheet">
       ${sections.map(({c, rows})=>`
         <div class="cheat-section">
@@ -146,8 +148,16 @@ function bindPayloadCheatSheetTab(pane){
 
 let currentDrillSet = [];
 function pickDrillSet(){
-  const pool = allData.filter(d=> d.status !== 'tested-pass' && d.status !== 'not-applicable');
-  const source = pool.length ? pool : allData.slice();
+  /* Drill cards show a short description excerpt, which the light bundle
+     already carries — but test status lives on allData, so match the two up
+     by id rather than pulling full detail just to read a status field. */
+  const lite = (typeof toolkitData !== 'undefined' && toolkitData) ? toolkitData : null;
+  const statusById = new Map(allData.map(d=>[d.id, d.status]));
+  const base = lite
+    ? lite.map(r => ({ ...r, status: statusById.get(r.id) || 'not-tested' }))
+    : allData;
+  const pool = base.filter(d=> d.status !== 'tested-pass' && d.status !== 'not-applicable');
+  const source = pool.length ? pool : base.slice();
   const shuffled = source.slice().sort(()=> Math.random()-0.5);
   currentDrillSet = shuffled.slice(0, 5);
 }
@@ -156,7 +166,7 @@ function renderDrillsTab(){
   const prof = activeProfile();
   return `
     <div class="drill-meta-row">
-      <span>Drills completed: <b style="color:var(--text-bright)">${prof.drillsCompleted||0}</b></span>
+      <span>Drills completed: <b class="u-bright">${prof.drillsCompleted||0}</b></span>
       <button class="btn" id="drillsShuffleBtn">${svgIcon('shuffle')} New drill set</button>
     </div>
     ${currentDrillSet.map((item, idx)=>{
@@ -241,11 +251,11 @@ function renderReportTab(){
   return `
     <div class="stats-panel">
       <h4>Report preview</h4>
-      <p style="font-size:11.5px; color:var(--text-dim); margin-bottom:14px;">Plain-text summary of current progress, findings, and flagged items — coverage by domain, flagged retest items, and failed test cases.</p>
-      <button class="btn primary" id="reportDownloadBtn" style="margin-bottom:16px;">${svgIcon('download')} Download report</button>
+      <p class="u-hint-block">Plain-text summary of current progress, findings, and flagged items — coverage by domain, flagged retest items, and failed test cases.</p>
+      <button class="btn primary u-mb-16" id="reportDownloadBtn">${svgIcon('download')} Download report</button>
       <div class="term-window">
         <div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">vapt-report.txt</span></div>
-        <div class="detail-payload" id="reportPreview" style="max-height:340px; overflow-y:auto;"></div>
+        <div class="detail-payload u-scroll-340" id="reportPreview"></div>
       </div>
     </div>
   `;
@@ -269,23 +279,23 @@ let lastScanResult = null;
 function renderScanImportTab(){
   const r = lastScanResult;
   return `
-    <div class="drill-hint" style="margin-bottom:12px;">
+    <div class="drill-hint u-mb-12">
       Paste raw Nmap (XML, greppable, or normal text), Nuclei (JSON Lines), or Burp (XML) output below.
       This runs entirely in your browser — nothing is uploaded anywhere.
     </div>
     <textarea id="scanInputArea" class="scan-input-area" placeholder="Paste scan output here…"></textarea>
-    <div style="display:flex; gap:10px; margin:12px 0;">
+    <div class="u-row-gap">
       <button class="btn primary" id="scanParseBtn">Parse &amp; Match</button>
       <button class="btn" id="scanClearBtn">Clear</button>
     </div>
     ${r ? `
-      <div class="drill-hint" style="margin-bottom:12px;">
+      <div class="drill-hint u-mb-12">
         Parsed ${r.parsedCount} finding${r.parsedCount===1?'':'s'} &middot; ${r.suggestions.length} test case${r.suggestions.length===1?'':'s'} suggested
       </div>
       <div class="scan-results">
         ${r.suggestions.length ? r.suggestions.map(s => `
           <div class="scan-result-row">
-            <span class="sev-badge" style="background:${SEV_COLOR[s.item.severity]}22; color:${SEV_COLOR[s.item.severity]}">${escapeHtml(s.item.severityLabel||s.item.severity)}</span>
+            <span class="sev-badge sev-chip" data-sev="${s.item.severity}">${escapeHtml(s.item.severityLabel||s.item.severity)}</span>
             <div class="scan-result-body">
               <div class="scan-result-title">${escapeHtml(s.item.id)} — ${escapeHtml(s.item.title)}</div>
               <div class="scan-result-evidence">${escapeHtml(describeFinding(s.finding))}</div>
@@ -344,7 +354,7 @@ function renderChainsTab(){
   const caseOptions = allData.slice().sort((a,b)=>a.sequence-b.sequence)
     .map(d=>`<option value="${escapeHtml(d.id)}">${escapeHtml(d.id)} — ${escapeHtml(d.title)}</option>`).join('');
   return `
-    <div class="drill-hint" style="margin-bottom:12px;">
+    <div class="drill-hint u-mb-12">
       Link findings that chain together — e.g. an exposed credential (A) that enables lateral movement (B) —
       to build a simple attack-path narrative for the report.
     </div>
@@ -392,6 +402,7 @@ function bindChainsTab(pane){
   }
   pane.querySelectorAll('[data-action="chain-remove"]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
+      if(!confirm('Remove this link from the attack chain? The test cases themselves are not affected.')) return;
       removeChain(btn.dataset.chainId);
       renderToolkitPane();
     });
@@ -407,7 +418,7 @@ function renderCustomCasesTab(){
   const sevOptions = SEVERITIES.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
   const existing = loadCustomCases();
   return `
-    <div class="drill-hint" style="margin-bottom:12px;">
+    <div class="drill-hint u-mb-12">
       Add a client-specific or emerging technique alongside the built-in 524. Custom cases show up in their
       chosen domain's list, track status/notes exactly like any other case, and are included in exports.
     </div>
@@ -427,11 +438,11 @@ function renderCustomCasesTab(){
       <div class="ctx-field"><label>Mitigation <span class="hint">(one per line)</span></label><textarea id="ccMitigation"></textarea></div>
       <button type="submit" class="btn primary">Add Custom Test Case</button>
     </form>
-    <div class="drill-hint" style="margin:18px 0 10px;">${existing.length} custom case${existing.length===1?'':'s'} in this engagement</div>
+    <div class="drill-hint u-my-block-a">${existing.length} custom case${existing.length===1?'':'s'} in this engagement</div>
     <div class="scan-results">
       ${existing.length ? existing.map(c=>`
         <div class="scan-result-row">
-          <span class="sev-badge" style="background:${SEV_COLOR[c.severity]}22; color:${SEV_COLOR[c.severity]}">${escapeHtml(c.severityLabel||c.severity)}</span>
+          <span class="sev-badge sev-chip" data-sev="${c.severity}">${escapeHtml(c.severityLabel||c.severity)}</span>
           <div class="scan-result-body">
             <div class="scan-result-title">${escapeHtml(c.id)} — ${escapeHtml(c.title)}</div>
             <div class="scan-result-evidence">${escapeHtml(c.domain)}</div>
@@ -470,6 +481,12 @@ function bindCustomCasesTab(pane){
   }
   pane.querySelectorAll('[data-action="custom-remove"]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
+      /* A custom case is analyst-authored content that cannot be recovered,
+         and removing it also deletes any attack chains referencing it. Name
+         the case in the prompt so it is clear which one is going. */
+      const target = allData.find(d=>d.id===btn.dataset.id);
+      const label = target ? `"${target.title}"` : 'this custom test case';
+      if(!confirm(`Delete ${label}? It cannot be recovered, and any attack chains using it will also be removed.`)) return;
       removeCustomCase(btn.dataset.id);
       renderToolkitPane();
       renderAll();
@@ -556,11 +573,10 @@ function renderCoverageTab(){
   const cov = computeCoverage();
   const risk = computeRisk();
   const rem = computeRemediationBreakdown();
-  const bandColor = {Critical:'#FF3B3B', High:'#FF5C5C', Medium:'#FFB000', Low:'#00FF66'}[risk.band];
   const gaps = cov.perDomain.filter(d=>d.untestedHigh>0).sort((a,b)=>b.untestedHigh-a.untestedHigh);
 
   return `
-    <div class="drill-hint" style="margin-bottom:14px;">
+    <div class="drill-hint u-mb-14">
       Computed live from your current engagement — coverage excludes cases you marked N/A,
       and the risk score discounts findings you have verified as fixed or risk-accepted.
     </div>
@@ -572,7 +588,7 @@ function renderCoverageTab(){
         <i>${cov.tested} of ${cov.applicable} applicable</i>
       </div>
       <div class="cov-stat">
-        <b style="color:${bandColor}">${risk.band}</b>
+        <b class="sev-text" data-sev="${risk.band.toLowerCase()}">${risk.band}</b>
         <span>Risk Level</span>
         <i>weighted score ${risk.score}</i>
       </div>
@@ -585,7 +601,7 @@ function renderCoverageTab(){
 
     <div class="cov-sev-row">
       ${['critical','high','medium','low'].map(s=>`
-        <div class="cov-sev"><b style="color:${SEV_COLOR[s]}">${risk.bySev[s]}</b><span>${s}</span></div>
+        <div class="cov-sev"><b class="sev-${s}">${risk.bySev[s]}</b><span>${s}</span></div>
       `).join('')}
     </div>
 
@@ -594,14 +610,14 @@ function renderCoverageTab(){
       <div class="cov-gaps">
         ${gaps.map(g=>`<div class="cov-gap"><b>${g.untestedHigh}</b> untested in <span>${escapeHtml(g.code)}</span> ${escapeHtml(g.name)}</div>`).join('')}
       </div>
-    ` : `<div class="primer-note tip" style="margin-top:16px;"><b>No gaps</b>Every high and critical case has been tested or marked N/A.</div>`}
+    ` : `<div class="primer-note tip u-mt-16"><b>No gaps</b>Every high and critical case has been tested or marked N/A.</div>`}
 
     <h4 class="cov-head">Coverage by domain</h4>
     <div class="cov-bars">
       ${cov.perDomain.sort((a,b)=>a.pct-b.pct).map(d=>`
         <div class="cov-bar-row">
           <span class="cov-bar-code">${escapeHtml(d.code)}</span>
-          <div class="cov-bar-track"><div class="cov-bar-fill" style="width:${d.pct}%"></div></div>
+          <div class="cov-bar-track"><div class="cov-bar-fill csp-w" data-pct="${d.pct}"></div></div>
           <span class="cov-bar-pct">${d.pct}%</span>
           <span class="cov-bar-meta">${d.tested}/${d.applicable}${d.failed?` · ${d.failed} failed`:''}</span>
         </div>
@@ -612,7 +628,7 @@ function renderCoverageTab(){
       <h4 class="cov-head">Remediation status</h4>
       <div class="cov-rem">
         ${REMEDIATION_VALUES.filter(r=>rem[r.key]>0).map(r=>`
-          <div class="cov-rem-item"><b style="color:${r.color}">${rem[r.key]}</b><span>${escapeHtml(r.label)}</span></div>
+          <div class="cov-rem-item"><b class="rem-text" data-rem="${r.key}">${rem[r.key]}</b><span>${escapeHtml(r.label)}</span></div>
         `).join('')}
       </div>
     ` : ''}
@@ -622,22 +638,63 @@ function renderCoverageTab(){
 let activeToolkitTab = 'cvss';
 /* Tabs that read fields living in the lazily-fetched detail files (payloads,
    descriptions, references) rather than the light startup index. */
-const TABS_NEEDING_DETAIL = new Set(['payloads', 'drills', 'report']);
+/* Only the report renders full descriptions, mitigations and references, so
+   it alone needs the complete detail set. The payload and drill tabs use the
+   much smaller toolkit bundle instead. */
+const TABS_NEEDING_DETAIL = new Set(['report']);
+const TABS_NEEDING_TOOLKIT_BUNDLE = new Set(['payloads', 'drills']);
+let toolkitDetailAttempted = false;
+let toolkitBundleAttempted = false;
 
 function renderToolkitPane(){
   const pane = document.getElementById('toolkitPane');
   if(!pane) return;
 
+  /* Payload and drill tabs need only the light bundle. Same single-attempt
+     guard as below: never re-enter this path from its own callback. */
+  if(TABS_NEEDING_TOOLKIT_BUNDLE.has(activeToolkitTab) && typeof ensureToolkitData === 'function'){
+    if(!toolkitData && !toolkitBundleAttempted){
+      toolkitBundleAttempted = true;
+      pane.innerHTML = '<div class="palette-empty">Loading payload library…</div>';
+      const tabAtRequest = activeToolkitTab;
+      ensureToolkitData()
+        .then(()=>{ if(activeToolkitTab === tabAtRequest) renderToolkitPane(); })
+        .catch(()=>{
+          toolkitBundleAttempted = false;
+          if(activeToolkitTab === tabAtRequest){
+            pane.innerHTML = '<div class="palette-empty">Could not load the payload library. Check your connection and reopen this tab.</div>';
+          }
+        });
+      return;
+    }
+  }
+
   if(TABS_NEEDING_DETAIL.has(activeToolkitTab) && typeof ensureAllDetail === 'function'){
     const stillLoading = allData.some(d => !hasDetail(d));
-    if(stillLoading){
-      pane.innerHTML = '<div class="palette-empty">Loading test case detail…</div>';
+    /* toolkitDetailAttempted stops the same re-entry loop guarded against in
+       renderAssessCard: if even one item's id is missing from its detail file,
+       stillLoading stays true forever, the cached promise resolves instantly,
+       and this re-renders itself without bound until the tab freezes. One
+       attempt, then render with whatever arrived. */
+    if(stillLoading && !toolkitDetailAttempted){
+      toolkitDetailAttempted = true;
+      pane.innerHTML = '<div class="palette-empty" role="status" aria-live="polite">'
+        + 'Loading full test case detail — about 2.5 MB.<br>'
+        + '<span class="palette-progress">Starting…</span></div>';
       const tabAtRequest = activeToolkitTab;
-      ensureAllDetail()
+      const onDetailProgress = (done, total) => {
+        if(activeToolkitTab !== tabAtRequest) return;
+        const el = pane.querySelector('.palette-progress');
+        if(el) el.textContent = `${done} of ${total} domains loaded`;
+      };
+      ensureAllDetail(onDetailProgress)
         .then(()=>{ if(activeToolkitTab === tabAtRequest) renderToolkitPane(); })
-        .catch(()=>{ if(activeToolkitTab === tabAtRequest){
-          pane.innerHTML = '<div class="palette-empty">Could not load test case detail. Check your connection and reopen this tab.</div>';
-        }});
+        .catch(()=>{
+          toolkitDetailAttempted = false;   // permit a genuine retry later
+          if(activeToolkitTab === tabAtRequest){
+            pane.innerHTML = '<div class="palette-empty">Could not load test case detail. Check your connection and reopen this tab.</div>';
+          }
+        });
       return;
     }
   }
@@ -650,6 +707,7 @@ function renderToolkitPane(){
   else if(activeToolkitTab === 'chains'){ pane.innerHTML = renderChainsTab(); bindChainsTab(pane); }
   else if(activeToolkitTab === 'customcases'){ pane.innerHTML = renderCustomCasesTab(); bindCustomCasesTab(pane); }
   else if(activeToolkitTab === 'coverage'){ pane.innerHTML = renderCoverageTab(); }
+  if(typeof applyCspStyles==="function") applyCspStyles(pane);
 }
 function openToolkit(){
   document.getElementById('toolkitOverlay').classList.add('open');

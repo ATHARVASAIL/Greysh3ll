@@ -35,6 +35,9 @@ import sys
 # reference.standard, reference.tools and reference.links. Deferring it would
 # make searching for a tool or standard silently return nothing until that
 # domain happened to be loaded — a correctness regression not worth the saving.
+# The drill tab truncates descriptions to roughly this length on screen.
+DRILL_EXCERPT_CHARS = 240
+
 LIGHT_FIELDS = {
     'id', 'domain', 'phase', 'sequence', 'title',
     'severity', 'severityLabel', 'cwe', 'reference',
@@ -45,7 +48,7 @@ DATA = os.path.join(ROOT, 'data')
 DETAIL_DIR = os.path.join(DATA, 'detail')
 
 # Generated artifacts must not be read back in as sources on a re-run.
-GENERATED = {'index.json'}
+GENERATED = {'index.json', 'toolkit.json'}
 
 
 def main():
@@ -91,6 +94,34 @@ def main():
         detail_bytes += size
         total_items += len(items)
         print(f'  {code:7} {len(items):4} items -> detail/{code.lower()}.json  {size/1024:6.1f} KB')
+
+    # ---- toolkit bundle -------------------------------------------------
+    # The payload cheat-sheet and drill tabs read across every domain at once.
+    # They previously forced a full detail load (~2.5 MB) to use a fraction of
+    # it — the drill tab only shows the first ~220 characters of a description.
+    # This bundle carries exactly what those two tabs render, which keeps a
+    # mobile browser from parsing megabytes of JSON it will never display.
+    toolkit = []
+    for path in sources:
+        with open(path, encoding='utf-8') as fh:
+            src = json.load(fh)
+        for item in src.get('items', []):
+            excerpt = (item.get('whatItIs') or '')[:DRILL_EXCERPT_CHARS]
+            toolkit.append({
+                'id': item['id'],
+                'domain': item.get('domain'),
+                'title': item.get('title'),
+                'severity': item.get('severity'),
+                'cwe': item.get('cwe'),
+                'examplePayloads': item.get('examplePayloads', []),
+                'whatItIs': excerpt,
+            })
+    toolkit.sort(key=lambda i: (i.get('domain', ''), i.get('id', '')))
+    toolkit_path = os.path.join(DATA, 'toolkit.json')
+    with open(toolkit_path, 'w', encoding='utf-8') as fh:
+        json.dump(toolkit, fh, separators=(',', ':'), ensure_ascii=False)
+    print(f'  toolkit.json  {len(toolkit)} items  {os.path.getsize(toolkit_path)/1024:.1f} KB'
+          '  (payload + drill tabs)')
 
     # Keep the index in a stable order so the generated file does not churn
     # between runs purely because of filesystem ordering.

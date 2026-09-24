@@ -65,6 +65,7 @@
   --fail:#FF5C5C;
   --fail-rgb:255,92,92;
   --na:#849489;            /* 4.89:1 worst case — was #7A8A82 at 4.30, under AA */
+  --accepted:#B08CFF;      /* risk-accepted remediation state; 6.62:1 worst case */
   --na-rgb:132,148,137;
 
   /* ---- elevation ---- */

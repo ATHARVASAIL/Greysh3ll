@@ -23,7 +23,11 @@ function boot(){
       const searchInput = document.getElementById('searchInput');
       if(searchInput) searchInput.value = searchParam;
     }
-  }catch(e){}
+  }catch(e){
+    /* Intentionally silent: a malformed or hostile query string should simply
+       not apply a filter, rather than interrupting the user on page load.
+       Nothing is persisted here, so there is nothing to lose. */
+  }
 
   // All sections start collapsed — this is what keeps big domains like
   // NET (150 cases) and WEB (146 cases) fast to render, since a
@@ -135,7 +139,7 @@ loadAllData()
     console.error('GreySh3ll: failed to load test-case data', err);
     const bootLoader = document.getElementById('bootLoader');
     if(bootLoader){
-      bootLoader.innerHTML = '<span style="color:#FF5C5C">Failed to load test-case data from /data. '
+      bootLoader.innerHTML = '<span class="u-text-fail">Failed to load test-case data from /data. '
         + 'If you opened this file directly, serve the folder over HTTP (e.g. <code>python3 -m http.server</code>) '
         + 'and reload — browsers block fetch() on file:// URLs.</span>';
     }

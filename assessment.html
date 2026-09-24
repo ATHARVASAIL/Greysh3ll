@@ -4,16 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GreySh3ll — VAPT Assessment Console</title>
-<meta name="description" content="524 VAPT test cases across network, web, API, LLM/AI, cloud, mobile, thick client, wireless, source code and social engineering — ordered the way a real assessment runs.">
+<meta name="description" content="577 VAPT test cases across network, web, API, LLM/AI, cloud, mobile, thick client, wireless, source code and social engineering — ordered the way a real assessment runs.">
 <meta name="theme-color" content="#0a0e14">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230a0e14'/%3E%3Ctext x='50' y='68' font-size='58' font-family='monospace' font-weight='700' fill='%232f8cff' text-anchor='middle'%3E%3E_%3C/text%3E%3C/svg%3E">
-<meta property="og:title" content="GreySh3ll — 524-case penetration testing checklist">
-<meta property="og:description" content="GreySh3ll — an offline-first, multi-page VAPT assessment console: 524 test cases across 10 domains, with real payloads, an Analyst Toolkit, and gamified progress tracking.">
+<meta property="og:title" content="GreySh3ll — 577-case penetration testing checklist">
+<meta property="og:description" content="GreySh3ll — an offline-first, multi-page VAPT assessment console: 577 test cases across 10 domains, with real payloads, an Analyst Toolkit, and gamified progress tracking.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://atharvasail.github.io/GreySh3ll/assessment.html">
+<meta property="og:image" content="https://atharvasail.github.io/GreySh3ll/assets/og-banner.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="GreySh3ll — 577-case penetration testing checklist">
+<meta name="twitter:image" content="https://atharvasail.github.io/GreySh3ll/assets/og-banner.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
+<!-- CSP: script-src and style-src are both 'self' — no 'unsafe-inline'.
+     Dynamic colours use data-sev / data-status / data-rem attributes and CSS
+     custom properties set via element.style.setProperty(), which is CSP-safe.
+     PDF report colours use setProperty() too; the four inline styles in
+     REPORT_SEV_COLOR are the only remaining legitimate keeps and apply only
+     to a generated print document, not to any page rendered by the browser. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/components.css">
@@ -24,7 +37,7 @@
 
 <div class="boot-loader" id="bootLoader">
   <div class="boot-spinner"></div>
-  <span>Loading 524 test cases…</span>
+  <span>Loading 577 test cases…</span>
 </div>
 
 <div class="bg-grid"></div>
@@ -40,7 +53,7 @@
   </div>
   <div class="tester-field">
     <label for="testerName">TESTER /</label>
-    <input id="testerName" type="text" value="Atharva Sail" autocomplete="off">
+    <input id="testerName" type="text" value="Atharva Sail" autocomplete="off" aria-label="Tester name, used on exported reports">
   </div>
   <div class="topbar-actions">
     <button class="theme-toggle" id="themeToggle" title="Toggle light/dark theme" aria-label="Toggle light or dark theme"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.4 14.7A8.5 8.5 0 1 1 9.3 3.6a7 7 0 0 0 11.1 11.1z"/></svg></button>
@@ -51,7 +64,7 @@
     <button class="btn" id="statsBtn" title="View coverage &amp; severity dashboard" aria-label="View coverage and severity stats"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="10.5"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="19" y1="20" x2="19" y2="14.5"/></svg><span class="lbl">Stats</span></button>
     <span class="btn-divider"></span>
     <button class="btn" id="importBtn" title="Import a saved progress file" aria-label="Import saved progress file"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.5V4.5"/><path d="M7.2 9.2 12 4.5l4.8 4.7"/><path d="M4.5 15.5v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3"/></svg><span class="lbl">Import</span></button>
-    <input type="file" id="importInput" class="import-input" accept="application/json">
+    <input type="file" id="importInput" class="import-input" accept="application/json" aria-label="Import a saved progress file">
     <button class="btn" id="exportJsonBtn" title="Save progress to a file" aria-label="Save progress to a file"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v11"/><path d="M7.2 11.3 12 15.5l4.8-4.2"/><path d="M4.5 15.5v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3"/></svg><span class="lbl">Save</span></button>
     <button class="btn" id="exportCsvBtn" title="Export findings as CSV" aria-label="Export findings as CSV"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.3" y="4.5" width="17.4" height="15" rx="1.8"/><line x1="3.3" y1="10" x2="20.7" y2="10"/><line x1="9.2" y1="4.5" x2="9.2" y2="19.5"/></svg><span class="lbl">CSV</span></button>
     <button class="btn primary" id="printBtn" title="Print / save as PDF report" aria-label="Print or save report as PDF"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 8.7V4.2a.8.8 0 0 1 .8-.8h9.4a.8.8 0 0 1 .8.8v4.5"/><rect x="3.8" y="8.7" width="16.4" height="7.6" rx="1.4"/><path d="M6.5 15.5v4.5a.8.8 0 0 0 .8.8h9.4a.8.8 0 0 0 .8-.8v-4.5"/></svg><span class="lbl">Report</span></button>
@@ -84,7 +97,7 @@
       <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>
     </button>
     <div class="profile-bar">
-      <select id="profileSelect" title="Switch engagement"></select>
+      <select id="profileSelect" title="Switch engagement" aria-label="Switch engagement profile"></select>
       <button class="pbtn" id="profileNewBtn" title="New engagement" aria-label="Create new engagement">+</button>
       <button class="pbtn" id="profileRenameBtn" title="Rename engagement" aria-label="Rename engagement"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.8 3.5a2.5 2.5 0 0 1 3.5 3.5L8.2 19.1l-4.2 1 1-4.2L16.8 3.5z"/><line x1="14.9" y1="5.4" x2="18.4" y2="8.9"/></svg></button>
       <button class="pbtn" id="profileDeleteBtn" title="Delete engagement" aria-label="Delete engagement"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6.5" x2="20" y2="6.5"/><path d="M8 6.5V4.8a1.5 1.5 0 0 1 1.5-1.5h5a1.5 1.5 0 0 1 1.5 1.5v1.7m2.5 0-.8 12.8a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 6.5"/><line x1="10.2" y1="10.5" x2="10.2" y2="16.5"/><line x1="13.8" y1="10.5" x2="13.8" y2="16.5"/></svg></button>
@@ -120,7 +133,7 @@
   <main class="main">
     <div class="toolbar">
       <div class="search-wrap">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:100%;height:100%"><circle cx="11" cy="11" r="7.2"/><line x1="20.8" y1="20.8" x2="16.4" y2="16.4"/></svg></span>
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="u-fill"><circle cx="11" cy="11" r="7.2"/><line x1="20.8" y1="20.8" x2="16.4" y2="16.4"/></svg></span>
         <input type="text" id="searchInput" maxlength="200" placeholder="Search test cases, CWE, tools, IDs… (press /)">
       </div>
       <div class="chip-row" id="statusChips">
@@ -132,7 +145,7 @@
         <button class="chip" data-status="not-applicable">N/A</button>
         <button class="chip" data-status="flagged">Flagged</button>
       </div>
-      <select class="sortsel" id="sortSelect">
+      <select class="sortsel" id="sortSelect" aria-label="Sort test cases">
         <option value="default">Sort: Testing Order</option>
         <option value="severity">Sort: Severity ↓</option>
         <option value="az">Sort: A–Z</option>
@@ -144,7 +157,7 @@
 
     <div id="results"></div>
 
-    <div class="domain-context-panel" id="domainContextPanel" style="display:none;">
+    <div class="domain-context-panel u-hidden" id="domainContextPanel">
       <div class="ctx-header">
         <span class="ctx-domain-name" id="ctxDomainName">Domain Context</span>
         <span class="ctx-hint">Per-domain assessment scope &amp; authorization</span>
@@ -190,7 +203,7 @@
   <div class="assess-card">
     <div class="assess-progress-track"><div class="assess-progress-fill" id="assessProgressFill"></div></div>
     <div class="assess-head">
-      <span class="assess-counter" id="assessCounter">Test 1 / 524</span>
+      <span class="assess-counter" id="assessCounter">Test 1 / 577</span>
       <button class="assess-close" id="assessClose" aria-label="Close assessment mode"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
     </div>
     <div class="assess-body" id="assessBody">
@@ -211,7 +224,11 @@
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<!-- role=status + aria-live makes every toast announced by screen readers.
+     Without it, save confirmations and, more importantly, failures were
+     communicated visually only. aria-atomic ensures the whole message is
+     read rather than just the changed words. -->
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- Badges / XP / Streak dashboard -->
 <div class="stats-overlay" id="badgesOverlay">
@@ -249,7 +266,7 @@
 <div class="palette-overlay" id="paletteOverlay">
   <div class="palette-card">
     <div class="palette-search">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:100%;height:100%"><circle cx="11" cy="11" r="7.2"/><line x1="20.8" y1="20.8" x2="16.4" y2="16.4"/></svg></span>
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="u-fill"><circle cx="11" cy="11" r="7.2"/><line x1="20.8" y1="20.8" x2="16.4" y2="16.4"/></svg></span>
       <input type="text" id="paletteInput" maxlength="200" placeholder="Jump to any test case by name, ID, or CWE…" autocomplete="off">
       <kbd>esc</kbd>
     </div>
@@ -258,18 +275,18 @@
 </div>
 
 <!-- Test-case data is fetched at runtime from data/*.json (one file per domain) -->
-<script src="js/storage.js"></script>
-<script src="js/primers.js"></script>
-<script src="js/filters.js"></script>
-<script src="js/search.js"></script>
-<script src="js/dashboard.js"></script>
-<script src="js/core.js"></script>
-<script src="js/rendering.js"></script>
-<script src="js/interactions.js"></script>
-<script src="js/assessment.js"></script>
-<script src="js/features.js"></script>
-<script src="js/toolkit.js"></script>
-<script src="js/effects-identity.js"></script>
-<script src="js/boot.js"></script>
+<script src="js/storage.js" defer></script>
+<script src="js/primers.js" defer></script>
+<script src="js/filters.js" defer></script>
+<script src="js/search.js" defer></script>
+<script src="js/dashboard.js" defer></script>
+<script src="js/core.js" defer></script>
+<script src="js/rendering.js" defer></script>
+<script src="js/interactions.js" defer></script>
+<script src="js/assessment.js" defer></script>
+<script src="js/features.js" defer></script>
+<script src="js/toolkit.js" defer></script>
+<script src="js/effects-identity.js" defer></script>
+<script src="js/boot.js" defer></script>
 </body>
 </html>

@@ -32,20 +32,32 @@ function closeAssessMode(){
   if(overlay) overlay.classList.remove('open');
   renderAll();
 }
+/* Domains whose detail fetch has already triggered a re-render, so a second
+   render never re-enters the same path. Without this, an item whose id is
+   missing from its detail file leaves hasDetail() false forever: the cached
+   promise resolves instantly, calls renderAssessCard again, which requests the
+   same domain again — an unbounded microtask loop that hard-freezes the tab. */
+const assessDetailAttempted = new Set();
+
 function renderAssessCard(){
   const sorted = getAssessmentQueue();
   if(sorted.length === 0){ closeAssessMode(); return; }
   if(assessIndex >= sorted.length) assessIndex = sorted.length - 1;
   const item = sorted[assessIndex];
 
-  /* Assessment Mode walks case by case, so fetch the domain's detail the
-     first time it reaches that domain, then re-render with full content.
-     The card below still renders immediately using index-level fields, so
-     the step never appears blank while the fetch is in flight. */
-  if(!hasDetail(item)){
+  /* Assessment Mode walks case by case, so fetch the domain's detail the first
+     time it reaches that domain, then re-render once with full content. The
+     card below still renders immediately from index-level fields, so the step
+     never appears blank while the fetch is in flight. */
+  if(!hasDetail(item) && !assessDetailAttempted.has(item.domain)){
+    assessDetailAttempted.add(item.domain);
     ensureDetail(item.domain)
       .then(()=>{ if(assessModeOpen) renderAssessCard(); })
-      .catch(()=> showToast('Could not load detail for this test case.'));
+      .catch(()=>{
+        // Allow a genuine retry later, but not an immediate re-entry.
+        assessDetailAttempted.delete(item.domain);
+        showToast('Could not load detail for this test case.');
+      });
   }
 
   const total = sorted.length;
@@ -64,17 +76,17 @@ function renderAssessCard(){
     <span class="assess-cat-tag">Phase ${phaseNum} · ${catMeta?catMeta.code:''} · ${escapeHtml(catMeta?catMeta.name:'')}</span>
     ${isFirstOfDomain ? renderDomainPrimer(item.domain) : ''}
     <div class="assess-title">${escapeHtml(item.title)}</div>
-    <div class="item-top" style="margin-bottom:14px;">
+    <div class="item-top u-mb-14">
       <span class="order-badge">#${item.sequence}</span>
       <span class="item-id">${item.id}</span>
-      <span class="sev-badge" style="background:${SEV_COLOR[item.severity]}22; color:${SEV_COLOR[item.severity]}">${escapeHtml(item.severityLabel||item.severity)}</span>
+      <span class="sev-badge sev-chip" data-sev="${item.severity}">${escapeHtml(item.severityLabel||item.severity)}</span>
       <span class="cwe-badge">${escapeHtml(item.cwe||'—')}</span>
     </div>
     ${getDetailHtml(item)}
     <div class="assess-nav">
-      <button class="btn" id="assessPrevBtn" ${assessIndex===0?'disabled style="opacity:.4;cursor:not-allowed;"':''}>${svgIcon('chevronleft')} Previous</button>
+      <button class="btn${assessIndex===0?' u-disabled':''}" id="assessPrevBtn" ${assessIndex===0?'disabled':''}>${svgIcon('chevronleft')} Previous</button>
       <button class="btn assess-mark ${item.status==='tested-pass'?'done':''}" id="assessMarkBtn">${item.status==='tested-pass'?checkSvg()+' Passed':'Mark Pass'}</button>
-      <button class="btn" id="assessNextBtn" ${assessIndex===total-1?'disabled style="opacity:.4;cursor:not-allowed;"':''}>Next ${svgIcon('chevronright')}</button>
+      <button class="btn${assessIndex===total-1?' u-disabled':''}" id="assessNextBtn" ${assessIndex===total-1?'disabled':''}>Next ${svgIcon('chevronright')}</button>
     </div>
     <div class="assess-jump-hint">Use <kbd>←</kbd> <kbd>→</kbd> to navigate, <kbd>Esc</kbd> to exit</div>
   `;
@@ -363,7 +375,7 @@ function buildReportHTML(){
       <h2 class="report-h2">Attack Chain Analysis</h2>
       <p class="report-body">The following finding sequences were identified during testing, showing how individual issues combine into a broader compromise path.</p>
       ${buildChainSequences().map(seq => `
-        <div class="report-finding" style="break-inside:avoid;">
+        <div class="report-finding u-no-break">
           <div class="report-chain-path">
             ${seq.map((edge,i)=>{
               const fromItem = allData.find(d=>d.id===edge.fromId);
@@ -403,14 +415,53 @@ document.getElementById('importInput').addEventListener('change', (e)=>{
   const file = e.target.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = (evt)=>{
+    let payload;
     try{
-      const payload = JSON.parse(evt.target.result);
+      payload = JSON.parse(evt.target.result);
+    }catch(err){
+      showToast('That file is not valid JSON — pick a progress file exported from GreySh3ll.');
+      return;
+    }
+
+    // Reject anything that is not actually a GreySh3ll export, with the
+    // specific reason, rather than importing nothing and reporting success.
+    const check = validateProgressPayload(payload);
+    if(!check.ok){
+      showToast(check.errors[0] || 'That file is not a valid GreySh3ll export.');
+      console.error('GreySh3ll: import rejected —', check.errors);
+      return;
+    }
+
+    /* Importing overwrites the current engagement's statuses and notes, which
+       is destructive and was previously unguarded. Show exactly what is in the
+       file — including how many entries refer to cases this build does not
+       have — so the decision is informed rather than blind. */
+    const s = check.summary;
+    const lines = [
+      'Import this progress file into the current engagement?',
+      '',
+      `  ${s.statuses} test case statuses`,
+      `  ${s.notes} sets of assessor notes`,
+      `  ${s.flagged} flagged cases`,
+      `  ${s.customCases} custom test cases`,
+      `  ${s.chains} attack chain links`,
+    ];
+    if(s.tester) lines.push(`  Tester: ${s.tester}`);
+    if(s.exportedAt) lines.push(`  Exported: ${s.exportedAt.slice(0,10)}`);
+    if(s.unmatched) lines.push('', `${s.unmatched} entr${s.unmatched===1?'y refers':'ies refer'} to test cases not in this build and will be skipped.`);
+    lines.push('', 'This overwrites matching entries in your current engagement.');
+    if(!confirm(lines.join('\n'))) return;
+
+    try{
       applyProgress(payload);
       if(payload.tester) document.getElementById('testerName').value = payload.tester;
       detailCache.clear();
       saveProgress(); renderAll();
-      showToast('Progress imported.');
-    }catch(err){ showToast('Could not read that file.'); }
+      showToast(`Imported ${s.statuses} statuses, ${s.customCases} custom cases and ${s.chains} chain links.`);
+    }catch(err){
+      console.error('GreySh3ll: import failed', err);
+      showToast('Import failed partway through. Check the browser console, then re-import.');
+    }
   };
   reader.readAsText(file); e.target.value = '';
 });
@@ -431,13 +482,13 @@ function renderDomainContext(){
   const panel = document.getElementById('domainContextPanel');
   if(!panel) return;
   if(!code || !domainMeta) {
-    panel.style.display = 'none';
+    panel.classList.add('u-hidden');
     return;
   }
   let ctx = loadDomainContext();
   if(!ctx[code]) ctx[code] = { scopeNotes:'', targetDetails:'', engagementDates:'', authorizationRef:'' };
 
-  panel.style.display = '';
+  panel.classList.remove('u-hidden');
   panel.querySelector('.ctx-domain-name').textContent = `${domainMeta.code} — ${domainMeta.name}`;
 
   ['scopeNotes','targetDetails','engagementDates','authorizationRef'].forEach(field => {

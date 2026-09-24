@@ -82,3 +82,29 @@ function formatDuration(totalSeconds){
 }
 function getStatusObj(key){ return STATUS_VALUES.find(s => s.key === key) || STATUS_VALUES[0]; }
 
+/* =========================================================
+   CSP-SAFE STYLE APPLIER
+   Removing style-src 'unsafe-inline' means width bars and dynamic severity
+   colours can no longer be emitted as inline attributes. Instead the
+   markup carries data-pct / data-sev, and this pass applies them via
+   setProperty and classList — both of which CSP permits, because they are
+   scripted DOM writes rather than inline attributes. Called after every render
+   that can introduce these elements. Idempotent: a processed node is marked so
+   re-runs are cheap. */
+function applyCspStyles(root){
+  root = root || document;
+  root.querySelectorAll('.csp-w:not([data-csp-done])').forEach(el=>{
+    const pct = el.getAttribute('data-pct');
+    if(pct != null && pct !== '') el.style.setProperty('--pct', Math.max(0, Math.min(100, parseFloat(pct))) + '%');
+    const sev = el.getAttribute('data-sev');
+    if(sev) el.classList.add('sev-' + sev);
+    el.setAttribute('data-csp-done', '1');
+  });
+  /* animation delay via data-idx: CSS attr() type syntax has limited
+     cross-browser support, so set the custom property directly instead. */
+  root.querySelectorAll('[data-idx]:not([data-anim-done])').forEach(el=>{
+    const i = parseInt(el.getAttribute('data-idx'), 10) || 0;
+    el.style.setProperty('--anim-delay-ms', String(Math.min(i * 35, 300)));
+    el.setAttribute('data-anim-done', '1');
+  });
+}

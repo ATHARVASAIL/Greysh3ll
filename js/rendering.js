@@ -18,7 +18,10 @@ function renderProfileBar(){
 document.getElementById('profileSelect').addEventListener('change', (e)=> switchToProfile(e.target.value));
 document.getElementById('profileNewBtn').addEventListener('click', ()=>{
   const name = prompt('Name for the new engagement:', 'New Engagement');
-  if(name===null) return;
+  /* == null covers both cancel (null) and environments where prompt is
+     suppressed and returns undefined — some embedded webviews and sandboxed
+     frames do exactly that, and .trim() on undefined would throw. */
+  if(name == null) return;
   const prof = newProfileObj(name.trim()||'New Engagement');
   profilesState.profiles.push(prof);
   switchToProfile(prof.id);
@@ -26,7 +29,7 @@ document.getElementById('profileNewBtn').addEventListener('click', ()=>{
 document.getElementById('profileRenameBtn').addEventListener('click', ()=>{
   const prof = activeProfile();
   const name = prompt('Rename this engagement:', prof.name);
-  if(name===null || !name.trim()) return;
+  if(name == null || !name.trim()) return;
   prof.name = name.trim();
   saveProfiles(); renderProfileBar();
 });
@@ -34,7 +37,7 @@ document.getElementById('profileDeleteBtn').addEventListener('click', ()=>{
   if(profilesState.profiles.length<=1){ showToast('At least one engagement must remain.'); return; }
   const prof = activeProfile();
   if(!confirm(`Delete engagement "${prof.name}"? Its saved progress cannot be recovered.`)) return;
-  try{ localStorage.removeItem(progressKeyFor(prof.id)); }catch(e){}
+  safeStorageRemove(progressKeyFor(prof.id));
   profilesState.profiles = profilesState.profiles.filter(p=>p.id!==prof.id);
   profilesState.activeId = profilesState.profiles[0].id;
   saveProfiles();
@@ -109,7 +112,7 @@ function renderSidebar(){
   legend.innerHTML = SEVERITIES.map(s=>{
     const c = sevCounts[s.key];
     const active = state.activeSevs.has(s.key)?'active':'';
-    return `<div class="sev-row ${active}" data-sev="${s.key}"><span class="sev-dot" style="background:${s.color}"></span><span class="name">${s.label}</span><span class="count">${c.pass}/${c.total}</span></div>`;
+    return `<div class="sev-row ${active}" data-sev="${s.key}"><span class="sev-dot sev-badge" data-sev="${s.key}"></span><span class="name">${s.label}</span><span class="count">${c.pass}/${c.total}</span></div>`;
   }).join('');
   legend.querySelectorAll('.sev-row').forEach(el=>{
     el.addEventListener('click', ()=>{
@@ -131,7 +134,7 @@ function renderSidebar(){
       <span class="code"><span class="code-num">${idx+1}.</span> ${c.code}</span>
       <span class="name">${escapeHtml(c.name)}</span>
       <span class="prog">${cc.pass}/${cc.total}</span>
-      <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="bar"><div class="bar-fill csp-w" data-pct="${pct}"></div></div>
       ${next ? `<div class="cat-next-hint" title="Next: ${escapeHtml(next.title)}">${svgIcon('skipforward')}</div>` : ''}
     </div>`;
   }).join('');
@@ -182,7 +185,7 @@ function renderAttachmentGrid(item){
   const addBtn = attachments.length < MAX_ATTACHMENTS ? `
     <label class="attachment-add-label" title="Add screenshot/evidence">
       +
-      <input type="file" accept="image/*" data-action="attachment-add" data-id="${item.id}" style="display:none;">
+      <input type="file" accept="image/*" data-action="attachment-add" data-id="${item.id}" class="u-hidden">
     </label>
   ` : '';
   return `<div class="attachment-grid" data-role="attachment-grid-${item.id}">${thumbs}${addBtn}</div>`;
@@ -302,15 +305,14 @@ function renderRemediationBlock(item){
   const rem = (item.assessorNotes && item.assessorNotes.remediation) || { state:'open', retestedAt:'', note:'' };
   const cur = getRemediationObj(rem.state);
   return `
-    <div class="notes-field remediation-block" style="grid-column:1 / -1;">
+    <div class="notes-field remediation-block u-full-row">
       <label>Remediation &amp; Retest <span class="hint">tracks what happened after this was reported</span></label>
       <div class="remediation-states">
         ${REMEDIATION_VALUES.map(r=>`
           <button type="button"
-            class="rem-btn${r.key===rem.state?' active':''}"
+            class="rem-btn${r.key===rem.state?' active':''}" data-rem="${r.key}"
             data-action="remediation-state" data-id="${escapeHtml(item.id)}" data-state="${r.key}"
-            title="${escapeHtml(r.desc)}"
-            style="${r.key===rem.state?`border-color:${r.color};color:${r.color};background:${r.color}1a;`:''}">
+            title="${escapeHtml(r.desc)}">
             ${escapeHtml(r.label)}
           </button>`).join('')}
       </div>
@@ -326,7 +328,7 @@ function renderRemediationBlock(item){
             value="${escapeHtml(rem.note||'')}">
         </div>
       </div>
-      <div class="remediation-current" style="color:${cur.color}">${escapeHtml(cur.desc)}</div>
+      <div class="remediation-current" data-rem="${rem.state}">${escapeHtml(cur.desc)}</div>
     </div>
   `;
 }
@@ -377,7 +379,7 @@ function renderDetailInner(item){
       <div class="detail-grid">
         <div class="detail-field"><div class="k">Standard / Reference</div><div class="v">${escapeHtml(ref.standard||'—')}</div></div>
         <div class="detail-field"><div class="k">CWE</div><div class="v">${escapeHtml(item.cwe||'—')}</div></div>
-        <div class="detail-field" style="grid-column:1/-1"><div class="k">Recommended Tools</div><div class="v">${escapeHtml(toolsList.join(', ')||'—')}</div></div>
+        <div class="detail-field u-full-row"><div class="k">Recommended Tools</div><div class="v">${escapeHtml(toolsList.join(', ')||'—')}</div></div>
       </div>
       ${linksList.length ? `<div class="ref-list">${listHtml(linksList,'bullets')}</div>` : ''}
     </div>
@@ -391,7 +393,7 @@ function renderDetailInner(item){
           ${STATUS_VALUES.map(s => `
             <button class="status-btn ${item.status === s.key ? 'active' : ''}"
                     data-status="${s.key}"
-                    style="color:${s.color}; border-color:${s.color}40;"
+                    class="status-chip" data-status="${s.key}"
                     title="${s.label}">
               <span>${s.label}</span>
             </button>
@@ -413,20 +415,22 @@ function renderDetailInner(item){
           </div>
           <div class="notes-field">
             <label>Evidence Links <span class="hint">(one per line)</span></label>
-            <textarea data-action="notes-evidence" data-id="${item.id}" placeholder="https://...">${evidenceLinks.map(e=>escapeHtml(e)).join('\n')}</textarea>
+            <textarea data-action="notes-evidence" data-id="${item.id}" placeholder="https://…">${evidenceLinks.map(e=>escapeHtml(e)).join('\n')}</textarea>
           </div>
           <div class="notes-field">
             <label>PoC Details</label>
-            <textarea data-action="notes-poc" data-id="${item.id}" placeholder="PoC steps, screenshots references…">${escapeHtml(pocDetails)}</textarea>
+            <textarea data-action="notes-poc" data-id="${item.id}" placeholder="PoC steps, screenshot references…">${escapeHtml(pocDetails)}</textarea>
           </div>
           <div class="notes-field">
             <label>Affected Endpoints <span class="hint">(one per line)</span></label>
             <textarea data-action="notes-endpoints" data-id="${item.id}" placeholder="https://target.example.com/api/v1/…">${affectedEndpoints.map(e=>escapeHtml(e)).join('\n')}</textarea>
           </div>
-          <div class="notes-field" style="grid-column:1 / -1;">
+          <div class="notes-field u-full-row">
             <label>Evidence Attachments <span class="hint">(screenshots, up to 4)</span></label>
             ${renderAttachmentGrid(item)}
-            <div class="attachment-hint">Images are compressed and stored locally in your browser; nothing is uploaded.</div>
+            <div class="attachment-hint">Compressed and stored in this browser only — nothing is uploaded.
+              <b>Not encrypted:</b> anyone with access to this browser profile can read them, and they are
+              lost if you clear site data. Export your progress to keep a copy.</div>
           </div>
           ${renderRemediationBlock(item)}
         </div>
@@ -451,24 +455,24 @@ function renderItemSummary(item){
   const statusObj = getStatusObj(item.status || 'not-tested');
 
   return `
-    <div class="test-item ${expanded} ${flaggedCls} ${isDone?'done':''}" data-id="${item.id}" style="--sev-c:${SEV_COLOR[item.severity]}">
+    <div class="test-item ${expanded} ${flaggedCls} ${isDone?'done':''}" data-id="${item.id}" data-sev="${item.severity}">
       <div class="test-row">
         <div class="checkbox" data-action="toggle" data-id="${item.id}">${checkSvg()}</div>
         <div class="item-body" data-action="expand" data-id="${item.id}">
           <div class="item-top">
             <span class="order-badge">#${item.sequence}</span>
             <span class="item-id">${item.id}</span>
-            <span class="sev-badge" style="background:${SEV_COLOR[item.severity]}22; color:${SEV_COLOR[item.severity]}">${escapeHtml(item.severityLabel||item.severity)}</span>
+            <span class="sev-badge sev-chip" data-sev="${item.severity}">${escapeHtml(item.severityLabel||item.severity)}</span>
             <span class="cwe-badge">${escapeHtml(item.cwe||'—')}</span>
             ${item.custom ? '<span class="domain-card-custom-badge">Custom</span>' : ''}
           </div>
           <div class="item-title">${escapeHtml(item.title)}${hasNotes ? '<span class="notes-dot"> •</span>' : ''}</div>
           <div class="item-status-row">
-            <span class="mini-status" style="color:${statusObj.color}">${statusObj.icon || '○'} ${statusObj.label}</span>
+            <span class="mini-status status-text" data-status="${item.status || 'not-tested'}">${statusObj.icon || '○'} ${statusObj.label}</span>
           </div>
         </div>
         <button class="flag-btn ${item.flagged?'flagged':''}" data-action="flag" data-id="${item.id}" title="Flag for retest">${svgIcon('flag')}</button>
-        <button class="expand-btn" data-action="expand" data-id="${item.id}" aria-label="Toggle details">${chevSvg()}</button>
+        <button class="expand-btn" data-action="expand" data-id="${item.id}" aria-label="Toggle details for ${escapeHtml(item.title)}" aria-expanded="${state.expanded.has(item.id) ? 'true' : 'false'}">${chevSvg()}</button>
       </div>
       <div class="detail-panel" data-holder="${item.id}">${state.expanded.has(item.id) ? getDetailHtml(item) : ''}</div>
     </div>

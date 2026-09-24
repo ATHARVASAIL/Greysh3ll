@@ -1,0 +1,30 @@
+# Test harness dependencies
+tests/node_modules/
+tests/package-lock.json
+
+# Generated promo assets (rebuild with tools/build-promo.py).
+# Scoped to the output directory rather than ignoring image types outright,
+# so a screenshot added to the README is not silently dropped.
+promo/
+greysh3ll-banner-*.png
+greysh3ll-banner-*.svg
+# assets/og-banner.png is committed deliberately — social previews need a
+# real URL, so it cannot be a build artefact.
+!assets/og-banner.png
+greysh3ll-square-*.png
+greysh3ll-square-*.svg
+greysh3ll-slide-*.png
+greysh3ll-slide-*.svg
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

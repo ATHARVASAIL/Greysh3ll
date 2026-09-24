@@ -126,6 +126,8 @@
 .palette-title{flex:1; font-size:12.5px; color:var(--text-bright); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .palette-cat{font-family:var(--font-mono); font-size:10px; color:var(--text-dim); flex-shrink:0;}
 .palette-empty{padding:36px; text-align:center; color:var(--text-dim); font-size:12.5px;}
+.palette-progress{display:inline-block; margin-top:8px; color:var(--text-faint); font-size:11.5px;
+  font-variant-numeric:tabular-nums;}
 
 @media (max-width:600px){
   .cvss-score{font-size:36px;}
@@ -218,7 +220,13 @@
   font-size:20px; flex-shrink:0; transition:border-color .15s, color .15s;
 }
 .attachment-add-label:hover{border-color:var(--accent); color:var(--accent);}
-.attachment-hint{font-family:var(--font-mono); font-size:9.5px; color:var(--text-faint); margin-top:6px;}
+.attachment-hint{
+  font-family:var(--font-mono); font-size:10px; line-height:1.55;
+  color:var(--text-faint); margin-top:7px;
+}
+/* The unencrypted-storage caveat is the part that matters for client evidence,
+   so it is the one word that gets weight rather than being lost in grey text. */
+.attachment-hint b{color:var(--med);}
 
 /* =========================================================
    DOMAIN BASICS PRIMER — collapsible <details> shown at the top of
@@ -693,3 +701,152 @@
   .cov-bar-meta{display:none;}
   .cov-bar-code{min-width:46px;}
 }
+
+/* =========================================================
+   CSP-SAFE UTILITY CLASSES
+   These replace inline style="" attributes so the Content-Security-Policy no
+   longer needs style-src 'unsafe-inline'. Static values become classes here;
+   genuinely dynamic values (severity colour, progress width) are driven by
+   CSS custom properties set via element.style.setProperty(), which CSP permits
+   because it is a scripted property write, not an inline style attribute.
+========================================================= */
+.u-full-row{grid-column:1 / -1;}
+.u-hidden{display:none;}
+.u-disabled{opacity:.4; cursor:not-allowed;}
+.u-mt-8{margin-top:8px;}
+.u-mt-10{margin-top:10px;}
+.u-mt-12{margin-top:12px;}
+.u-mt-14{margin-top:14px;}
+.u-mt-16{margin-top:16px;}
+.u-mb-12{margin-bottom:12px;}
+.u-mb-14{margin-bottom:14px;}
+.u-mb-16{margin-bottom:16px;}
+.u-scroll-340{max-height:340px; overflow-y:auto;}
+.u-note{font-family:var(--font-mono); font-size:11px; color:var(--text-dim);}
+.u-note-break{word-break:break-all;}
+.u-bright{color:var(--text-bright);}
+.u-dim{color:var(--text-dim);}
+
+/* Per-severity text colour — a fixed set, so explicit classes beat passing a
+   colour through an inline property. */
+.sev-critical{color:var(--crit);}
+.sev-high{color:var(--high);}
+.sev-medium{color:var(--med);}
+.sev-low{color:var(--low);}
+.sev-info{color:var(--info);}
+
+/* Severity badge (solid colour on a matching low-opacity tint). The tints are
+   defined once against each token's -rgb pair, which every browser supports. */
+.sev-badge.sev-critical{background:rgba(var(--crit-rgb),.13);}
+.sev-badge.sev-high{background:rgba(var(--high-rgb),.13);}
+.sev-badge.sev-medium{background:rgba(var(--med-rgb),.13);}
+.sev-badge.sev-low{background:rgba(var(--low-rgb),.13);}
+.sev-badge.sev-info{background:rgba(var(--info-rgb),.13);}
+
+/* Progress/meter fill: width is genuinely dynamic, so JS sets --pct via
+   setProperty (CSP-permitted); colour comes from a severity class or --accent. */
+.u-bar-fill{width:var(--pct, 0%);}
+.u-bar-fill.bar-accent{background:var(--accent);}
+.u-bar-fill.bar-accent-2{background:var(--accent-2);}
+
+/* csp-w: width driven by --pct (set from JS via setProperty, CSP-safe) instead
+   of an inline style attribute. csp-sevbar tints by data-sev via JS class. */
+.csp-w{width:var(--pct, 0%);}
+
+/* Remaining static-style replacements (CSP: no inline style attribute). */
+.u-my-block-a{margin:18px 0 10px;}
+.u-my-block-b{margin:10px 0 16px;}
+.u-row-gap{display:flex; gap:10px; margin:12px 0;}
+.u-hint-block{font-size:11.5px; color:var(--text-dim); margin-bottom:14px;}
+.u-legend-row{display:flex; gap:24px; flex-wrap:wrap; font-family:var(--font-mono); font-size:12px; color:var(--text);}
+.u-no-break{break-inside:avoid;}
+.u-fail{color:var(--fail);}
+.u-na{color:var(--na);}
+
+/* =========================================================
+   CSP-SAFE UTILITY CLASSES
+   These replace every inline style= attribute that was preventing removal of
+   'unsafe-inline' from the Content-Security-Policy.
+
+   Why they exist here:
+   Inline styles and a strict CSP are incompatible. A browser enforcing
+   style-src 'self' without 'unsafe-inline' will refuse to apply any style set
+   in a style="" attribute, which breaks layout silently — no error, just
+   unstyled or mis-sized elements. Moving static values to classes, and
+   dynamic values to data-attributes + CSS custom properties, removes the need
+   for 'unsafe-inline' entirely.
+
+   Do not add style= attributes to templates. Use a data-sev or data-pct
+   attribute and add a CSS rule here instead.
+========================================================= */
+
+/* --- static layout, formerly inline style= in HTML --- */
+.u-fill       { width:100%; height:100%; }
+.u-hidden     { display:none; }
+.u-ml-auto    { margin-left:auto; }
+.u-ml-sm      { margin-left:6px; }
+.u-full-row   { display:block; }
+
+/* --- text colours, formerly inline style="color:var(--x)" --- */
+.u-text-bright     { color:var(--text-bright); }
+.u-text-dim        { color:var(--text-dim); }
+.u-text-na         { color:var(--na); }
+.u-text-low        { color:var(--low); }
+.u-text-med        { color:var(--med); }
+.u-text-fail       { color:var(--fail); }
+.u-text-bright-lg  { color:var(--text-bright); font-size:20px; display:block; }
+.u-text-dim-lg     { color:var(--text-dim);    font-size:20px; display:block; }
+.u-text-na-lg      { color:var(--na);          font-size:20px; display:block; }
+.u-text-low-lg     { color:var(--low);         font-size:20px; display:block; }
+.u-text-med-lg     { color:var(--med);         font-size:20px; display:block; }
+.u-text-fail-lg    { color:var(--fail);        font-size:20px; display:block; }
+
+/* --- severity chips and bars via data-sev attribute ---
+   data-sev values match the severity key: critical high medium low info
+   CSS custom property approach:
+     1. The JS sets data-sev="critical" (no style= needed)
+     2. These rules read that attribute and apply the colour
+   This is CSP-safe because the colour comes from CSS, not from a style attr. */
+[data-sev="critical"] { --sev-c: var(--crit);    }
+[data-sev="high"]     { --sev-c: var(--high);    }
+[data-sev="medium"]   { --sev-c: var(--med);     }
+[data-sev="low"]      { --sev-c: var(--low);     }
+[data-sev="info"]     { --sev-c: var(--info);    }
+
+/* Elements that just need the colour as text */
+.sev-text[data-sev]             { color:var(--sev-c); }
+/* Chips: coloured border + subtle background tint */
+.sev-chip[data-sev]             { color:var(--sev-c); background:color-mix(in srgb, var(--sev-c) 12%, transparent); border-color:var(--sev-c); }
+/* Filled badge (e.g. status pill) */
+.sev-badge[data-sev]            { background:var(--sev-c); color:var(--bg); }
+/* Left-border accent on a card */
+.sev-card[data-sev]             { border-left:3px solid var(--sev-c); }
+/* Progress bar fill via --pct (handled by applyCspStyles, not inline) */
+.sev-bar[data-sev]              { background:var(--sev-c); }
+
+/* --- animation delay via data-idx, replaces style="animation-delay:Xms" --- */
+[data-idx] { animation-delay: calc(attr(data-idx integer, 0) * 35ms); }
+/* attr() type syntax has limited support; fallback handled in applyCspStyles  */
+
+/* --- test-case status colours via data-status ─── */
+[data-status="not-tested"]    { --status-c:var(--text-dim);  }
+[data-status="in-progress"]   { --status-c:var(--high);      }
+[data-status="tested-pass"]   { --status-c:var(--low);       }
+[data-status="tested-fail"]   { --status-c:var(--fail);      }
+[data-status="not-applicable"]{ --status-c:var(--na);        }
+.status-text[data-status]     { color:var(--status-c);       }
+.status-chip[data-status]     { color:var(--status-c); border-color:var(--status-c); }
+
+/* --- remediation state colours via data-rem ────── */
+[data-rem="open"]              { --rem-c:var(--crit);    }
+[data-rem="in-remediation"]    { --rem-c:var(--high);    }
+[data-rem="retest-pending"]    { --rem-c:var(--info);    }
+[data-rem="fixed"]             { --rem-c:var(--low);     }
+[data-rem="risk-accepted"]     { --rem-c:var(--accepted);}
+[data-rem="not-fixed"]         { --rem-c:var(--fail);    }
+.rem-btn.active[data-rem]      { border-color:var(--rem-c); color:var(--rem-c); background:color-mix(in srgb, var(--rem-c) 10%, transparent); }
+.remediation-current[data-rem] { color:var(--rem-c); }
+.rem-text[data-rem]            { color:var(--rem-c); }
+
+/* --- animation delay: fallback handled by applyCspStyles ─────── */
+[data-idx] { animation-delay:calc(var(--anim-delay-ms, 0) * 1ms); }

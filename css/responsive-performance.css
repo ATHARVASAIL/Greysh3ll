@@ -274,11 +274,134 @@ body.sidebar-locked{ overflow:hidden; }
   .dash-cta .btn{ width:100%; margin-left:0 !important; }
   .dash-search{ padding:4px 4px 4px 12px; }
   .dash-search .btn span.lbl{ display:none; }
-  .dash-search .btn{ padding:9px; min-width:38px; }
+  .dash-search .btn{ padding:9px; min-width:44px; }   /* 38px was under the touch target */
 }
 @media (max-width:420px){
   .dash-ring-card{ padding:14px 0; }
   .dash-ring{ width:104px; height:104px; }
   .dash-ring-label b{ font-size:18px; }
   .dash-stat-card{ padding:14px; }
+}
+
+/* =========================================================
+   TOUCH TARGET SIZING
+   Browser testing at 320-390px found a set of controls below a usable
+   touch size — the theme toggle was 18px wide, and the flag and expand
+   buttons on every row were 24-25px. WCAG 2.5.8 sets 24x24 CSS px as the
+   floor; platform guidance from both Apple and Google asks for 44. These
+   rules raise the hit area without changing the icon or label size, so
+   the visual design is unaffected while the tappable region grows.
+
+   Scoped to coarse pointers rather than to width alone: a narrow desktop
+   window still has a mouse, and enlarging controls there would be a
+   regression rather than a fix.
+========================================================= */
+@media (pointer: coarse){
+  /* Icon-only controls: square hit area, icon stays centred at its size. */
+  .theme-toggle,
+  .flag-btn,
+  .expand-btn,
+  .identity-edit-btn,
+  .identity-collapse-btn,
+  .sidebar-collapse-btn,
+  .menu-btn{
+    min-width:44px;
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  /* Controls carrying a label: keep their natural width, raise the height. */
+  .status-btn,
+  .workspace-back,
+  .rem-btn,
+  .chip,
+  select{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  /* Sidebar and profile buttons hide their labels at this width and become
+     icon-only, so they need the width raised as well as the height. The
+     profile row is allowed to wrap rather than compress below the target. */
+  .btn,
+  .pbtn,
+  .sidebar-close-btn,
+  .detail-payload-copy{
+    min-width:44px;
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    /* a flex parent would otherwise shrink these back below the target */
+    flex-shrink:0;
+  }
+
+  /* Full-width rows: the whole line is the target, so height is what
+     matters. 44px on the chapter headers keeps the accordion comfortable
+     without stretching the list the way the contents links would. */
+  .detail-chapter-head{
+    min-height:44px;
+  }
+
+  /* Text entry. The command palette input was 16px tall and the dashboard
+     search 33px — both well under a comfortable tap, and an input that is
+     hard to focus is worse than a button that is hard to press, because
+     there is no second chance at it. */
+  input[type="text"],
+  input[type="search"],
+  input:not([type]),
+  textarea,
+  .palette input,
+  .palette-input{
+    min-height:44px;
+  }
+
+  /* Toolkit tab strip and the CVSS metric buttons: dense rows of small
+     pill controls, 29-30px tall. They stay their natural width and gain
+     height, and the strip already scrolls horizontally so nothing is
+     pushed out of reach. */
+  .ttab,
+  .cvss-opt{
+    min-height:44px;
+  }
+
+  /* Overlay close buttons are the one control a user needs to hit under
+     pressure, so they get the full target rather than the 32px default. */
+  .assess-close,
+  .toolkit-close,
+  .modal-close{
+    min-width:44px;
+    min-height:44px;
+  }
+
+  /* The row checkbox is 19px. WCAG 2.5.8 sets 24x24 as the floor, and the
+     whole row is clickable besides, so this is raised to a comfortable 24
+     rather than 44 — a 44px box would dominate a dense list. */
+  .checkbox{
+    width:24px;
+    height:24px;
+  }
+  .checkbox svg{
+    width:15px;
+    height:15px;
+  }
+  .profile-bar,
+  .profile-actions{
+    flex-wrap:wrap;
+  }
+
+  /* Primer contents links sit in a dense list; 44px would stretch the list
+     considerably, so they get a comfortable 36px plus full-row width, which
+     makes the whole line tappable rather than just the text. */
+  .primer-contents a,
+  .primer-toc a{
+    display:flex;
+    align-items:center;
+    min-height:36px;
+    width:100%;
+  }
 }

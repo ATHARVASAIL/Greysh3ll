@@ -49,7 +49,7 @@ document.getElementById('paletteInput').addEventListener('input', (e)=>{
     <div class="palette-item" data-jump-id="${d.id}">
       <span class="palette-cat">${d.id}</span>
       <span class="palette-title">${escapeHtml(d.title)}</span>
-      <span class="palette-cat" style="color:${SEV_COLOR[d.severity]}">${d.severityLabel||d.severity}</span>
+      <span class="palette-cat sev-${d.severity}">${d.severityLabel||d.severity}</span>
     </div>
   `).join('');
 
@@ -64,7 +64,11 @@ document.getElementById('paletteInput').addEventListener('input', (e)=>{
       state.expanded.add(id);
       renderAll();
       requestAnimationFrame(()=>{
-        const el2 = document.querySelector(`.test-item[data-id="${CSS.escape(id)}"]`);
+        /* Route through ensureItemRendered so the jump works even when the
+           target sits in a collapsed section or beyond the rendered chunk. */
+        const el2 = (typeof ensureItemRendered === 'function')
+          ? ensureItemRendered(id)
+          : document.querySelector(`.test-item[data-id="${CSS.escape(id)}"]`);
         if(el2){
           el2.scrollIntoView({behavior:'smooth', block:'center'});
           el2.classList.add('highlight-next');
