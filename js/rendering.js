@@ -112,7 +112,13 @@ function renderSidebar(){
   legend.innerHTML = SEVERITIES.map(s=>{
     const c = sevCounts[s.key];
     const active = state.activeSevs.has(s.key)?'active':'';
-    return `<div class="sev-row ${active}" data-sev="${s.key}"><span class="sev-dot sev-badge" data-sev="${s.key}"></span><span class="name">${s.label}</span><span class="count">${c.pass}/${c.total}</span></div>`;
+    const pct = c.total ? Math.round(c.pass / c.total * 100) : 0;
+    return `<div class="sev-row ${active}" data-sev="${s.key}" role="button" tabindex="0" aria-pressed="${active?'true':'false'}">
+      <span class="sev-dot sev-badge" data-sev="${s.key}"></span>
+      <span class="name">${s.label}</span>
+      <span class="count">${c.pass}/${c.total}</span>
+      <div class="sev-bar"><div class="sev-bar-fill csp-w" data-sev="${s.key}" data-pct="${pct}"></div></div>
+    </div>`;
   }).join('');
   legend.querySelectorAll('.sev-row').forEach(el=>{
     el.addEventListener('click', ()=>{
@@ -130,7 +136,8 @@ function renderSidebar(){
     const pct = cc.total ? Math.round((cc.pass + cc.na) / cc.total * 100) : 0;
     const active = state.activeDomain === c.code ? 'active' : '';
     const next = getDomainNextItem(c.code);
-    return `<div class="cat-item ${active}" data-cat="${escapeHtml(c.code)}" title="${escapeHtml(c.name)}">
+    return `<div class="cat-item ${active}" data-cat="${escapeHtml(c.code)}" title="${escapeHtml(c.name)} — ${cc.pass}/${cc.total} done" role="button" tabindex="0" aria-current="${active?'true':'false'}">
+      <span class="cat-index" aria-hidden="true">${idx+1}</span>
       <span class="code"><span class="code-num">${idx+1}.</span> ${c.code}</span>
       <span class="name">${escapeHtml(c.name)}</span>
       <span class="prog">${cc.pass}/${cc.total}</span>

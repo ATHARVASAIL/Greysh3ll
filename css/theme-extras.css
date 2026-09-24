@@ -580,27 +580,58 @@
   .sidebar-collapse-btn{ display:flex; }
   .sidebar{ padding-top:60px; }
   .layout{ transition:grid-template-columns .22s var(--ease-out); }
-  .layout.sidebar-rail{ grid-template-columns:68px 1fr; }
-  .sidebar-rail .sidebar{ padding-left:10px; padding-right:10px; }
+  /* 88px, not 68px. The old width could not fit the longest code (SOCIAL)
+     so every label was ellipsised down to its first letter — which made
+     NET/WEB/WIFI and SRC/SOCIAL indistinguishable from each other. The
+     rail is now sized to the content it has to show. */
+  .layout.sidebar-rail{ grid-template-columns:88px 1fr; }
+  .sidebar-rail .sidebar{ padding-left:8px; padding-right:8px; padding-top:64px; }
+  /* Centred over the narrow rail rather than pinned to a right edge that
+     no longer exists at this width. */
+  .sidebar-rail .sidebar-collapse-btn{ right:auto; left:50%; transform:translateX(-50%); }
   .sidebar-rail .profile-bar,
   .sidebar-rail .radar,
   .sidebar-rail .summary-line,
   .sidebar-rail .sidebar-heading,
   .sidebar-rail .sev-legend{ display:none; }
+
+  .sidebar-rail .cat-list{ gap:4px; }
   .sidebar-rail .cat-item{
-    flex-direction:column; align-items:center; justify-content:center;
-    gap:0; padding:10px 4px; margin-bottom:4px; min-height:44px;
+    display:flex;                       /* the expanded layout is a grid */
+    flex-direction:column; align-items:center; justify-content:flex-start;
+    gap:5px; padding:10px 4px 9px; min-height:56px;
   }
   .sidebar-rail .cat-item .name,
   .sidebar-rail .cat-item .prog,
-  .sidebar-rail .cat-item .bar,
   .sidebar-rail .cat-item .cat-next-hint{ display:none; }
+
+  /* Position in the testing order, which is what the list is sorted by.
+     Small and dim so the code stays the thing you read. */
+  .sidebar-rail .cat-index{
+    display:block;
+    font-family:var(--font-mono); font-size:8.5px; font-weight:600;
+    line-height:1; letter-spacing:.5px;
+    color:var(--text-faint);
+  }
+  .sidebar-rail .cat-item.active .cat-index{ color:var(--accent); }
+
   .sidebar-rail .cat-item .code{
     min-width:unset; width:auto; max-width:100%;
-    font-size:9.5px; padding:4px 7px; white-space:nowrap;
-    overflow:hidden; text-overflow:ellipsis;
+    font-size:9.5px; padding:4px 6px;
+    white-space:nowrap;                /* no ellipsis: it now fits */
+    background:transparent;
+  }
+  .sidebar-rail .cat-item.active .code{
+    background:rgba(var(--accent-rgb),.12);
   }
   .sidebar-rail .cat-item .code .code-num{ display:none; }
+
+  /* Progress stays visible in the rail — it is the reason to glance at
+     this list at all, and hiding it made the rail purely decorative. */
+  .sidebar-rail .cat-item .bar{
+    display:block; width:32px; height:3px; margin-top:1px;
+  }
+  .sidebar-rail .cat-item::before{ top:6px; bottom:6px; }
 }
 
 
@@ -850,3 +881,208 @@
 
 /* --- animation delay: fallback handled by applyCspStyles ─────── */
 [data-idx] { animation-delay:calc(var(--anim-delay-ms, 0) * 1ms); }
+
+/* =========================================================
+   SIDEBAR REFINEMENT
+   The sidebar had three problems that read as unfinished rather than
+   minimal:
+
+   1. In rail mode the domain codes were truncated to a single letter plus
+      an ellipsis, so NET/WEB/WIFI became "N…", "W…", "W…" — two pairs were
+      genuinely ambiguous, not merely ugly. The rail is now wide enough for
+      the longest code (SOCIAL) at its natural size, so nothing truncates.
+   2. Sections were separated by dashed hairlines and loose margins, which
+      is the visual grammar of a wireframe.
+   3. The severity legend was three rows of text with a number at the end,
+      with no indication of proportion, while the dashboard showed bars for
+      the same data.
+
+   Everything below uses the existing tokens, so it follows the theme and
+   stays inside the contrast gate.
+========================================================= */
+
+.sidebar{
+  /* Deliberately not the `padding` shorthand: the desktop rule above
+     reserves padding-top for the absolutely-positioned collapse button,
+     and a shorthand here would silently reset it and let the button sit
+     on top of the first domain. */
+  padding-left:14px;
+  padding-right:14px;
+  padding-bottom:40px;
+  scrollbar-width:thin;
+  scrollbar-color:var(--border-strong) transparent;
+}
+.sidebar::-webkit-scrollbar{ width:8px; }
+.sidebar::-webkit-scrollbar-track{ background:transparent; }
+.sidebar::-webkit-scrollbar-thumb{
+  background:var(--border-strong); border-radius:99px;
+  border:2px solid var(--bg);
+}
+.sidebar::-webkit-scrollbar-thumb:hover{ background:var(--accent-dim); }
+
+/* ---------- engagement switcher ---------- */
+.profile-bar{ gap:6px; margin-bottom:22px; align-items:center; }
+.profile-bar select{
+  padding:9px 10px;
+  border-radius:var(--r-sm);
+  letter-spacing:.2px;
+  transition:border-color .15s ease, background .15s ease;
+}
+.profile-bar select:hover{ border-color:var(--border-strong); }
+.profile-bar select:focus-visible{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(var(--accent-rgb),.16);
+}
+
+/* ---------- summary block: a grouped card, not four ruled lines ---------- */
+.summary-line{
+  padding:10px 12px;
+  background:var(--surface-1);
+  border:1px solid var(--border-soft);
+  border-bottom:none;
+  font-size:11px;
+  letter-spacing:.2px;
+}
+.summary-line:first-of-type{ border-radius:var(--r-sm) var(--r-sm) 0 0; }
+.summary-line:last-of-type{
+  border-bottom:1px solid var(--border-soft);
+  border-radius:0 0 var(--r-sm) var(--r-sm);
+}
+.summary-line b{
+  font-variant-numeric:tabular-nums;   /* numbers stop jittering as they change */
+  letter-spacing:0;
+}
+
+/* ---------- section headings with a trailing rule ---------- */
+.sidebar-heading{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:26px 0 10px;
+  font-size:9.5px;
+  letter-spacing:1.5px;
+}
+.sidebar-heading::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:linear-gradient(90deg, var(--border-soft), transparent);
+}
+
+/* ---------- severity legend ---------- */
+.sev-legend{ gap:4px; }
+.sev-row{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  grid-template-areas:"dot name count" "bar bar bar";
+  align-items:center;
+  gap:4px 9px;
+  padding:9px 10px;
+  border-radius:var(--r-sm);
+  border:1px solid transparent;
+  transition:background .15s ease, border-color .15s ease;
+}
+.sev-row .sev-dot{ grid-area:dot; }
+.sev-row .name{ grid-area:name; }
+.sev-row .count{ grid-area:count; font-variant-numeric:tabular-nums; }
+.sev-row .sev-bar{
+  grid-area:bar;
+  height:3px;
+  border-radius:2px;
+  background:var(--surface-3);
+  overflow:hidden;
+}
+.sev-row .sev-bar-fill{
+  height:100%;
+  border-radius:2px;
+  background:var(--sev-c, var(--accent));
+  width:var(--pct, 0%);
+  transition:width .5s var(--ease-out);
+}
+.sev-row.active{
+  background:var(--surface-2);
+  border-color:var(--border-strong);
+}
+.sev-row:focus-visible{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(var(--accent-rgb),.16);
+}
+
+/* ---------- domain list ---------- */
+.cat-list{ gap:3px; }
+/* Grid rather than wrapping flex. As a flex row the "next test" hint wrapped
+   onto a line of its own under every domain, which doubled the height of the
+   list and left a stranded icon in the gap. The layout is two explicit rows:
+   everything textual on the first, the progress bar spanning the second. */
+.cat-item{
+  position:relative;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  /* The count moves onto the second row beside the bar, which hands the
+     whole first row to the name. Truncating "Network & Infrastructure
+     Security" to "Network & Infrastructur…" was the same defect as the
+     ellipsised rail, just in a wider column. */
+  grid-template-areas:
+    "code name hint"
+    "bar  bar  prog";
+  align-items:center;
+  gap:6px 9px;
+  padding:9px 10px 9px 12px;
+  border-radius:var(--r-sm);
+}
+/* Aligned to the first line of the name rather than the middle of a
+   three-line block, so the chip and the name start together. */
+.cat-item .code{ grid-area:code; align-self:start; margin-top:1px; }
+.cat-item .name{
+  grid-area:name;
+  line-height:1.35;
+  /* two lines is enough for the longest name; beyond that it is noise */
+  /* No clamp. Every remaining name fits in two or three lines at this
+     width, and the one that needed a fourth ("Social Engineering &
+     Physical Security") was being clipped by the clamp rather than
+     helped by it. A domain the analyst cannot identify is worse than a
+     row that is one line taller. */
+  overflow-wrap:anywhere;
+}
+.cat-item .prog{ grid-area:prog; font-size:9.5px; padding-left:8px; }
+.cat-item .cat-next-hint{
+  grid-area:hint;
+  align-self:start;
+  width:18px; height:18px;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:transparent; border:none; padding:0;
+  color:var(--text-faint);
+  opacity:0;
+  transition:opacity .15s ease, color .15s ease;
+}
+.cat-item:hover .cat-next-hint,
+.cat-item.active .cat-next-hint{ opacity:1; }
+.cat-item.active .cat-next-hint{ color:var(--accent); }
+.cat-item .bar{ grid-area:bar; width:100%; margin-top:0; align-self:center; }
+/* An accent bar on the active row reads faster than a background tint
+   alone, and survives both themes without a second colour. */
+.cat-item::before{
+  content:"";
+  position:absolute;
+  left:0; top:8px; bottom:8px;
+  width:2px;
+  border-radius:0 2px 2px 0;
+  background:var(--accent);
+  opacity:0;
+  transition:opacity .15s ease;
+}
+.cat-item.active::before{ opacity:1; }
+.cat-item.active{ background:var(--surface-2); border-color:var(--border-strong); }
+.cat-item .code{ letter-spacing:.4px; }
+.cat-item .name{ letter-spacing:.1px; }
+.cat-item .prog{ font-variant-numeric:tabular-nums; }
+.cat-item .bar{ height:3px; margin-top:7px; }
+.cat-item:focus-visible{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(var(--accent-rgb),.16);
+}
+/* Shown only in rail mode; carries the position in the testing order. */
+.cat-index{ display:none; }

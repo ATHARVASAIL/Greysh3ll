@@ -640,8 +640,13 @@ function setSidebarRail(collapsed){
   if(!btn) return;
   let saved = null;
   saved = safeStorageGet(SIDEBAR_RAIL_KEY);
-  // Collapsed by default on first visit — expand explicitly to see full labels.
-  setSidebarRail(saved === null ? true : saved === '1');
+  // Expanded by default. The rail was the first-visit default, which meant
+  // every new visitor's first impression was the condensed version with no
+  // domain names, no coverage ring and no severity legend — the least
+  // legible state of the most important navigation in the app. The rail is
+  // a deliberate choice for someone who already knows the layout, so it is
+  // opt-in and remembered, not the starting point.
+  setSidebarRail(saved === '1');
   btn.addEventListener('click', ()=>{
     const layoutEl = document.querySelector('.layout');
     setSidebarRail(!(layoutEl && layoutEl.classList.contains('sidebar-rail')));

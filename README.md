@@ -475,6 +475,25 @@ ones: 6 identification steps, 6 exploitation steps, 6 labeled payloads,
 
 ## 📋 Changelog
 
+- **v1.10 — sidebar redesign.** The rail was 68px wide, which could not
+  fit the longest domain code, so every label was ellipsised to its first
+  letter: NET, WEB and WIFI all rendered as "W…"-style stubs and two pairs
+  of domains were genuinely indistinguishable. Worse, the rail was the
+  **first-visit default**, so a new visitor's first impression was the
+  least legible state of the app's main navigation. The rail is now 88px
+  and sized to its content — nothing truncates — it keeps the progress bar
+  and the position in the testing order, and the expanded sidebar is the
+  default with the rail opt-in and remembered. The domain list is a grid
+  rather than a wrapping flex row, which was stranding the "next test"
+  icon on a line of its own under every entry and doubling the height of
+  the list; the count moved beside the progress bar so the name gets the
+  full row, and the line clamp came off because it was clipping "Social
+  Engineering & Physical Security" rather than helping it. The summary
+  block is a single grouped card instead of four dashed rules, section
+  headings carry a trailing hairline, and the severity legend gained the
+  proportion bars the dashboard already had. All tokens, so the contrast
+  gate and both themes still hold.
+
 - **v1.9.3 — exhaustive responsive verification.** A new
   `tests/full_check.py` drives 18 viewports x every feature and found a
   further set of undersized touch targets that the six-viewport pass had
