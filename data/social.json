@@ -10,7 +10,6 @@
   {
    "id": "SOCIAL-001",
    "domain": "SOCIAL",
-   "phase": 490,
    "sequence": 490,
    "title": "Social Media OSINT Exposure of Employee Information",
    "severity": "low",
@@ -77,6 +76,7 @@
     "Fold verified OSINT findings into the security-awareness and phishing-simulation program so employees see concretely how their own public information could be used against them.",
     "Extend takedown/monitoring processes to cover employee-posted conference badges and event photos specifically, since these recur every conference season and are a repeatable, fixable source."
    ],
+   "mitigationClientFacing": "Enough information to plan a convincing attack on your staff is already public, assembled from employee profiles, job adverts, conference talks and code repositories. None of it was leaked; each piece was shared for a good reason. The risk is the total picture: who reports to whom, which systems you run, who is new and therefore least likely to question an unusual request. You cannot remove what is already published and should not try to stop staff having a professional presence. What works is reducing unnecessary detail in job adverts and out-of-office replies, telling staff which specifics are worth keeping vague, and — most importantly — accepting that attackers will know these things and building verification steps that hold up even when the caller sounds well-informed.",
    "reference": {
     "standard": "NIST SP 800-53 Rev. 5 - AT-2 (Literacy Training and Awareness)",
     "cwe": "CWE-200",
@@ -102,12 +102,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1589",
+     "name": "Gather Victim Identity Information",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-002",
    "domain": "SOCIAL",
-   "phase": 491,
    "sequence": 491,
    "title": "Pretexting Against Help Desk for Password Reset",
    "severity": "high",
@@ -175,6 +191,7 @@
     "Consider self-service identity-proofing (push notification to a previously enrolled device, or a verified identity-proofing flow) that removes the human judgment call for the riskiest actions entirely.",
     "Recognize and reward agents who correctly refuse or escalate a suspicious request, rather than measuring only average call-handling time."
    ],
+   "mitigationClientFacing": "Your help desk can currently reset a password or re-register a second-factor device based on information a caller recites — employee number, date of birth, manager's name. All of that is obtainable, so in practice the control is that the caller sounds convincing. This is one of the most reliably exploited routes into an organisation, because it hands over a working account without touching a single technical control. The fix is procedural and does not require new technology: verify through a channel the caller did not choose, such as a callback to the number already on file or a code sent through your own identity system. Give help-desk staff explicit authority to refuse an urgent request without needing a manager's approval, because pressure and seniority are the levers used against them.",
    "reference": {
     "standard": "NIST SP 800-63B - Digital Identity Guidelines (Authenticator Reset/Recovery)",
     "cwe": "CWE-287",
@@ -198,12 +215,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1566",
+     "name": "Phishing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-003",
    "domain": "SOCIAL",
-   "phase": 492,
    "sequence": 492,
    "title": "Physical Security of Server Room Access Controls",
    "severity": "high",
@@ -270,6 +303,7 @@
     "Extend camera coverage and adequate retention to approach corridors, not just the server-room interior, so an incident's full path can be reconstructed.",
     "Run this assessment periodically (at minimum annually, and after any facility layout change) rather than treating a single physical pentest as a one-time validation."
    ],
+   "mitigationClientFacing": "The room housing your servers is protected by a set of measures that were each reasonable in isolation but were never tested as a whole. Our assessment looked at it the way someone trying to get in would: not just the lock on the door, but the ceiling above it, the shared wall beside it, whether the door can be pulled open from outside by triggering the exit sensor, and whether anyone would be alerted if it stood open. Physical access to this room bypasses essentially every digital control you have. The remediation is a small number of specific building-fabric and monitoring changes rather than a wholesale rebuild, and most can be completed by your facilities team.",
    "reference": {
     "standard": "NIST SP 800-53 Rev. 5 - PE-3 (Physical Access Control)",
     "cwe": "CWE-1263",
@@ -293,12 +327,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "PE",
+   "categoryName": "Physical and Environmental Protection",
+   "attack": [
+    {
+     "id": "T1200",
+     "name": "Hardware Additions",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "PHYS",
+     "name": "Physical security testing"
+    }
+   ]
   },
   {
    "id": "SOCIAL-004",
    "domain": "SOCIAL",
-   "phase": 493,
    "sequence": 493,
    "title": "Badge Cloning / RFID Access Card Duplication",
    "severity": "high",
@@ -365,6 +415,7 @@
     "Ensure temporary/contractor/loaner badge stock is provisioned on the same secure technology as full-time employee badges rather than a cheaper legacy fallback.",
     "Include badge-technology review in any facility security assessment cadence, since legacy readers are frequently discovered years after a supposedly-complete access-control upgrade."
    ],
+   "mitigationClientFacing": "The access cards your staff carry can be copied by someone standing near them with a reader that costs very little and fits in a bag. Older card types broadcast a fixed number with no verification, so a copy is indistinguishable from the original — and the duplicate does not show up as an anomaly in your access logs, because as far as the system is concerned it is the same card. Replacing the card technology is the real fix, and it is a budgeted project rather than a quick change. In the meantime, the practical steps are to require a second check at the doors that matter most, and to review access logs for the same card appearing in two places in an impossible timeframe.",
    "reference": {
     "standard": "NIST SP 800-53 Rev. 5 - IA-5 (Authenticator Management)",
     "cwe": "CWE-294",
@@ -389,12 +440,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1200",
+     "name": "Hardware Additions",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "PHYS",
+     "name": "Physical security testing"
+    }
+   ]
   },
   {
    "id": "SOCIAL-005",
    "domain": "SOCIAL",
-   "phase": 494,
    "sequence": 494,
    "title": "Baiting via Malicious QR Code Placement",
    "severity": "medium",
@@ -461,6 +528,7 @@
     "Include QR-based pretexts in the ongoing phishing-simulation program rather than treating email as the only simulated channel.",
     "Provide a simple, well-publicized reporting path for 'suspicious sign/code' the same way phishing-email reporting is publicized."
    ],
+   "mitigationClientFacing": "A printed square placed on a wall gets scanned without the scrutiny a link in an email would receive. People cannot read a QR code, so the usual advice to check before you click has nothing to work with, and the scan usually happens on a personal phone that sits outside your monitoring and controls. Stickers placed in your building during testing were scanned by staff who had no way to tell them from official signage. Address this with simple, specific guidance rather than general awareness training: tell staff which codes your organisation actually uses and where, ask facilities to remove unfamiliar codes rather than assume a colleague put them up, and make sure any code you do publish leads to a page on your own domain.",
    "reference": {
     "standard": "CIS Critical Security Controls v8 - Control 14 (Security Awareness and Skills Training)",
     "cwe": "CWE-451",
@@ -484,12 +552,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1046",
+     "name": "Network Service Discovery",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-006",
    "domain": "SOCIAL",
-   "phase": 495,
    "sequence": 495,
    "title": "Dumpster Diving for Sensitive Document Disposal",
    "severity": "medium",
@@ -556,6 +640,7 @@
     "Include document-disposal hygiene in new-hire and periodic security-awareness training with concrete, facility-specific guidance rather than generic 'shred sensitive documents' language.",
     "Consider transitioning frequently-discarded sensitive artifacts (temporary password slips, printed reports) to a digital-only or time-limited-display format to reduce what's disposed of physically at all."
    ],
+   "mitigationClientFacing": "Material that would be treated carefully on a screen is being disposed of as ordinary rubbish — printed documents, notes, and in some cases old drives and tapes. Once it is in an external bin it is generally no longer legally protected, and recovering it requires nothing more than turning up. What we found gives a useful picture of internal structure, naming conventions and in some cases credentials. This is among the cheapest findings in this report to close: cross-cut shredding available where documents are actually produced rather than on another floor, a certified destruction process for storage media with certificates retained, and secured external bins. Enforcement matters more than policy here, since a policy already exists.",
    "reference": {
     "standard": "NIST SP 800-53 Rev. 5 - MP-6 (Media Sanitization)",
     "cwe": "CWE-212",
@@ -578,12 +663,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "MP",
+   "categoryName": "Media Protection",
+   "attack": [
+    {
+     "id": "T1591",
+     "name": "Gather Victim Org Information",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "PHYS",
+     "name": "Physical security testing"
+    }
+   ]
   },
   {
    "id": "SOCIAL-007",
    "domain": "SOCIAL",
-   "phase": 496,
    "sequence": 496,
    "title": "Impersonation of IT Support for Remote Access",
    "severity": "critical",
@@ -651,6 +752,7 @@
     "Fold this specific pretext (impersonated IT support requesting remote access) explicitly into the security-awareness and phishing-simulation program, since it is measurably distinct from email-based phishing.",
     "Recognize and positively reinforce employees who correctly verify before granting access, to counter the instinct that questioning IT is itself unhelpful or risky."
    ],
+   "mitigationClientFacing": "Someone claiming to be from your IT team can currently talk a member of staff into installing remote-access software or handing over a login code, which gives them the same access as the employee with none of the barriers. This works because the request looks like genuine IT work and because staff are trained to cooperate with IT. The strongest control is a rule that is simple enough to be remembered under pressure: your IT team will never ask for a login code, and any request to install remote-access software must be confirmed through a number the employee looks up themselves rather than one they were given. Publish that rule, make sure IT actually never breaks it, and make it easy and blame-free to check.",
    "reference": {
     "standard": "NIST SP 800-53 Rev. 5 - IA-5 (Authenticator Management) / AT-2 (Literacy Training and Awareness)",
     "cwe": "CWE-287",
@@ -674,12 +776,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1585",
+     "name": "Establish Accounts",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-008",
    "domain": "SOCIAL",
-   "phase": 497,
    "sequence": 497,
    "title": "Phishing Email Susceptibility Testing",
    "severity": "high",
@@ -747,6 +865,7 @@
     "Segment analysis by department/role and target additional training at groups with disproportionate susceptibility rather than a one-size-fits-all program.",
     "Coordinate simulation timing and pretext themes with the SOC/help-desk in advance to avoid wasting real incident-response effort on a known test."
    ],
+   "mitigationClientFacing": "We ran a controlled phishing campaign to measure how your organisation responds in practice rather than in theory. Two numbers matter, and the second matters more: how many people clicked, and how quickly someone reported it. A workforce that clicks occasionally but reports quickly is in a much stronger position than one that clicks rarely and reports never, because reporting is what lets you respond before an attacker gets established. Use these results to measure and improve the reporting route, not to identify individuals — naming people suppresses reporting, which removes your early warning. Make reporting a single obvious action, acknowledge every report including the mistaken ones, and re-measure regularly so you are tracking a trend rather than a snapshot.",
    "reference": {
     "standard": "CIS Critical Security Controls v8 - Control 14 (Security Awareness and Skills Training)",
     "cwe": "CWE-451",
@@ -770,12 +889,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1566",
+     "name": "Phishing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-009",
    "domain": "SOCIAL",
-   "phase": 498,
    "sequence": 498,
    "title": "Physical Tailgating into Restricted Areas",
    "severity": "high",
@@ -842,6 +977,7 @@
     "Recognize and positively reinforce employees who correctly challenge a tailgater, to counter any perceived social cost of doing so.",
     "Extend the same controls and training consistently to secondary/less-trafficked entrances, which this assessment often finds are weaker than the main entrance."
    ],
+   "mitigationClientFacing": "People hold doors open, and they will keep holding doors open, because it is polite and refusing feels confrontational. During testing it was possible to enter controlled areas simply by following someone in while carrying something. Treat this as a design problem rather than a discipline problem: staff should not have to be rude to be secure. Where an area genuinely needs control, the entry should physically admit one person at a time, or be staffed. Everywhere else, give people a script that lets them challenge politely and be clear that management will back them up. Training alone does not change this behaviour; changing what the door does is what works.",
    "reference": {
     "standard": "NIST SP 800-53 Rev. 5 - PE-3 (Physical Access Control)",
     "cwe": "CWE-1263",
@@ -864,12 +1000,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "PE",
+   "categoryName": "Physical and Environmental Protection",
+   "attack": [
+    {
+     "id": "T1200",
+     "name": "Hardware Additions",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "PHYS",
+     "name": "Physical security testing"
+    }
+   ]
   },
   {
    "id": "SOCIAL-010",
    "domain": "SOCIAL",
-   "phase": 499,
    "sequence": 499,
    "title": "SMS Phishing (Smishing) Susceptibility Testing",
    "severity": "medium",
@@ -935,6 +1087,7 @@
     "Run SMS-based simulations on a recurring basis alongside email simulations, since susceptibility and awareness levels for the two channels do not necessarily track together.",
     "Ensure any organizational legitimate use of SMS for employee communication follows a consistent, recognizable format, making an off-pattern message easier for employees to flag."
    ],
+   "mitigationClientFacing": "Text messages reach staff on personal phones, outside your email filtering and monitoring, and arrive in the same conversation stream as messages from people they trust. A short message can be read and acted on in seconds, with none of the visual cues people use to judge an email. Our test measured how many staff clicked or replied. Because you cannot filter this channel the way you filter email, the response has to be about what staff do next: tell them that you will never ask them to act on a request that arrives only by text, give them a way to report a suspicious message that takes one action, and make sure any genuine notification you send by text follows a consistent, recognisable format.",
    "reference": {
     "standard": "CIS Critical Security Controls v8 - Control 14 (Security Awareness and Skills Training)",
     "cwe": "CWE-451",
@@ -958,12 +1111,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1566",
+     "name": "Phishing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-011",
    "domain": "SOCIAL",
-   "phase": 500,
    "sequence": 500,
    "title": "Shoulder Surfing in Open Work Areas",
    "severity": "low",
@@ -1030,6 +1199,7 @@
     "Apply automatic screen-lock timeouts aggressively at high-risk desks so a brief unattended moment doesn't compound a shoulder-surfing exposure into an unattended, unlocked session.",
     "Review customer-facing counter layout specifically, since PII exposure to the next customer in line carries direct regulatory/privacy-notification implications distinct from an internal-only finding."
    ],
+   "mitigationClientFacing": "Sensitive information is visible on screens and keyboards from ordinary walking routes, shared areas and, in some cases, through windows. This requires no technical skill at all — just being in the right place — and it leaves no record, so you would have no way of knowing it had happened. The remedies are inexpensive and physical: reposition the screens that face walkways or windows, supply privacy filters to staff handling customer or financial data, and be specific about where laptops may be used in shared or public spaces. This is a low-severity finding on its own but it undermines controls you have paid for elsewhere, since a password read over a shoulder defeats a strong password policy entirely.",
    "reference": {
     "standard": "NIST SP 800-53 Rev. 5 - PE-18 (Location of Information System Components)",
     "cwe": "CWE-359",
@@ -1051,12 +1221,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "PE",
+   "categoryName": "Physical and Environmental Protection",
+   "attack": [
+    {
+     "id": "T1592",
+     "name": "Gather Victim Host Information",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-012",
    "domain": "SOCIAL",
-   "phase": 501,
    "sequence": 501,
    "title": "USB Drop Attack Susceptibility",
    "severity": "medium",
@@ -1123,6 +1309,7 @@
     "Periodically repeat this assessment, since susceptibility often changes meaningfully after the first awareness campaign addressing it specifically.",
     "Extend the same media-control policy to any air-gapped or industrial-control environments in scope, where removable media is often a primary infection vector precisely because network-based defenses don't apply."
    ],
+   "mitigationClientFacing": "USB devices left in your car park and common areas were picked up and connected to company computers. Curiosity is the mechanism, and a device labelled with something that looks internal is more likely to be plugged in than one that is not. A device like this can act as a keyboard and type commands at machine speed the moment it is connected, so the user does not need to open a file for it to work. The most effective control is technical rather than behavioural: restrict which USB device types are permitted through your endpoint management, which stops the attack regardless of who picks the device up. Pair it with clear guidance that unknown devices go to IT, not into a machine.",
    "reference": {
     "standard": "NIST SP 800-53 Rev. 5 - MP-7 (Media Use)",
     "cwe": "CWE-1188",
@@ -1146,12 +1333,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "MP",
+   "categoryName": "Media Protection",
+   "attack": [
+    {
+     "id": "T1200",
+     "name": "Hardware Additions",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-013",
    "domain": "SOCIAL",
-   "phase": 502,
    "sequence": 502,
    "title": "Unattended Workstation Lockout Policy Testing",
    "severity": "medium",
@@ -1218,6 +1421,7 @@
     "Include this specific behavior in security-awareness training with a concrete, memorable framing (what a walk-up attacker gains in the exposure window) rather than an abstract policy reminder.",
     "Ensure any documented business exception to the standard timeout (a long-running process, a presentation display) has a compensating control rather than simply being exempted from the policy."
    ],
+   "mitigationClientFacing": "Unattended computers were found unlocked and logged in, in areas where a visitor could reach them. Anyone sitting down at one has the full access of that employee, with everything they do recorded under that person's name — which makes an incident both easy to carry out and hard to attribute afterwards. Shorten the automatic lock timeout through central policy so it does not depend on people remembering, and make locking the screen a visible norm that managers model themselves. Where staff complain the timeout interrupts their work, that is worth listening to: a timeout set so short that people work around it is less effective than a slightly longer one that they accept.",
    "reference": {
     "standard": "NIST SP 800-53 Rev. 5 - AC-11 (Session Lock)",
     "cwe": "CWE-613",
@@ -1239,12 +1443,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AC",
+   "categoryName": "Access Control",
+   "attack": [
+    {
+     "id": "T1200",
+     "name": "Hardware Additions",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-014",
    "domain": "SOCIAL",
-   "phase": 503,
    "sequence": 503,
    "title": "Vishing (Voice Phishing) Susceptibility Testing",
    "severity": "medium",
@@ -1312,6 +1532,7 @@
     "Recognize and positively reinforce employees who correctly verify or decline a suspicious call, consistent with the same principle applied to email and help-desk pretexting.",
     "As synthetic-voice technology matures, begin evaluating voice-cloning-resistant verification steps (a shared, rotating verbal passphrase for high-sensitivity requests) for the highest-risk roles."
    ],
+   "mitigationClientFacing": "A phone call is persuasive in a way an email is not. There is a live person, a reason to answer now, and no opportunity to re-read the request or ask a colleague. Our calls tested whether staff would disclose information or take an action on the strength of a plausible caller. The control that works is a pause rather than a rule about what to say: any request involving credentials, access changes or payments is confirmed by calling back on a number from your own directory. Make it explicitly acceptable to end a call and check, including with someone senior. Attackers rely on the reluctance to be seen doubting an executive, so leadership publicly endorsing the callback rule is a genuine control.",
    "reference": {
     "standard": "CIS Critical Security Controls v8 - Control 14 (Security Awareness and Skills Training)",
     "cwe": "CWE-451",
@@ -1335,12 +1556,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1591",
+     "name": "Gather Victim Org Information",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-015",
    "domain": "SOCIAL",
-   "phase": 504,
    "sequence": 504,
    "title": "Business Email Compromise (BEC) / CEO Fraud Wire-Transfer Testing",
    "severity": "critical",
@@ -1406,6 +1643,7 @@
     "Run recurring BEC-specific awareness training for finance/AP staff specifically, distinct from general phishing training, since BEC pretexts exploit authority and urgency rather than malicious links or attachments.",
     "Establish a clear, no-blame reporting culture so an employee who suspects a BEC attempt (even after acting on it) reports immediately rather than staying silent out of embarrassment — time-to-detection is the main lever for fund recovery."
    ],
+   "mitigationClientFacing": "This tests whether a payment request that appears to come from a senior executive would actually be paid. These attacks do not involve malware and there is nothing for your email filtering to catch — the message is just text, usually urgent, usually confidential, usually timed for when the named executive is known to be travelling. Losses are frequently large and recovery is rare once funds have moved internationally. The control is a payment process that does not depend on anyone's judgement about whether an email is genuine: out-of-band verbal confirmation for any new payee or changed bank details, a second approver above a threshold, and an explicit rule that urgency and confidentiality never justify skipping either. Make it clear that no executive will ever be annoyed by the check.",
    "reference": {
     "standard": "NIST SP 800-53 Rev. 5 - AT-2 (Literacy Training and Awareness) / IA-5 (Authenticator Management)",
     "cwe": "CWE-451",
@@ -1427,12 +1665,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1591",
+     "name": "Gather Victim Org Information",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-016",
    "domain": "SOCIAL",
-   "phase": 505,
    "sequence": 505,
    "title": "Fake Vendor / Supplier Invoice Fraud Pretext",
    "severity": "high",
@@ -1498,6 +1752,7 @@
     "Set AP staff KPIs that don't purely reward processing speed, since speed-focused incentives directly undermine the diligence needed to catch invoice fraud.",
     "Train AP and procurement staff specifically on invoice-fraud red flags (slightly-off domains, PO-less invoices, urgency framing, banking-detail changes bundled with a routine invoice) as a distinct module from general phishing awareness."
    ],
+   "mitigationClientFacing": "Accounts Payable will currently act on an invoice and a request to change bank details without verifying either through a channel the supplier did not provide. Fraud of this kind is quiet — the invoice looks routine, the amount is plausible, and the loss is often only discovered when the genuine supplier chases payment weeks later. Fix this in the finance process rather than in email security: bank detail changes are verified by calling the supplier on a number already held on file, never one from the request; changes are made by someone other than the person who received the request; and a new payee or an amended account triggers a short hold. These are standard financial controls and they will also catch internal fraud.",
    "reference": {
     "standard": "NIST SP 800-53 Rev. 5 - AT-2 (Literacy Training and Awareness) / SA-9 (External System Services)",
     "cwe": "CWE-451",
@@ -1519,12 +1774,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1591",
+     "name": "Gather Victim Org Information",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-017",
    "domain": "SOCIAL",
-   "phase": 506,
    "sequence": 506,
    "title": "Malicious Job-Applicant / Recruiter Pretext Targeting HR",
    "severity": "high",
@@ -1590,6 +1861,7 @@
     "Establish a lightweight verification habit for hiring managers approached by unfamiliar external recruiters — a quick check of the recruiter's company and LinkedIn history before engaging further.",
     "Segment HR systems and endpoints so a compromised recruiting workstation doesn't have a direct path to broader HR/payroll data stores or other internal systems."
    ],
+   "mitigationClientFacing": "Your recruitment process requires staff to open documents sent by strangers — that is what reviewing applications is. This makes HR and hiring managers a reliable route in, and an attacker only needs a plausible CV and a real job advert to use it. Do not try to solve this by asking HR to be more careful, because opening the files is the job. Solve it technically: route applications through a system that opens documents in a protected environment rather than on the recipient's computer, prefer a portal over email attachments, and make sure the accounts used for recruiting have no more access than recruiting requires. That way a malicious file lands somewhere it can do little damage.",
    "reference": {
     "standard": "CIS Critical Security Controls v8 - Control 14 (Security Awareness and Skills Training)",
     "cwe": "CWE-451",
@@ -1611,12 +1883,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1566",
+     "name": "Phishing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-018",
    "domain": "SOCIAL",
-   "phase": 507,
    "sequence": 507,
    "title": "Reception / Front-Desk Social Engineering via Delivery or Maintenance Pretext",
    "severity": "high",
@@ -1682,6 +1970,7 @@
     "Establish a clear, blame-free process for reception to escalate any visitor who can't be immediately verified, without feeling pressured to resolve it themselves.",
     "Periodically test this control (as part of ongoing, not just point-in-time, assessment) since front-desk staff turnover can quietly erode an otherwise well-designed process."
    ],
+   "mitigationClientFacing": "Front-desk staff let an unverified visitor past the public area on the strength of a uniform and a plausible reason. This is not a failing on their part: they are usually the most junior person in the building, they are there to be helpful, and they have been given no authority to refuse someone who says they are expected. Give them that authority explicitly and in writing. Contractors and deliveries should be confirmed with the internal person who booked them before anyone goes through, there should be a named person to call when nobody answers, and reception should never be the only barrier between the lobby and your working areas.",
    "reference": {
     "standard": "NIST SP 800-53 Rev. 5 - PE-3 (Physical Access Control) / PE-2 (Physical Access Authorizations)",
     "cwe": "CWE-1263",
@@ -1703,12 +1992,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "PE",
+   "categoryName": "Physical and Environmental Protection",
+   "attack": [
+    {
+     "id": "T1566",
+     "name": "Phishing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-019",
    "domain": "SOCIAL",
-   "phase": 508,
    "sequence": 508,
    "title": "Fake Compliance / Internal Audit Request Pretext",
    "severity": "medium",
@@ -1774,6 +2079,7 @@
     "Include this specific pretext category in security-awareness training, since employees are typically well-trained against generic phishing but rarely against an authority-themed internal impersonation.",
     "Periodically test this control as part of the ongoing awareness program, not just a single point-in-time assessment, given how plausible and low-suspicion this pretext naturally is."
    ],
+   "mitigationClientFacing": "A request that appears to come from compliance, legal or internal audit is unusually effective, because staff are trained not to obstruct those functions and asking questions feels like non-cooperation. This finding covers whether staff would hand over sensitive information or grant access to someone invoking that authority. The remedy is to make the genuine process recognisable and the unusual one obvious: real audit and compliance requests come through a named channel, staff are told what that channel is, and anything arriving outside it is verified regardless of how official it looks. State clearly that verifying an audit request is never treated as obstruction — that single sentence removes most of the pressure the attack relies on.",
    "reference": {
     "standard": "CIS Critical Security Controls v8 - Control 14 (Security Awareness and Skills Training)",
     "cwe": "CWE-345",
@@ -1795,12 +2101,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1585",
+     "name": "Establish Accounts",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-020",
    "domain": "SOCIAL",
-   "phase": 509,
    "sequence": 509,
    "title": "MFA Bypass via Adversary-in-the-Middle Phishing and Push Fatigue",
    "severity": "critical",
@@ -1866,6 +2188,7 @@
     "Monitor for impossible travel, new-device sign-ins, and anomalous token use, since this attack yields a legitimate-looking authentication that only behavioural signals will surface.",
     "Train staff on the specific instruction that an unexpected MFA prompt should be denied and reported, never approved to make it stop — and make reporting one tap, with no blame attached."
    ],
+   "mitigationClientFacing": "Multi-factor authentication is no longer sufficient on its own. Two techniques defeat it in ordinary use: relaying the login through an attacker-controlled page so the approved session is stolen rather than the password, and simply sending approval prompts repeatedly until a tired user taps accept. Both were effective here, which means an attacker with a stolen password is not stopped by the second factor you have deployed. The fix is to move the accounts that matter most — administrators, finance, executives — onto phishing-resistant authentication such as hardware security keys or passkeys, which cannot be relayed. Where that is not yet possible, switch push approval to number matching and limit repeated prompts. This should be among your highest priorities.",
    "reference": {
     "standard": "Social Engineering - Credential Harvesting",
     "cwe": "CWE-1021",
@@ -1888,12 +2211,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1566",
+     "name": "Phishing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
    "id": "SOCIAL-021",
    "domain": "SOCIAL",
-   "phase": 510,
    "sequence": 510,
    "title": "Synthetic Voice and Video Impersonation of Executives (Deepfake-Assisted Pretexting)",
    "severity": "critical",
@@ -1959,6 +2298,7 @@
     "Train specifically on synthetic media, including that a familiar voice or face is no longer evidence of identity, and that urgency plus confidentiality is the signature combination.",
     "Reduce the public availability of extended, high-quality executive audio where it serves no business purpose, treating it as attack-surface reduction rather than a communications restriction."
    ],
+   "mitigationClientFacing": "A cloned voice now takes seconds of source audio, which any executive's public speaking provides. The instinctive check people rely on — I recognise this person — no longer proves anything, and it is the check most likely to be used in exactly the high-pressure payment or access request where it matters. There have been confirmed multi-million-pound losses from this. Because you cannot train people to detect a good clone, the answer is to remove recognition from the process entirely: consequential requests are confirmed through a separate agreed channel or a shared phrase held outside the call, and no approval is ever completed on a video or voice call alone. Tell staff plainly that hearing the right voice is no longer evidence.",
    "reference": {
     "standard": "Social Engineering - Impersonation",
     "cwe": "CWE-290",
@@ -1981,12 +2321,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1585",
+     "name": "Establish Accounts",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
-   "id": "SOCIAL-511",
+   "id": "SOCIAL-022",
    "domain": "SOCIAL",
-   "phase": 511,
    "sequence": 511,
    "title": "Callback Phishing (Telephone-Oriented Attack Delivery)",
    "severity": "high",
@@ -2052,6 +2408,7 @@
     "Add a service desk procedure for calls of this shape, so a reporting user reaches a trained responder quickly.",
     "Verify renewal and invoice claims against the vendor record rather than against contact details supplied in the message."
    ],
+   "mitigationClientFacing": "This attack sends an email with no link and no attachment — just a notice about a subscription renewal and a phone number to call. That shape passes straight through email filtering because there is nothing in it to detect, and the victim initiates the call themselves, which makes them far more trusting of whoever answers. The operator then talks them into installing remote-access software. Since your email controls cannot see this, staff guidance has to carry it: never call a number supplied in an unexpected message, look the organisation up independently, and treat any request to install software during a support call as a stop signal. Make sure your service desk knows this pattern, because staff will call them for a second opinion.",
    "reference": {
     "standard": "OSSTMM - Human Security Testing",
     "cwe": "CWE-1021",
@@ -2074,12 +2431,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1566",
+     "name": "Phishing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
-   "id": "SOCIAL-512",
+   "id": "SOCIAL-023",
    "domain": "SOCIAL",
-   "phase": 512,
    "sequence": 512,
    "title": "Malicious OAuth Application Consent Phishing",
    "severity": "critical",
@@ -2145,6 +2518,7 @@
     "Add grant revocation to the account compromise runbook, since resetting a password does not invalidate an issued token.",
     "Train staff on the specific shape of a consent screen, framing the decision as granting an application standing access rather than logging in."
    ],
+   "mitigationClientFacing": "In this attack nobody is asked for a password. The victim is shown a genuine sign-in page on your real identity provider, over a valid certificate, and is asked to approve an application. Everything they were taught to check is correct, so the usual advice does not help — and because no password is involved, changing passwords afterwards does not revoke the access. It persists until the approval is removed. The control is administrative: restrict who may approve third-party applications, require an administrator to review requests, and audit what has already been approved, since existing grants may predate this assessment. Reviewing that list is worth doing before anything else in this section.",
    "reference": {
     "standard": "OWASP Top 10 - A01 Broken Access Control",
     "cwe": "CWE-285",
@@ -2167,12 +2541,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1566",
+     "name": "Phishing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
-   "id": "SOCIAL-513",
+   "id": "SOCIAL-024",
    "domain": "SOCIAL",
-   "phase": 513,
    "sequence": 513,
    "title": "Fake Single Sign-On Window Phishing (Browser-in-the-Browser)",
    "severity": "high",
@@ -2238,6 +2628,7 @@
     "Alert on sign-ins from hosting-provider address space, which is where phishing relays typically run.",
     "Update training to state plainly that a rendered address bar inside a page proves nothing, rather than reinforcing URL inspection alone."
    ],
+   "mitigationClientFacing": "Staff are taught to check the address bar, so this attack draws one. The page renders a convincing replica of a sign-in popup, padlock and address included, entirely inside the attacker's own page. Every visual check a user has been trained to perform gives the right answer. Since user vigilance cannot resolve this, the defences must not depend on it: password managers will not auto-fill on the wrong domain, which is a reliable signal users can be taught to trust, and hardware security keys or passkeys will not authenticate to a look-alike domain at all. Deploying a password manager broadly and phishing-resistant authentication for sensitive accounts closes this, where further training will not.",
    "reference": {
     "standard": "OWASP Top 10 - A07 Identification and Authentication Failures",
     "cwe": "CWE-1021",
@@ -2261,12 +2652,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1566",
+     "name": "Phishing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
-   "id": "SOCIAL-514",
+   "id": "SOCIAL-025",
    "domain": "SOCIAL",
-   "phase": 514,
    "sequence": 514,
    "title": "Typosquatted Domain and Watering Hole Targeting of Staff",
    "severity": "high",
@@ -2295,7 +2702,7 @@
    "examplePayloads": [
     {
      "label": "Variation generation",
-     "command": "dnstwist --registered example.com"
+     "command": "dnstwist --registered --format csv client-domain.test"
     },
     {
      "label": "Certificate transparency search",
@@ -2332,6 +2739,7 @@
     "Tell staff that the padlock indicates encryption and not identity, since that misunderstanding is what the lookalike exploits.",
     "Maintain an inventory of third-party sites staff depend on, and monitor those for compromise as part of supplier risk."
    ],
+   "mitigationClientFacing": "Domains that closely resemble yours can be registered by anyone for a few pounds, with a valid certificate issued automatically within minutes. Those domains are used to send convincing email to your staff and customers and to host sign-in pages that look correct in every visible respect. This sits outside your network, so your internal monitoring will not see it. The practical measures are to watch for newly registered look-alikes of your name and brands so you learn about one before your staff do, register the most obvious variations yourself pre-emptively, and have a takedown route ready in advance. Speed matters far more than prevention here, because registration cannot be stopped — only detected early.",
    "reference": {
     "standard": "OSSTMM - Human Security Testing",
     "cwe": "CWE-601",
@@ -2356,12 +2764,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1566",
+     "name": "Phishing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
-   "id": "SOCIAL-515",
+   "id": "SOCIAL-026",
    "domain": "SOCIAL",
-   "phase": 515,
    "sequence": 515,
    "title": "Mobile Number Takeover (SIM Swap) Against Staff Authentication",
    "severity": "critical",
@@ -2427,6 +2851,7 @@
     "Give the help desk a procedure for a reported loss of mobile service that treats it as a potential compromise rather than a connectivity issue.",
     "Reduce the public exposure of high-risk staff's personal details where the organisation has any influence over it."
    ],
+   "mitigationClientFacing": "For any account where a second factor is delivered by text message, the real control sits with your employees' mobile carriers rather than with you. An attacker who persuades carrier support to move a number to a new SIM receives those codes, and the employee simply loses signal — often at night, when nobody investigates for hours. You cannot fix the carrier's process. What you can do is stop depending on it: move second-factor authentication off SMS and onto an authenticator app or, better, a hardware key, starting with administrators, finance and executives. Ask staff in those roles to add a port-out PIN with their carrier, and treat an employee's unexplained loss of mobile service as a security event.",
    "reference": {
     "standard": "NIST SP 800-63B - Authentication and Lifecycle Management",
     "cwe": "CWE-304",
@@ -2450,12 +2875,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1451",
+     "name": "SIM Card Swap",
+     "matrix": "mobile"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
-   "id": "SOCIAL-516",
+   "id": "SOCIAL-027",
    "domain": "SOCIAL",
-   "phase": 516,
    "sequence": 516,
    "title": "Collaboration Platform Phishing via External Federation",
    "severity": "high",
@@ -2521,6 +2962,7 @@
     "Include chat-delivered pretexting in awareness training, since staff extend email caution to chat only when told to.",
     "Retain and monitor chat messages for incident response to the same standard as email, including external conversations."
    ],
+   "mitigationClientFacing": "Every control you built for phishing sits on the email path. A message arriving in your chat platform from an external organisation passes none of it — no gateway, no attachment scanning, no warning banner — and lands in a tool staff treat as internal and therefore trusted. This is a real and growing gap. Restrict which external organisations may message your staff directly, so the default is closed rather than open; make external senders visibly marked in the interface; and extend link and file scanning to the chat platform as you have for email. Tell staff explicitly that a message in the chat tool is not inherently more trustworthy than an email, because most people assume otherwise.",
    "reference": {
     "standard": "OSSTMM - Human Security Testing",
     "cwe": "CWE-1021",
@@ -2543,12 +2985,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1566",
+     "name": "Phishing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   },
   {
-   "id": "SOCIAL-517",
+   "id": "SOCIAL-028",
    "domain": "SOCIAL",
-   "phase": 517,
    "sequence": 517,
    "title": "Insider Recruitment and Bribery Approach Susceptibility",
    "severity": "high",
@@ -2614,6 +3072,7 @@
     "Review access on role change rather than only on departure, since accumulated permissions are what make an insider valuable.",
     "Treat a reported approach as a positive outcome and respond supportively, because the reporting rate depends on how the first report was handled."
    ],
+   "mitigationClientFacing": "Employees are approached with offers of payment for access, and these approaches are real rather than theoretical — they arrive through professional networks, messaging apps and recruitment contacts. This assessment looked at two things: whether someone approached would report it, and whether you would notice if they did not. Both matter, and the first is largely a question of whether reporting feels safe. Provide a confidential route that does not go through the employee's own line manager, say plainly that reporting an approach is welcomed rather than treated with suspicion, and make sure people know the route exists before they need it. Alongside that, ensure sensitive actions leave records that someone other than the person performing them reviews.",
    "reference": {
     "standard": "OSSTMM - Human Security Testing",
     "cwe": "CWE-1269",
@@ -2637,7 +3096,24 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AT",
+   "categoryName": "Awareness and Training",
+   "attack": [
+    {
+     "id": "T1566",
+     "name": "Phishing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-115",
+     "code": "SOCIAL",
+     "name": "Social engineering"
+    }
+   ]
   }
  ]
 }

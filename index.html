@@ -17,16 +17,16 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="GreySh3ll — 577-case penetration testing checklist">
 <meta name="twitter:image" content="https://atharvasail.github.io/GreySh3ll/assets/og-banner.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Typography is Calibri via a system font stack (see css/base.css --font-calibri):
+     no web fonts are loaded, so there is no Google Fonts dependency and the CSP
+     needs no third-party style/font origins. -->
 <!-- CSP: script-src and style-src are both 'self' — no 'unsafe-inline'.
      Dynamic colours use data-sev / data-status / data-rem attributes and CSS
      custom properties set via element.style.setProperty(), which is CSP-safe.
      PDF report colours use setProperty() too; the four inline styles in
      REPORT_SEV_COLOR are the only remaining legitimate keeps and apply only
      to a generated print document, not to any page rendered by the browser. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/components.css">
@@ -122,6 +122,22 @@
 
   <div class="dash-section-title">Severity Breakdown</div>
   <div class="dash-sev-row" id="dashSevRow"><!-- populated by home.js --></div>
+
+  <div class="dash-section-title">Assessment Analytics</div>
+  <div class="dash-charts" id="dashCharts">
+    <figure class="chart-card">
+      <figcaption class="chart-title">Status mix<span class="chart-sub">every case by current state</span></figcaption>
+      <div class="chart-body" id="chartStatus"><!-- populated by home.js --></div>
+    </figure>
+    <figure class="chart-card">
+      <figcaption class="chart-title">Severity profile<span class="chart-sub">how the corpus is weighted</span></figcaption>
+      <div class="chart-body" id="chartSeverity"><!-- populated by home.js --></div>
+    </figure>
+    <figure class="chart-card chart-card-wide">
+      <figcaption class="chart-title">Coverage by domain<span class="chart-sub">completed against total</span></figcaption>
+      <div class="chart-body" id="chartDomains"><!-- populated by home.js --></div>
+    </figure>
+  </div>
 
   <div class="dash-cta">
     <svg class="icn" viewBox="0 0 24 24" stroke="none"><polygon points="6.2,4.2 19.5,12 6.2,19.8" fill="currentColor"/></svg>

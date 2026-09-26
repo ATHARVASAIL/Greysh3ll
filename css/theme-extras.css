@@ -14,29 +14,37 @@
   --border-strong:rgba(20,30,50,.16);
   --text-bright:#0E1420;
   --text:#40495B;
-  --text-dim:#767F91;
-  --text-faint:#9AA2B1;
+  /* Light-theme text/status colours darkened to clear WCAG AA (4.5:1) on the
+     lightest-through-surface-3 range. The originals were tuned only against
+     white by eye and failed on surface-3 (#E6EAF1) — the primer/table-header
+     and focused-input background — where secondary text and severity labels
+     actually sit. check-contrast.py now validates this theme too. */
+  --text-dim:#565E6C;
+  --text-faint:#5F697B;
   --accent:#1D4ED8;
   --accent-rgb:29,78,216;
-  --accent-2:#B37700;
-  --accent-2-rgb:179,119,0;
+  --accent-2:#8C5D00;
+  --accent-2-rgb:140,93,0;
   --accent-dim:#123C9E;
   --accent-glow:rgba(29,78,216,.18);
   --accent-ink:#FFFFFF;
-  --crit:#D6304A;
-  --crit-rgb:214,48,74;
-  --high:#B37700;
-  --high-rgb:179,119,0;
-  --med:#8A6B00;
-  --med-rgb:138,107,0;
-  --low:#0A8F45;
-  --low-rgb:10,143,69;
-  --info:#0E7490;
-  --info-rgb:14,116,144;
+  --crit:#C62740;
+  --crit-rgb:198,39,64;
+  --high:#8C5D00;
+  --high-rgb:140,93,0;
+  --med:#7E6100;
+  --med-rgb:126,97,0;
+  --low:#087838;
+  --low-rgb:8,120,56;
+  --info:#0E718C;
+  --info-rgb:14,113,140;
   --fail:#C0392B;
   --fail-rgb:192,57,43;
   --na:#5C6B63;
   --na-rgb:92,107,99;
+  /* Risk-accepted state. The dark theme's soft lavender (#B08CFF) is far too
+     light for light surfaces (2.16:1); this darker violet clears AA. */
+  --accepted:#6E34E8;
   --shadow-sm:0 1px 2px rgba(20,30,50,.06);
   --shadow-md:0 6px 20px -8px rgba(20,30,50,.13), 0 2px 6px -3px rgba(20,30,50,.08);
   --shadow-lg:0 24px 50px -16px rgba(20,30,50,.18), 0 8px 18px -8px rgba(20,30,50,.1);
@@ -52,7 +60,6 @@
 :root[data-theme="light"] .identity h1{ background:linear-gradient(95deg, var(--text-bright) 45%, var(--accent) 92%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 :root[data-theme="light"] ::selection{background:var(--accent); color:#fff;}
 :root[data-theme="light"] .btn.primary, :root[data-theme="light"] .chip.active{color:#fff;}
-:root[data-theme="light"] .assess-mark{color:#fff;}
 :root[data-theme="light"] .term-window{background:#0A0A0A;}
 :root[data-theme="light"] .topbar{background:rgba(255,255,255,.82);}
 :root[data-theme="light"] .toolbar{background:linear-gradient(var(--bg) 75%, transparent);}
@@ -74,7 +81,6 @@
 .flag-btn.flagged{color:var(--med);}
 .flag-btn.flagged .icn svg{fill:var(--med);}
 .test-item.flagged .test-row{background:rgba(var(--med-rgb),.045);}
-.flag-indicator-badge{font-size:10px; color:var(--med);}
 
 /* =========================================================
    v9 additions — badges, toolkit, palette, drills
@@ -634,8 +640,6 @@
   .sidebar-rail .cat-item::before{ top:6px; bottom:6px; }
 }
 
-
-
 /* =========================================================
    LAZY DETAIL LOADING STATES
    Test case detail is fetched per domain on first use, so these cover
@@ -743,7 +747,6 @@
 ========================================================= */
 .u-full-row{grid-column:1 / -1;}
 .u-hidden{display:none;}
-.u-disabled{opacity:.4; cursor:not-allowed;}
 .u-mt-8{margin-top:8px;}
 .u-mt-10{margin-top:10px;}
 .u-mt-12{margin-top:12px;}
@@ -756,7 +759,6 @@
 .u-note{font-family:var(--font-mono); font-size:11px; color:var(--text-dim);}
 .u-note-break{word-break:break-all;}
 .u-bright{color:var(--text-bright);}
-.u-dim{color:var(--text-dim);}
 
 /* Per-severity text colour — a fixed set, so explicit classes beat passing a
    colour through an inline property. */
@@ -777,8 +779,6 @@
 /* Progress/meter fill: width is genuinely dynamic, so JS sets --pct via
    setProperty (CSP-permitted); colour comes from a severity class or --accent. */
 .u-bar-fill{width:var(--pct, 0%);}
-.u-bar-fill.bar-accent{background:var(--accent);}
-.u-bar-fill.bar-accent-2{background:var(--accent-2);}
 
 /* csp-w: width driven by --pct (set from JS via setProperty, CSP-safe) instead
    of an inline style attribute. csp-sevbar tints by data-sev via JS class. */
@@ -850,8 +850,6 @@
 .sev-chip[data-sev]             { color:var(--sev-c); background:color-mix(in srgb, var(--sev-c) 12%, transparent); border-color:var(--sev-c); }
 /* Filled badge (e.g. status pill) */
 .sev-badge[data-sev]            { background:var(--sev-c); color:var(--bg); }
-/* Left-border accent on a card */
-.sev-card[data-sev]             { border-left:3px solid var(--sev-c); }
 /* Progress bar fill via --pct (handled by applyCspStyles, not inline) */
 .sev-bar[data-sev]              { background:var(--sev-c); }
 
@@ -1086,3 +1084,316 @@
 }
 /* Shown only in rail mode; carries the position in the testing order. */
 .cat-index{ display:none; }
+
+/* =========================================================
+   DASHBOARD CHARTS
+   Three SVG views built by home.js. Colours come from the same
+   [data-status] / [data-sev] custom properties the rest of the app uses, so
+   a chart can never drift from the legend beside it or from the list rows
+   it summarises.
+
+   Every reveal animation is wrapped in a reduced-motion guard at the bottom
+   of this block: charts that grow from zero are pleasant, but they are
+   decoration, and decoration is exactly what that setting switches off.
+========================================================= */
+
+.dash-charts{
+  display:grid;
+  /* Two columns at most. auto-fit produced a third, empty column on a wide
+     screen because there are only two narrow cards, and cards stretched to
+     the tallest sibling instead of sizing to their own content. */
+  grid-template-columns:minmax(0,1fr);
+  align-items:start;
+  gap:14px;
+  margin-bottom:26px;
+}
+@media (min-width:700px){
+  .dash-charts{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+}
+.chart-card{
+  margin:0;
+  padding:16px 16px 18px;
+  background:var(--surface-1);
+  border:1px solid var(--border-soft);
+  border-radius:var(--r-md);
+  transition:border-color .18s ease, transform .18s var(--ease-out);
+}
+.chart-card:hover{ border-color:var(--border-strong); transform:translateY(-2px); }
+/* The domain chart carries ten rows, so it spans the full grid when there
+   is room rather than being squeezed into a third of the width. */
+.chart-card-wide{ grid-column:1 / -1; }
+
+.chart-title{
+  display:flex; flex-direction:column; gap:3px;
+  font-family:var(--font-mono); font-size:11.5px; font-weight:600;
+  letter-spacing:.6px; text-transform:uppercase;
+  color:var(--text-bright);
+  margin-bottom:14px;
+}
+.chart-sub{
+  font-size:10px; font-weight:400; letter-spacing:.2px;
+  text-transform:none; color:var(--text-faint);
+}
+.chart-empty{
+  font-family:var(--font-mono); font-size:11px;
+  color:var(--text-faint); text-align:center; padding:18px 0; margin:0;
+}
+
+/* ---------- stacked status bar ---------- */
+.chart-stack{
+  display:block; width:100%; height:26px;
+  border-radius:var(--r-sm); overflow:hidden;
+  background:var(--surface-3);
+}
+.chart-seg[data-status]{ fill:var(--status-c); }
+
+/* ---------- donut ---------- */
+.chart-donut-wrap{ position:relative; display:flex; justify-content:center; }
+.chart-donut{ width:150px; height:150px; }
+.chart-donut-track{ stroke:var(--surface-3); }
+.chart-arc[data-sev]{ stroke:var(--sev-c); }
+.chart-donut-center{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  pointer-events:none;
+}
+.chart-donut-center b{
+  font-family:var(--font-mono); font-size:22px; font-weight:700;
+  color:var(--text-bright); line-height:1; font-variant-numeric:tabular-nums;
+}
+.chart-donut-center span{
+  font-family:var(--font-mono); font-size:9px; letter-spacing:1.4px;
+  text-transform:uppercase; color:var(--text-faint); margin-top:3px;
+}
+
+/* ---------- legends ---------- */
+.chart-legend{
+  list-style:none; margin:14px 0 0; padding:0;
+  display:flex; flex-direction:column; gap:7px;
+}
+.chart-legend-item{
+  display:flex; align-items:center; gap:9px;
+  font-size:11.5px; color:var(--text-dim);
+}
+.chart-swatch{
+  width:9px; height:9px; border-radius:2.5px; flex-shrink:0;
+}
+.chart-swatch.status-bg[data-status]{ background:var(--status-c); }
+.chart-legend-label{ flex:1; min-width:0; }
+.chart-legend-val{
+  font-family:var(--font-mono); font-size:11px; color:var(--text-bright);
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---------- domain coverage bars ---------- */
+.chart-bars{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
+.chart-bar-row{
+  display:grid;
+  grid-template-columns:56px minmax(0,1fr) 62px;
+  align-items:center; gap:10px;
+}
+.chart-bar-code{
+  font-family:var(--font-mono); font-size:9.5px; font-weight:600;
+  letter-spacing:.4px; color:var(--accent);
+  background:rgba(var(--accent-rgb),.1);
+  padding:3px 0; border-radius:5px; text-align:center;
+}
+.chart-bar-track{
+  height:9px; border-radius:5px;
+  background:var(--surface-3);
+  /* width is the domain's share of the largest domain, set from data-pct */
+  width:var(--pct, 100%);
+  overflow:hidden;
+}
+.chart-bar-fill{
+  display:block; height:100%; border-radius:5px;
+  width:var(--pct, 0%);
+  background:linear-gradient(90deg, var(--accent-2), var(--accent));
+}
+.chart-bar-val{
+  font-family:var(--font-mono); font-size:10px; color:var(--text-dim);
+  text-align:right; font-variant-numeric:tabular-nums;
+}
+
+/* ---------- reveal motion ---------- */
+@media (prefers-reduced-motion: no-preference){
+  .chart-card{
+    animation:chart-rise .45s var(--ease-out) both;
+  }
+  .chart-card:nth-child(2){ animation-delay:.07s; }
+  .chart-card:nth-child(3){ animation-delay:.14s; }
+  .chart-bar-fill{
+    animation:chart-grow .7s var(--ease-out) both;
+    animation-delay:.2s;
+  }
+  .chart-arc{
+    animation:chart-sweep .8s var(--ease-out) both;
+  }
+  .chart-stack .chart-seg{
+    animation:chart-fade .5s var(--ease-out) both;
+    animation-delay:.15s;
+  }
+}
+@keyframes chart-rise{
+  from{ opacity:0; transform:translateY(10px); }
+  to  { opacity:1; transform:none; }
+}
+@keyframes chart-grow{
+  from{ transform:scaleX(0); transform-origin:left center; }
+  to  { transform:scaleX(1); transform-origin:left center; }
+}
+@keyframes chart-sweep{
+  from{ opacity:0; }
+  to  { opacity:1; }
+}
+@keyframes chart-fade{
+  from{ opacity:0; }
+  to  { opacity:1; }
+}
+
+/* =========================================================
+   CATEGORY PICKER
+   A domain no longer opens straight into 150 rows. It opens into the
+   categories of the standard that domain is assessed against — OWASP Top
+   10:2025 for web, the API and Mobile lists for those, NIST SP 800-53
+   control families for network, wireless and human-layer work — and the
+   cases live one level in.
+
+   The picker is skipped entirely when the user has searched or filtered,
+   because showing categories at that point would hide the results they
+   just asked for.
+========================================================= */
+
+.cat-picker{ padding:14px 20px 20px 52px; }
+.cat-picker-head{
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:12px; margin-bottom:12px; flex-wrap:wrap;
+}
+.cat-picker-label{
+  font-family:var(--font-mono); font-size:9.5px; font-weight:600;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--text-faint);
+}
+.cat-picker-std{
+  font-family:var(--font-mono); font-size:10.5px;
+  color:var(--accent); letter-spacing:.3px;
+}
+.cat-picker-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));
+  gap:10px;
+}
+
+.cat-pick{
+  position:relative;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  grid-template-areas:"code name count" "bar bar bar";
+  align-items:center;
+  gap:8px 10px;
+  padding:12px 13px 11px;
+  text-align:left;
+  background:var(--surface-1);
+  border:1px solid var(--border-soft);
+  border-radius:var(--r-sm);
+  color:inherit;
+  transition:border-color .15s ease, background .15s ease, transform .15s var(--ease-out);
+}
+.cat-pick:hover:not([disabled]){
+  border-color:var(--accent);
+  background:var(--surface-2);
+  transform:translateY(-1px);
+}
+.cat-pick:focus-visible{
+  outline:none; border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(var(--accent-rgb),.16);
+}
+/* An empty category is shown rather than hidden — the reader should be able
+   to see that the standard has a category their engagement has nothing in —
+   but it is not a link to an empty list. */
+.cat-pick[disabled]{ opacity:.45; cursor:default; }
+
+.cat-pick-code{
+  grid-area:code;
+  font-family:var(--font-mono); font-size:9.5px; font-weight:700;
+  letter-spacing:.4px; color:var(--accent);
+  background:rgba(var(--accent-rgb),.1);
+  padding:3px 6px; border-radius:5px;
+}
+.cat-pick-name{
+  grid-area:name;
+  font-size:12.5px; color:var(--text-bright); line-height:1.3;
+  overflow-wrap:anywhere;
+}
+.cat-pick-count{
+  grid-area:count;
+  font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim);
+  font-variant-numeric:tabular-nums;
+}
+.cat-pick-bar{
+  grid-area:bar;
+  height:3px; border-radius:2px;
+  background:linear-gradient(90deg, var(--accent-2), var(--accent));
+  width:var(--pct, 0%);
+  min-width:0;
+}
+
+/* ---------- breadcrumb shown once a category is open ---------- */
+.cat-crumb{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:12px 20px 12px 52px;
+  border-bottom:1px solid var(--border-soft);
+  margin-bottom:4px;
+}
+.cat-crumb-back{
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:var(--font-mono); font-size:11px;
+  color:var(--text-dim);
+  background:transparent; border:1px solid var(--border-soft);
+  border-radius:var(--r-sm); padding:6px 10px;
+  transition:color .15s ease, border-color .15s ease;
+}
+.cat-crumb-back:hover{ color:var(--accent); border-color:var(--accent); }
+.cat-crumb-back .icn{ width:12px; height:12px; }
+.cat-crumb-here{
+  font-size:12px; color:var(--text-dim);
+}
+.cat-crumb-here b{
+  font-family:var(--font-mono); color:var(--accent); margin-right:6px;
+}
+
+@media (max-width:600px){
+  .cat-picker{ padding:12px 14px 16px; }
+  .cat-crumb{ padding:10px 14px; }
+  .cat-picker-grid{ grid-template-columns:1fr; }
+}
+
+/* ---------- ATT&CK chips in the case detail ---------- */
+.attack-chip{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 9px; margin:2px 4px 2px 0;
+  border:1px solid var(--border-soft); border-radius:var(--r-sm);
+  background:var(--surface-2);
+  font-family:var(--font-mono); font-size:11px;
+  color:var(--text-dim); text-decoration:none;
+  transition:border-color .15s ease, color .15s ease;
+}
+.attack-chip b{ color:var(--accent); font-weight:600; }
+.attack-chip:hover{ border-color:var(--accent); color:var(--text-bright); }
+.detail-sub{ display:block; margin-top:3px; font-size:10.5px; color:var(--text-faint); }
+/* Framework-mapping chips in the detail pane's Industry Mapping. Static (not
+   links, unlike .attack-chip): they cite a control the reader looks up in the
+   named standard. The standard rides on a third line via .detail-sub. */
+.fw-chip{
+  display:inline-flex; flex-direction:column; align-items:flex-start;
+  gap:1px; padding:5px 9px; margin:2px 4px 2px 0;
+  border:1px solid var(--border-soft); border-radius:var(--r-sm);
+  background:var(--surface-2);
+  font-family:var(--font-mono); font-size:11px; line-height:1.35;
+  color:var(--text-dim); vertical-align:top;
+}
+/* --text-bright rather than an accent token: the code is the load-bearing
+   text here and must clear AA in the light theme too, where the amber accent
+   drops to ~3.4:1. Bright/neutral also reads distinctly from the blue
+   .attack-chip in the row above it. */
+.fw-chip b{ color:var(--text-bright); font-weight:600; }
+

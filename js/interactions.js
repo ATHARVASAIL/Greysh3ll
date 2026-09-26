@@ -39,7 +39,14 @@ function bindResultEvents(root){
       const id = el.dataset.id;
       const item = allData.find(d=>d.id===id);
       if(item) markInteraction(item.domain);
-      const itemEl = root.querySelector(`.test-item[data-id="${CSS.escape(id)}"]`);
+      /* closest(), not root.querySelector(). bindResultEvents is called with
+         the container for the first chunk but with each individual row for
+         every chunk appended afterwards, and querySelector only searches
+         descendants — so for those rows this lookup returned null and the
+         click silently did nothing. Every case past the first 30 in a domain
+         was unopenable. closest() is correct whatever root happens to be. */
+      const itemEl = el.closest('.test-item')
+        || root.querySelector(`.test-item[data-id="${CSS.escape(id)}"]`);
       if(!itemEl) return;
       const holder = itemEl.querySelector('.detail-panel');
       /* aria-expanded must track the real state, otherwise a screen reader
@@ -483,6 +490,16 @@ function ensureItemRendered(id){
 
   // Expand the owning section so its body is rendered at all.
   state.collapsed.delete(item.domain);
+
+  /* The case also lives inside a category now, so jumping to it has to open
+     that category — otherwise the domain shows the chooser and the row the
+     caller asked for does not exist in the DOM at all. Search and the command
+     palette both land here, and both were silently failing before this. */
+  if(!isNarrowed() && state.activeCategory.get(item.domain) !== item.categoryCode){
+    state.activeCategory.set(item.domain, item.categoryCode);
+    renderResults();
+  }
+
   const section = document.querySelector(`.cat-section[data-cat="${CSS.escape(item.domain)}"]`);
   if(!section) return null;
   section.classList.remove('collapsed');
@@ -510,22 +527,109 @@ function ensureItemRendered(id){
    a long task on a mid-range phone and shows up as a stall on tap. */
 const CATEGORY_CHUNK_SIZE = 30;
 
+/* True when the user has narrowed the list themselves. In that situation the
+   category picker would hide the very results they are looking for, so the
+   domain lists matching cases directly and the picker is skipped. */
+function isNarrowed(){
+  return !!state.search
+      || state.status !== 'all'
+      || state.activeSevs.size > 0;
+}
+
+/* Which category the user is inside, per domain. Kept per domain rather than
+   globally so opening a second domain does not inherit the first one's
+   selection. */
+function activeCategoryFor(code){
+  return isNarrowed() ? null : (state.activeCategory.get(code) || null);
+}
+
+/* The category chooser a domain shows before any category is picked. Counts
+   are live: they reflect the current filters, so a category that has nothing
+   to show says so rather than leading to an empty list. */
+function renderCategoryPicker(code){
+  const meta = categoryIndexFor(code);
+  if(!meta) return '';
+  const items = allData.filter(d => d.domain === code && matchesFilters(d));
+  const counts = new Map();
+  items.forEach(d => counts.set(d.categoryCode, (counts.get(d.categoryCode) || 0) + 1));
+
+  /* Append the custom bucket only when the analyst has actually authored
+     one, so the picker does not advertise an empty category. */
+  const cats = meta.categories.slice();
+  if(items.some(d => d.categoryCode === 'CUSTOM')){
+    cats.push({ code: 'CUSTOM', name: 'Custom cases' });
+  }
+
+  const cards = cats.map(cat => {
+    const total = counts.get(cat.code) || 0;
+    const done = items.filter(d => d.categoryCode === cat.code
+      && (d.status === 'tested-pass' || d.status === 'not-applicable')).length;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    return `<button class="cat-pick" type="button" data-action="pick-category"
+              data-cat="${escapeHtml(code)}" data-code="${escapeHtml(cat.code)}"
+              ${total ? '' : 'disabled'}
+              aria-label="${escapeHtml(cat.code)} ${escapeHtml(cat.name)}, ${total} cases">
+        <span class="cat-pick-code">${escapeHtml(cat.code)}</span>
+        <span class="cat-pick-name">${escapeHtml(cat.name)}</span>
+        <span class="cat-pick-count">${done}/${total}</span>
+        <span class="cat-pick-bar csp-w" data-pct="${pct}"></span>
+      </button>`;
+  }).join('');
+
+  return `<div class="cat-picker">
+      <div class="cat-picker-head">
+        <span class="cat-picker-label">Choose a category</span>
+        <span class="cat-picker-std">${escapeHtml(meta.standard)}</span>
+      </div>
+      <div class="cat-picker-grid">${cards}</div>
+    </div>`;
+}
+
 function ensureCategoryBodyRendered(section){
   const inner = section.querySelector('.cat-body-inner');
   if(!inner || inner.dataset.rendered === '1') return;
   const code = section.dataset.cat;
-  const items = sortItems(allData.filter(d => d.domain === code && matchesFilters(d)), state.sort);
+  const narrowed = isNarrowed();
+  const chosen = narrowed ? null : (state.activeCategory.get(code) || null);
+
+  /* Searching or filtering means the user has already said what they want.
+     Showing the category chooser there would hide their own results behind
+     another click, so the domain lists every match directly. */
+  if(!narrowed && !chosen){
+    inner.innerHTML = renderDomainPrimer(code) + renderCategoryPicker(code);
+    inner.dataset.rendered = '1';
+    bindResultEvents(inner);
+    applyCspStyles(inner);
+    return;
+  }
+
+  const meta = categoryIndexFor(code);
+  const catName = chosen
+    ? ((meta && meta.categories.find(c => c.code === chosen) || {}).name || chosen)
+    : '';
+  const crumb = !chosen ? renderDomainPrimer(code) : `<div class="cat-crumb">
+      <button class="cat-crumb-back" type="button" data-action="clear-category" data-cat="${escapeHtml(code)}">
+        ${svgIcon('chevronleft')} All categories
+      </button>
+      <span class="cat-crumb-here"><b>${escapeHtml(chosen)}</b> ${escapeHtml(catName)}</span>
+    </div>`;
+
+  const items = sortItems(
+    allData.filter(d => d.domain === code
+      && (!chosen || d.categoryCode === chosen)
+      && matchesFilters(d)),
+    state.sort);
 
   // Small sections render in one pass — chunking them would add machinery
   // for no benefit and a visible sentinel for no reason.
   if(items.length <= CATEGORY_CHUNK_SIZE){
-    inner.innerHTML = renderDomainPrimer(code) + items.map(renderItemSummary).join('');
+    inner.innerHTML = crumb + items.map(renderItemSummary).join('');
     inner.dataset.rendered = '1';
     bindResultEvents(inner);
     return;
   }
 
-  inner.innerHTML = renderDomainPrimer(code)
+  inner.innerHTML = crumb
     + items.slice(0, CATEGORY_CHUNK_SIZE).map(renderItemSummary).join('')
     + `<div class="cat-chunk-sentinel" aria-hidden="true"></div>`;
   inner.dataset.rendered = '1';
@@ -587,10 +691,44 @@ document.getElementById('sortSelect').addEventListener('change', (e)=>{ state.so
 document.getElementById('expandBtn').addEventListener('click', (e)=>{
   const btn = e.currentTarget;
   const allCollapsed = state.collapsed.size >= CATEGORIES.length;
-  if(allCollapsed){ state.collapsed.clear(); btn.querySelector('.lbl').textContent='Collapse all'; }
-  else { CATEGORIES.forEach(c=>state.collapsed.add(c.code)); btn.querySelector('.lbl').textContent='Expand all'; }
+  if(allCollapsed){
+    state.collapsed.clear();
+    btn.querySelector('.lbl').textContent = 'Collapse all';
+  } else {
+    CATEGORIES.forEach(c => state.collapsed.add(c.code));
+    /* "Collapse all" means everything, including any test case left open
+       inside a domain. Previously only the domain sections closed, so
+       expanding again brought back every case the user had opened —
+       sometimes dozens of them — which is not what the control says it
+       does and made the list unusable after a long session. */
+    state.expanded.clear();
+    btn.querySelector('.lbl').textContent = 'Expand all';
+  }
   renderResults();
 });
+/* Category navigation. Delegated from the results container so it keeps
+   working for sections rendered later, which is the same trap that left
+   every case past the first chunk unopenable. */
+document.getElementById('results').addEventListener('click', (e) => {
+  const pick = e.target.closest('[data-action="pick-category"]');
+  if(pick){
+    state.activeCategory.set(pick.dataset.cat, pick.dataset.code);
+    renderResults();
+    const sec = document.querySelector(`.cat-section[data-cat="${CSS.escape(pick.dataset.cat)}"]`);
+    if(sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  const back = e.target.closest('[data-action="clear-category"]');
+  if(back){
+    state.activeCategory.delete(back.dataset.cat);
+    /* Leaving a category closes anything opened inside it, so returning to
+       the chooser does not leave detail panels expanded out of sight. */
+    renderResults();
+    const sec = document.querySelector(`.cat-section[data-cat="${CSS.escape(back.dataset.cat)}"]`);
+    if(sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+});
+
 document.getElementById('resetBtn').addEventListener('click', ()=>{
   if(confirm('Reset the entire checklist? All statuses, flags, and notes will be cleared.')){
     allData.forEach(d=>{ d.status='not-tested'; d.assessorNotes={findings:'',evidenceLinks:[],pocDetails:'',affectedEndpoints:[]}; d.flagged=false; });
@@ -682,7 +820,7 @@ document.addEventListener('keydown', (e)=>{
     const el = document.getElementById('searchInput'); if(el) el.focus();
   }
   if(e.key === 'Escape'){
-    const assessEl = document.getElementById('assessOverlay');
+
     const statsEl = document.getElementById('statsOverlay');
     const paletteEl = document.getElementById('paletteOverlay');
     const badgesEl = document.getElementById('badgesOverlay');
@@ -691,17 +829,13 @@ document.addEventListener('keydown', (e)=>{
     // The palette's own input shows a "esc" hint, so it must take priority
     // here too — this was previously unwired (see js/search.js comment).
     if(paletteEl && paletteEl.classList.contains('open')) closePalette();
-    else if(assessEl && assessEl.classList.contains('open')) closeAssessMode();
     else if(statsEl && statsEl.classList.contains('open')) closeStats();
     else if(badgesEl && badgesEl.classList.contains('open')) badgesEl.classList.remove('open');
     else if(toolkitEl && toolkitEl.classList.contains('open')) closeToolkit();
     else if(sidebarEl && sidebarEl.classList.contains('open')) closeSidebar();
     else if(tag === 'INPUT' || tag === 'TEXTAREA') document.activeElement.blur();
   }
-  if(assessModeOpen){
-    if(e.key === 'ArrowRight') assessNext();
-    if(e.key === 'ArrowLeft') assessPrev();
-  }
+
 });
 
 /* =========================================================

@@ -10,7 +10,6 @@
   {
    "id": "THICK-001",
    "domain": "THICK",
-   "phase": 402,
    "title": "Exposed Debug/Backdoor Functionality",
    "sequence": 402,
    "severity": "high",
@@ -63,6 +62,7 @@
     "Never ship hardcoded master passwords or support backdoors; use a properly authenticated, audited, time-limited remote-support mechanism instead.",
     "Conduct a pre-release binary audit (string extraction, decompilation spot-check) as a standing release gate for thick-client software."
    ],
+   "mitigationClientFacing": "The application contains hidden functionality left in by its developers — a debug menu, a maintenance backdoor, or a diagnostic mode — that was never meant to reach customers. Anyone who finds it gains capabilities the application was not supposed to offer, and because it was intended for internal use it usually has no access control around it. This is straightforward to close once found: the functionality should be removed from the shipped build rather than merely hidden, since hiding it only delays discovery. Ask the vendor to confirm it is stripped from release builds as a matter of process, not disabled by a flag someone can turn back on.",
    "reference": {
     "standard": "A05:2021 - Security Misconfiguration",
     "cwe": "CWE-489",
@@ -84,12 +84,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A02",
+   "categoryName": "Security Misconfiguration",
+   "attack": [
+    {
+     "id": "T1200",
+     "name": "Hardware Additions",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V13",
+     "name": "Configuration"
+    }
+   ]
   },
   {
    "id": "THICK-002",
    "domain": "THICK",
-   "phase": 403,
    "title": "Insecure Registry Key Permissions Storing Configuration",
    "sequence": 403,
    "severity": "medium",
@@ -103,7 +119,8 @@
     "Locate the application's registry footprint (typically under HKLM\\SOFTWARE\\<Vendor>\\<App> for machine-wide settings) using Process Monitor to capture actual reads/writes during normal operation.",
     "Run accesschk against every discovered key to enumerate effective permissions for the Users/Authenticated Users/Everyone groups.",
     "Flag any key writable by non-administrators that is also read by a higher-privileged component (an auto-start service, a scheduled task running as SYSTEM) as the highest-severity variant of this finding.",
-    "Cross-reference writable keys against what configuration they actually control (feature flags vs. security-relevant settings like certificate pinning toggles or server endpoints) to correctly scope severity."
+    "Cross-reference writable keys against what configuration they actually control (feature flags vs. security-relevant settings like certificate pinning toggles or server endpoints) to correctly scope severity.",
+    "Confirm the finding's severity by establishing whether the writable key is read by a component running at higher privilege than the user who can write it, since that is the difference between configuration tampering and privilege escalation."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes registry-permission testing and modification against the local test installation.",
@@ -124,11 +141,16 @@
     {
      "label": "Test standard-user write access directly",
      "command": "reg add \"HKLM\\SOFTWARE\\<Vendor>\\<App>\" /v ServerEndpoint /d \"http://attacker-test.local\" /f"
+    },
+    {
+     "label": "Compare the key's ACL against the parent to spot an inherited-permission mistake",
+     "command": "accesschk64.exe -k -l \"HKLM\\SOFTWARE\\<Vendor>\\<App>\""
     }
    ],
    "variants": [
     "Writable HKLM key read by an auto-start SYSTEM service, enabling local privilege escalation rather than just configuration tampering.",
-    "Writable HKCU key that, while lower severity on its own, still enables tampering with security-relevant per-user settings (proxy config, update source)."
+    "Writable HKCU key that, while lower severity on its own, still enables tampering with security-relevant per-user settings (proxy config, update source).",
+    "A key whose permissions are correct but which is populated at install time from a world-writable file, moving the weakness upstream to the installer."
    ],
    "mitigation": [
     "Set registry key DACLs so only Administrators/SYSTEM have write access; grant the application's own service account the minimum write access it genuinely needs rather than opening the key to all users.",
@@ -136,6 +158,7 @@
     "Audit installer-created ACLs as part of the release process rather than relying on Windows default inheritance to be sufficiently restrictive.",
     "Where a privileged service reads configuration from a location, validate and sanity-check that configuration defensively rather than trusting it implicitly."
    ],
+   "mitigationClientFacing": "The application stores some of its settings in a location on the computer that ordinary users are allowed to change. Where those settings control something security-relevant — the server it connects to, whether a check is enforced — a standard user can alter the application's behaviour, and in the worst case can influence a component that runs with administrative rights and so gain control of the machine. The fix is to tighten who can write to those settings so that only administrators can, and to have the application treat anything security-critical as coming from a protected location. This is a permissions correction rather than a redesign.",
    "reference": {
     "standard": "A05:2021 - Security Misconfiguration",
     "cwe": "CWE-732",
@@ -156,12 +179,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A02",
+   "categoryName": "Security Misconfiguration",
+   "attack": [
+    {
+     "id": "T1068",
+     "name": "Exploitation for Privilege Escalation",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V8",
+     "name": "Authorization"
+    }
+   ]
   },
   {
    "id": "THICK-003",
    "domain": "THICK",
-   "phase": 404,
    "title": "Default/Weak Database Credentials (Embedded DB)",
    "sequence": 404,
    "severity": "high",
@@ -175,7 +214,8 @@
     "Identify the embedded database engine and version from installed files/service names, and consult the vendor's public installation documentation for any default account it creates.",
     "Check whether the database service binds to localhost only or is reachable over the network (netstat/ss for listening ports bound to 0.0.0.0 rather than 127.0.0.1).",
     "Attempt to connect using the vendor's documented default credential with the appropriate client tool for that database engine.",
-    "If direct default-credential login fails, check the application's own configuration/connection-string files for a stored, potentially still-default, credential in cleartext or weakly encoded form."
+    "If direct default-credential login fails, check the application's own configuration/connection-string files for a stored, potentially still-default, credential in cleartext or weakly encoded form.",
+    "Establish whether the embedded database is reachable only over the loopback interface or is bound to all interfaces, since the latter turns a local finding into a network-exposed one."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes direct database connection attempts against the test installation's embedded database.",
@@ -196,11 +236,16 @@
     {
      "label": "Attempt default-credential login (example: SQLite with app-level auth wrapper)",
      "command": "sqlite3 app_data.db \".tables\"  # confirm whether the file itself is unencrypted and directly readable"
+    },
+    {
+     "label": "Recover the connection string from the application's own configuration rather than guessing",
+     "command": "procmon.exe /AcceptEula /Quiet /BackingFile db.pml  # filter: Path ends with the database file extension"
     }
    ],
    "variants": [
     "Embedded database with no authentication at all (rather than a weak default), where any local process can connect without any credential.",
-    "Default credential still valid on the database even though the application's own UI-layer login has been properly configured with unique per-customer credentials — the database layer bypass renders the UI-layer control moot."
+    "Default credential still valid on the database even though the application's own UI-layer login has been properly configured with unique per-customer credentials — the database layer bypass renders the UI-layer control moot.",
+    "A per-installation credential that is nonetheless derived from a value present in the binary, so recovering the algorithm once compromises every deployment."
    ],
    "mitigation": [
     "Force a mandatory, unique credential to be set for the embedded database during first-run setup, refusing to start the application until the default has been changed.",
@@ -208,6 +253,7 @@
     "Encrypt the database file at rest (e.g. SQLCipher for SQLite-based clients) so direct file access without the application's own credential/key doesn't trivially expose data even if the network/local-access vector is closed.",
     "Include a default-credential check in the vendor's own release/deployment checklist and in this VAPT's recurring test cycle."
    ],
+   "mitigationClientFacing": "The database bundled inside the application is protected by a default or weak password that is the same in every installation, which means it is effectively public — anyone with a copy of the software knows it. That exposes whatever the database holds to any user on the machine. The remedy is for the application to generate a unique credential per installation and store it protected, rather than shipping one built-in password for everyone. This is a vendor change; in the interim, confirm what the database contains, because that determines how urgent the exposure is.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-1392",
@@ -227,12 +273,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A07",
+   "categoryName": "Authentication Failures",
+   "attack": [
+    {
+     "id": "T1591",
+     "name": "Gather Victim Org Information",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V6",
+     "name": "Authentication"
+    }
+   ]
   },
   {
    "id": "THICK-004",
    "domain": "THICK",
-   "phase": 405,
    "title": "Insecure Auto-Login Credential Caching",
    "sequence": 405,
    "severity": "high",
@@ -246,7 +308,8 @@
     "Enable the auto-login/remember-me feature and locate where the resulting credential material is written (registry, a config/INI file, an app-data folder) using Process Monitor to capture the write operation as it happens.",
     "Inspect the stored value directly: attempt Base64 decoding, check for a fixed/short XOR key, or attempt to load it with a common weak-encryption routine before assuming it's properly protected.",
     "If the value appears encrypted, decompile the application to locate the decryption routine and determine whether the key is hardcoded, derived from a static machine identifier (predictable), or genuinely tied to a user/OS-level secret store (DPAPI, Keychain, or an OS-level credential manager) that provides real protection.",
-    "Test access to the cached value from a second, separate user account on the same machine to confirm whether OS-level file/registry permissions provide any compensating protection."
+    "Test access to the cached value from a second, separate user account on the same machine to confirm whether OS-level file/registry permissions provide any compensating protection.",
+    "Determine where the cached credential is stored and what protects it, since an auto-login token is only as strong as the store holding it."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes local credential-caching analysis against the test installation.",
@@ -275,7 +338,8 @@
    ],
    "variants": [
     "Session-token caching (rather than the raw password) that is still long-lived and unbound to the original machine, giving equivalent impact to password caching.",
-    "Reliance on a genuine OS-level secret store (DPAPI/Keychain) that is nonetheless still readable by any process running as the same OS user account, which narrows but doesn't eliminate the exposure."
+    "Reliance on a genuine OS-level secret store (DPAPI/Keychain) that is nonetheless still readable by any process running as the same OS user account, which narrows but doesn't eliminate the exposure.",
+    "A credential protected by the platform data-protection API but scoped to the machine rather than the user, so any local account can trigger its decryption."
    ],
    "mitigation": [
     "Use the platform's proper credential-storage API (Windows DPAPI/Credential Manager, macOS Keychain, a Linux Secret Service implementation) rather than a custom or reversible encoding scheme, and scope access to the specific application.",
@@ -283,6 +347,7 @@
     "Bind any cached credential material to machine-specific, non-exportable key material (e.g. a TPM-backed key) so copying the cache file to another machine doesn't grant access there.",
     "Make the auto-login/remember-me feature opt-in with a clear warning about the tradeoff, rather than a default-on convenience setting."
    ],
+   "mitigationClientFacing": "The application remembers a user's login so they do not have to type it each time, but the way it stores that remembered login is weak enough that another person with access to the same computer could recover and reuse it. The convenience is reasonable; the storage is the problem. It should be held in the operating system's protected credential store, tied to the specific user account, so that it cannot be lifted by anyone else who uses or gains access to the machine. This matters most on shared or loosely controlled computers.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-522",
@@ -303,12 +368,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1552",
+     "name": "Unsecured Credentials",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V6",
+     "name": "Authentication"
+    }
+   ]
   },
   {
    "id": "THICK-005",
    "domain": "THICK",
-   "phase": 406,
    "title": "Client-Side Authorization/Trust Boundary Violation",
    "sequence": 406,
    "severity": "high",
@@ -322,7 +403,8 @@
     "Map every authorization-relevant decision point in the application (feature gating, role checks, transaction approval) and determine, for each, whether the client independently decides or whether it merely reflects a decision the server also separately enforces.",
     "Attach a debugger to a running instance and set breakpoints on functions that appear to check a boolean/enum representing entitlement or role (e.g. IsAdmin, IsLicensed, MaxTransactionLimit) to see whether flipping the value in memory changes application behavior without any server round-trip.",
     "Proxy the application's network traffic while performing the same tampered action to confirm whether the server independently validates and rejects the action, or silently accepts whatever the client asserts.",
-    "Check configuration/license files for locally-stored entitlement flags that the client reads and trusts without any signature or server-side confirmation."
+    "Check configuration/license files for locally-stored entitlement flags that the client reads and trusts without any signature or server-side confirmation.",
+    "Confirm whether the same authorisation decision is re-checked by the server, since a control enforced only in the client is bypassed the moment the client is modified or the server is called directly."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes runtime memory patching and/or binary modification of the test installation.",
@@ -343,11 +425,16 @@
     {
      "label": "Proxy traffic during the tampered action to check server-side re-validation",
      "command": "mitmproxy --mode transparent -p 8080"
+    },
+    {
+     "label": "Observe whether the disabled action is still accepted by the server when invoked directly",
+     "command": "# proxy the client's own API call and replay it with the restricted action re-enabled"
     }
    ],
    "variants": [
     "License/entitlement bypass by patching a locally-stored license file's signature check rather than live memory.",
-    "Transaction-limit bypass in a financial/trading thick client where a client-enforced maximum is trivially raised via memory patching, with the server accepting whatever the client submits."
+    "Transaction-limit bypass in a financial/trading thick client where a client-enforced maximum is trivially raised via memory patching, with the server accepting whatever the client submits.",
+    "An authorisation flag stored in the local configuration or registry rather than enforced in code, making the bypass a simple edit rather than a patch."
    ],
    "mitigation": [
     "Move every security- and business-relevant authorization decision to the server; treat the client exclusively as a presentation layer that requests actions, never one that approves them.",
@@ -355,6 +442,7 @@
     "Where offline/local functionality is genuinely required, use cryptographically signed entitlement tokens that the client cannot forge, verified against a key the client doesn't possess.",
     "Add anti-tampering/integrity-check mechanisms as a defense-in-depth layer, understanding that they raise the bar but cannot substitute for proper server-side enforcement."
    ],
+   "mitigationClientFacing": "The application decides what a user is allowed to do on the user's own computer, and then trusts that decision. Because the decision is made on the user's side, a user can change it and grant themselves actions they should not have — the equivalent of an unlocked door being enough because nobody checks again on the other side. The server must independently re-check every action it is asked to perform, regardless of what the application appears to permit. Enforcing authorisation on the server rather than in the application is the durable fix, and it is the single most important principle for this kind of software.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-602",
@@ -375,12 +463,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1200",
+     "name": "Hardware Additions",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
    "id": "THICK-006",
    "domain": "THICK",
-   "phase": 407,
    "title": "Improper Privilege Escalation (Updater/Service)",
    "sequence": 407,
    "severity": "high",
@@ -394,7 +498,8 @@
     "Identify the privileged component (service name, scheduled task, or elevated helper process) associated with the application's update mechanism using Process Explorer/Task Manager to confirm its running privilege level.",
     "Trace the IPC channel or shared resource (named pipe, shared folder, scheduled task definition, registry key) through which the standard-privilege UI communicates with or feeds the privileged component, using Process Monitor.",
     "Check the permissions on that shared resource for standard-user write access using accesschk.",
-    "Review whether the privileged component validates the authenticity/integrity of whatever it receives from the standard-privilege side (a signed update package check) or trusts it implicitly."
+    "Review whether the privileged component validates the authenticity/integrity of whatever it receives from the standard-privilege side (a signed update package check) or trusts it implicitly.",
+    "Confirm the higher-privileged component acts on input a standard user controls, since that is the bridge that turns an unprivileged action into escalation."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes local privilege-escalation testing against the test installation's update mechanism.",
@@ -423,7 +528,8 @@
    ],
    "variants": [
     "Update package signature verification present but weak/bypassable (e.g. checking only a filename pattern rather than a cryptographic signature).",
-    "Scheduled-task-based updater where the task's binary path or arguments are writable by standard users rather than the update payload itself."
+    "Scheduled-task-based updater where the task's binary path or arguments are writable by standard users rather than the update payload itself.",
+    "An updater that runs as SYSTEM and fetches its manifest from a location a standard user can influence, moving the escalation into the update path."
    ],
    "mitigation": [
     "Apply least-privilege ACLs to every file, folder, registry key, and IPC channel the privileged updater/service reads from or is triggered by, restricting write access to administrators only.",
@@ -431,6 +537,7 @@
     "Validate and sanitize all input the privileged component receives from any lower-privileged source, treating it as untrusted regardless of the IPC mechanism used.",
     "Where feasible, minimize what the elevated component actually does — perform as much processing as possible in a properly-privileged, sandboxed step rather than granting broad SYSTEM/root scope to the entire updater."
    ],
+   "mitigationClientFacing": "The application's update or background service runs with high privileges, and a weakness in how it does so lets an ordinary user turn that into full control of the computer. This is a common and serious pattern: a component that must run with elevated rights acts on something an unprivileged user can influence. The fix is to ensure the privileged component only ever acts on inputs and files that unprivileged users cannot tamper with. This is a vendor change and should be treated as a priority, because local control of a workstation is a strong foothold for an attacker.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-269",
@@ -451,12 +558,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1068",
+     "name": "Exploitation for Privilege Escalation",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V8",
+     "name": "Authorization"
+    }
+   ]
   },
   {
    "id": "THICK-007",
    "domain": "THICK",
-   "phase": 408,
    "title": "Local Privilege Escalation via Insecure Service Permissions",
    "sequence": 408,
    "severity": "critical",
@@ -470,7 +593,8 @@
     "Enumerate all services installed by the application and their run-as account using `sc qc <servicename>` or Services.msc, flagging any running as SYSTEM or a similarly privileged account.",
     "Run accesschk against each service's binary path, containing folder, and registry ImagePath value to check for standard-user write access.",
     "Run PowerUp or WinPEAS as a standard user for an automated sweep that cross-references all of the above and flags exploitable services directly.",
-    "Where the binary path itself is correctly locked down, separately check whether the service loads any DLL from a writable, non-standard search-path location (overlaps with the DLL-hijacking finding)."
+    "Where the binary path itself is correctly locked down, separately check whether the service loads any DLL from a writable, non-standard search-path location (overlaps with the DLL-hijacking finding).",
+    "Establish whether a standard user can reconfigure or replace what the service executes, since a writable binary path or a reconfigurable service is a direct escalation."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes local privilege-escalation testing against the target service.",
@@ -499,7 +623,8 @@
    ],
    "variants": [
     "Weak registry permission on the service's ImagePath value specifically, distinct from a weak file-system permission on the binary itself.",
-    "Unquoted service path vulnerability, where a space in an unquoted binary path lets a standard user plant an executable earlier in the resolved path sequence."
+    "Unquoted service path vulnerability, where a space in an unquoted binary path lets a standard user plant an executable earlier in the resolved path sequence.",
+    "A service whose binary is protected but whose configuration file, naming the binary to run, is writable by a standard user."
    ],
    "mitigation": [
     "Apply least-privilege file-system and registry ACLs to all service-related paths during installation, restricting write access to Administrators/SYSTEM only.",
@@ -507,6 +632,7 @@
     "Audit installer-created service permissions as a standing release-gate check, since this class of bug commonly regresses across product versions/updates.",
     "Apply the principle of least privilege to the service's run-as account itself where SYSTEM is not genuinely required — a dedicated, lower-privileged service account limits the blast radius even if a permission weakness is later found."
    ],
+   "mitigationClientFacing": "A background service the application installs can be reconfigured or replaced by an ordinary user, which lets that user run their own code with the service's high privileges and take control of the machine. The underlying cause is permissions set too loosely on the service or the files it uses. Correcting those permissions so that only administrators can alter the service closes it. This is a local escalation issue: it requires someone to already be on the machine, but it turns a limited account into a fully privileged one, which is exactly what an attacker who gains an initial foothold looks for.",
    "reference": {
     "standard": "A05:2021 - Security Misconfiguration",
     "cwe": "CWE-269",
@@ -527,12 +653,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1068",
+     "name": "Exploitation for Privilege Escalation",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V8",
+     "name": "Authorization"
+    }
+   ]
   },
   {
    "id": "THICK-008",
    "domain": "THICK",
-   "phase": 409,
    "title": "Insecure Deserialization (Thick Client)",
    "sequence": 409,
    "severity": "high",
@@ -546,7 +688,8 @@
     "Decompile the application and search for use of type-permissive native serializers (BinaryFormatter, NetDataContractSerializer, Java ObjectInputStream, Python pickle.loads) rather than a safe, schema-constrained format (JSON, protobuf).",
     "Trace each call site back to its data source: a local save/config file, an IPC channel, or network traffic, and assess how directly an attacker can control or tamper with that source.",
     "Check whether any type-allowlisting (a SerializationBinder in .NET, an ObjectInputFilter in Java) is in place restricting deserialization to expected types.",
-    "Where a serialized payload is found in a local file or captured IPC/network traffic, save a sample for use with a public gadget-chain generation tool during the exploitation phase."
+    "Where a serialized payload is found in a local file or captured IPC/network traffic, save a sample for use with a public gadget-chain generation tool during the exploitation phase.",
+    "Identify where the client deserialises data it did not itself produce — a saved file, a server response, an IPC message — since those are the untrusted inputs that reach the deserialiser."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes deserialization-based code-execution testing against the test installation.",
@@ -575,7 +718,8 @@
    ],
    "variants": [
     "Deserialization triggered via a local file (save state, plugin config) versus via network/IPC traffic from a companion process — the former requires local file-write access, the latter can be remote if the companion channel is network-reachable.",
-    "Partial mitigation present (a SerializationBinder allowlist) that is itself bypassable due to an overly broad type-name pattern match."
+    "Partial mitigation present (a SerializationBinder allowlist) that is itself bypassable due to an overly broad type-name pattern match.",
+    "Deserialisation of a local file the user is invited to open, turning the issue into a client-side attack delivered by a crafted document rather than a network one."
    ],
    "mitigation": [
     "Replace type-permissive native serializers with a safe, schema-constrained format (JSON with a strict schema, protobuf) wherever the application controls both ends of the serialization.",
@@ -583,6 +727,7 @@
     "Never deserialize data from an untrusted or externally-writable source without independent integrity verification (a signature over the serialized bytes, checked before deserialization begins).",
     "Keep the application's dependency set minimal and current, since gadget-chain availability depends heavily on which library versions are loaded."
    ],
+   "mitigationClientFacing": "The application reconstructs complex data from a saved file, a server reply, or a message from another program, and does so in a way that a crafted input can abuse to run the attacker's code inside the application. The safeguard is to reconstruct only simple, expected data and to reject anything outside that, rather than trusting whatever arrives to be well-formed. Where the input is a file a user opens, this becomes an attack delivered by a document, which is worth knowing because it changes who needs to be careful and how the software should treat files from outside.",
    "reference": {
     "standard": "A08:2021 - Software and Data Integrity Failures",
     "cwe": "CWE-502",
@@ -603,12 +748,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A08",
+   "categoryName": "Software or Data Integrity Failures",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    },
+    {
+     "id": "T1059",
+     "name": "Command and Scripting Interpreter",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
    "id": "THICK-009",
    "domain": "THICK",
-   "phase": 410,
    "title": "Runtime Manipulation (Hooking/Injection)",
    "sequence": 410,
    "severity": "high",
@@ -622,7 +788,8 @@
     "Attempt to attach a standard debugger (x64dbg, WinDbg) or Frida to a running instance of the application and observe whether any anti-debugging/anti-attach countermeasure triggers (process termination, integrity-check failure, or silent behavioral change).",
     "Identify security-relevant functions via decompilation (license checks, crypto routines, business-logic gates) and attempt to set a hook/breakpoint on each to confirm they're interceptable.",
     "Check whether the binary employs any packing, obfuscation, or checksum/integrity self-verification that would need to be defeated before hooking is straightforward.",
-    "Assess whether the application performs any environment checks (detecting known hooking-framework artifacts, virtualization, or a debugger process) as a baseline anti-tampering posture."
+    "Assess whether the application performs any environment checks (detecting known hooking-framework artifacts, virtualization, or a debugger process) as a baseline anti-tampering posture.",
+    "Determine whether the process runs with any anti-tamper or integrity self-check, since its absence is what makes runtime manipulation practical rather than merely theoretical."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes runtime hooking/injection testing against the test installation.",
@@ -643,11 +810,16 @@
     {
      "label": "Attach a native debugger and set a breakpoint on the target routine",
      "command": "x64dbg target_app.exe  # bp on decompiled address of IsLicenseValid"
+    },
+    {
+     "label": "Confirm the process accepts an attached debugger, the precondition for runtime manipulation",
+     "command": "# attach a debugger to the running process and confirm no anti-debug check terminates it"
     }
    ],
    "variants": [
     "DLL injection into the target process to run arbitrary code within its address space, versus lighter-weight API hooking that only intercepts specific calls.",
-    "Anti-tampering present but bypassable (e.g. a debugger-detection check that only looks for one specific debugger's window class name)."
+    "Anti-tampering present but bypassable (e.g. a debugger-detection check that only looks for one specific debugger's window class name).",
+    "Manipulation achieved by loading a companion library into the process rather than by live patching, which survives a restart where in-memory patching does not."
    ],
    "mitigation": [
     "Move genuinely security-critical decisions (license validation, transaction approval) server-side wherever feasible, so client-side hooking has nothing sensitive to intercept (overlaps with the client-side-trust-boundary finding).",
@@ -655,6 +827,7 @@
     "Implement anti-debugging and anti-injection countermeasures (detecting known hooking-framework artifacts, verifying own code-segment checksums at runtime) as defense in depth.",
     "Accept that determined, well-resourced attackers can defeat client-side anti-tampering given enough time; prioritize server-side enforcement for anything with real financial or security consequence."
    ],
+   "mitigationClientFacing": "While the application is running, its behaviour can be altered from outside — its checks switched off, its logic changed — because it has no protection against being tampered with as it runs. For most business software this matters where the application enforces licensing or a security decision locally, since those can be neutralised. The mitigations (integrity self-checks, anti-tampering) raise the effort required rather than making it impossible, so the more durable answer is not to rely on the application to enforce anything that truly matters — enforce it on the server instead, where the user cannot reach it.",
    "reference": {
     "standard": "A08:2021 - Software and Data Integrity Failures",
     "cwe": "CWE-656",
@@ -675,12 +848,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
    "id": "THICK-010",
    "domain": "THICK",
-   "phase": 411,
    "title": "Business Logic Bypass via Client Tampering",
    "sequence": 411,
    "severity": "high",
@@ -694,7 +883,8 @@
     "Map the application's business rules (discount caps, quantity limits, approval gates, workflow ordering) and, for each, determine whether the client merely reflects a UI convenience or is the sole enforcement point.",
     "Proxy the client's traffic while performing a normal, rule-compliant action to understand the exact request format the server expects.",
     "Attempt to submit a rule-violating value directly via the proxy (bypassing the client UI's own input restrictions) and observe whether the server accepts or rejects it.",
-    "For rules enforced purely in client memory (not reflected in any network request field), use a debugger to locate and modify the relevant in-memory value, then observe whether the resulting action still succeeds server-side."
+    "For rules enforced purely in client memory (not reflected in any network request field), use a debugger to locate and modify the relevant in-memory value, then observe whether the resulting action still succeeds server-side.",
+    "Establish which business rules are enforced only in the client, by comparing what the interface prevents against what the server independently rejects."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes business-logic tampering tests against the test installation and a non-production backend/test account.",
@@ -715,11 +905,16 @@
     {
      "label": "Automated fuzzing of a business-logic-relevant field for boundary handling",
      "command": "ffuf -request captured_request.txt -request-proto https -w boundary_values.txt"
+    },
+    {
+     "label": "Confirm a client-enforced limit is absent server-side by submitting a value the interface forbids",
+     "command": "# replay the underlying request with a quantity or price the client UI would not allow"
     }
    ],
    "variants": [
     "Workflow-ordering bypass, where a multi-step approval process can have its steps submitted out of order or skipped entirely if the server doesn't track and enforce workflow state itself.",
-    "Client-enforced numeric cap bypassed via direct request field modification, distinct from an in-memory-only variable that never appears in any request field at all."
+    "Client-enforced numeric cap bypassed via direct request field modification, distinct from an in-memory-only variable that never appears in any request field at all.",
+    "A discount, price or entitlement value that the client calculates and the server trusts, allowing the outcome to be set directly rather than earned."
    ],
    "mitigation": [
     "Re-implement every business-relevant rule as an independent, authoritative server-side check; treat all client-side versions of the same rule as UX convenience only, never as enforcement.",
@@ -727,6 +922,7 @@
     "Log and alert on server-side rule violations that shouldn't be reachable via the official client UI, since their occurrence is a strong indicator of exactly this kind of tampering in production.",
     "Include boundary and out-of-order-workflow test cases in the standard QA/regression suite so business-logic bypass regressions are caught before release, not just during periodic VAPT engagements."
    ],
+   "mitigationClientFacing": "Rules the application enforces about what a user may do — limits, prices, entitlements, sequences of steps — are applied only in the software on the user's computer, and can be bypassed by changing it. Anything gained this way then flows through to the server as though it were legitimate. The correction is for the server to re-check the rules itself and reject anything that breaks them, rather than trusting that the application already prevented it. This is the same principle as the authorisation finding: the client is a convenience, not a control, and the server has to assume it can be modified.",
    "reference": {
     "standard": "A04:2021 - Insecure Design",
     "cwe": "CWE-840",
@@ -747,12 +943,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1204",
+     "name": "User Execution",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
    "id": "THICK-011",
    "domain": "THICK",
-   "phase": 412,
    "title": "Missing Certificate Pinning",
    "sequence": 412,
    "severity": "high",
@@ -766,7 +978,8 @@
     "Install the testing proxy's CA certificate into the OS trust store on the test machine and configure the application's network traffic to route through the proxy.",
     "Launch the application and attempt to use any network-dependent feature (login, data sync, an API call) while observing the proxy for successfully decrypted traffic.",
     "If traffic is visible in the proxy without any application-level warning or connection failure, certificate pinning is absent or ineffective.",
-    "Where a pinning implementation does exist, test whether it can be bypassed via known techniques (hooking the pin-validation function with Frida, patching the binary to skip the check) to assess implementation robustness rather than just presence."
+    "Where a pinning implementation does exist, test whether it can be bypassed via known techniques (hooking the pin-validation function with Frida, patching the binary to skip the check) to assess implementation robustness rather than just presence.",
+    "Confirm whether pinning is absent entirely or present but not enforced on failure, since a pin that logs rather than blocks provides no protection."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes MITM proxy testing against the test installation's network traffic.",
@@ -787,11 +1000,16 @@
     {
      "label": "Frida-based bypass of an existing (weak) pinning implementation",
      "command": "frida -n target_app -l universal-android-ssl-pinning-bypass.js  # or an equivalent desktop-specific unpinning script"
+    },
+    {
+     "label": "Confirm the client accepts a substituted trusted certificate, indicating no effective pin",
+     "command": "# route the client through an intercepting proxy presenting a locally-trusted CA and confirm the session completes"
     }
    ],
    "variants": [
     "Pinning implemented but only checking the certificate's Common Name/SAN rather than the full certificate or public key, making it bypassable with a certificate for any domain issued by a trusted CA.",
-    "Pinning present in the primary connection but absent on a secondary channel (a telemetry/crash-reporting endpoint, an update-check call) that still carries sensitive data."
+    "Pinning present in the primary connection but absent on a secondary channel (a telemetry/crash-reporting endpoint, an update-check call) that still carries sensitive data.",
+    "Pinning enforced for the main API but omitted for update, telemetry or secondary endpoints, which become the intercept point instead."
    ],
    "mitigation": [
     "Implement certificate or public-key pinning for all backend connections, validating against a pinned value embedded in the client rather than relying solely on OS trust-store validation.",
@@ -799,6 +1017,7 @@
     "Implement a pin-rotation/backup-pin strategy to avoid bricking clients on legitimate certificate changes, and monitor for pin-validation failures in production as a potential MITM indicator.",
     "Apply pinning consistently across every network endpoint the client communicates with, not just the primary authentication/API channel."
    ],
+   "mitigationClientFacing": "When the application connects to its server, it does not firmly verify it is talking to the genuine one, so someone positioned on the network can insert themselves in the middle and read or alter the traffic. The protection, called certificate pinning, tells the application exactly which server identity to accept and to refuse anything else. It needs to be applied to every connection the application makes, not only the main one — update and diagnostic connections are frequently left unprotected and become the way in. This matters most for users on untrusted networks such as public Wi-Fi.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-295",
@@ -818,12 +1037,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A04",
+   "categoryName": "Cryptographic Failures",
+   "attack": [
+    {
+     "id": "T1557",
+     "name": "Adversary-in-the-Middle",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V12",
+     "name": "Secure Communication"
+    }
+   ]
   },
   {
    "id": "THICK-012",
    "domain": "THICK",
-   "phase": 413,
    "title": "Weak Local Cryptography / Key Management",
    "sequence": 413,
    "severity": "high",
@@ -837,7 +1072,8 @@
     "Decompile the application and search for cryptographic API calls (AES/DES/RSA initialization) and trace backward to identify where the key parameter originates.",
     "Check whether the key is a literal string/byte array embedded in the binary, computed from a static or easily-obtainable value (machine name, a fixed salt), or retrieved from a genuine OS-level secret store.",
     "If the key is derived, attempt to replicate the derivation independently using only publicly-obtainable inputs to confirm real-world recoverability.",
-    "Check whether the key (or its derivation inputs) is stored in the same file/registry location as the encrypted data itself, which would allow full compromise from a single artifact."
+    "Check whether the key (or its derivation inputs) is stored in the same file/registry location as the encrypted data itself, which would allow full compromise from a single artifact.",
+    "Determine whether the encryption key is derived from user or machine context or is instead static within the binary, since a static key means every installation shares it."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes cryptographic-implementation analysis of the test installation.",
@@ -858,11 +1094,16 @@
     {
      "label": "Check whether key material is co-located with the ciphertext file",
      "command": "dir /a \"%APPDATA%\\<App>\\\"  # confirm whether a key file sits alongside the encrypted data file"
+    },
+    {
+     "label": "Recover the key or its derivation by tracing the crypto call rather than by cryptanalysis",
+     "command": "# set a breakpoint on the platform crypto import and read the key material passed to it"
     }
    ],
    "variants": [
     "Hardcoded key shared identically across every installation of the application, meaning a single successful extraction compromises every customer's data, not just the tested instance.",
-    "Weak key derivation from a machine-specific but still low-entropy or guessable value (e.g. a hash of just the computer name)."
+    "Weak key derivation from a machine-specific but still low-entropy or guessable value (e.g. a hash of just the computer name).",
+    "A correct algorithm undermined by a key stored alongside the ciphertext it protects, so recovering the data needs only the two files together."
    ],
    "mitigation": [
     "Never hardcode encryption keys in the binary; use a properly random, per-installation key generated at first run.",
@@ -870,6 +1111,7 @@
     "If key derivation from user input (a master password) is used, apply a proper KDF (PBKDF2/Argon2/scrypt) with an adequate work factor rather than a single fast hash.",
     "Conduct a key-management-specific review as part of every cryptography-related code change, since this class of weakness commonly hides behind an otherwise correctly-chosen algorithm."
    ],
+   "mitigationClientFacing": "The application encrypts data on the computer, but the key that unlocks it is either built into the software or stored alongside the data it protects, which is close to locking a door and leaving the key in it. Anyone who understands the software, or who copies the data, can recover it. The fix is to derive the key from something specific to the user or machine and hold it in the operating system's protected key store, so the encryption actually depends on something the attacker does not have. Correct encryption with poor key handling provides far less protection than it appears to.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-320",
@@ -890,12 +1132,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A04",
+   "categoryName": "Cryptographic Failures",
+   "attack": [
+    {
+     "id": "T1204",
+     "name": "User Execution",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V11",
+     "name": "Cryptography"
+    }
+   ]
   },
   {
    "id": "THICK-013",
    "domain": "THICK",
-   "phase": 414,
    "title": "Weak Obfuscation of License Key Validation Algorithm",
    "sequence": 414,
    "severity": "medium",
@@ -909,7 +1167,8 @@
     "Identify the obfuscation tool/technique in use (via characteristic renamed-symbol patterns, known obfuscator signatures, or metadata artifacts) and check for publicly available de-obfuscation tooling targeting it.",
     "Attempt de-obfuscation using the identified tool and assess how much of the original logic (particularly the license-validation routine) becomes readable.",
     "Locate the license-validation function post-de-obfuscation and determine whether it validates against any server-side signal at all, or is a purely local/offline algorithmic check.",
-    "Assess whether the validation algorithm, once readable, is straightforward enough to reverse-engineer into a standalone key-generation routine."
+    "Assess whether the validation algorithm, once readable, is straightforward enough to reverse-engineer into a standalone key-generation routine.",
+    "Establish whether licence validation is purely local, since a check that never contacts a server can always be satisfied offline once understood."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes reverse-engineering and patching of the license-validation logic in the test installation.",
@@ -930,11 +1189,16 @@
     {
      "label": "Binary-patch the validation check to force success",
      "command": "# in dnSpy: edit the IL of the validation method to always return true, save the modified assembly"
+    },
+    {
+     "label": "Locate the validation routine by tracing the code path taken after an invalid key is entered",
+     "command": "# set a breakpoint on the failure message and walk back to the comparison that produced it"
     }
    ],
    "variants": [
     "Obfuscated but purely local/offline license-key algorithm that, once reversed, allows generation of unlimited valid-looking keys without any server contact at all.",
-    "Obfuscation combined with a genuine server-side check for some features but not others, so only partial functionality is protected once the local check is bypassed."
+    "Obfuscation combined with a genuine server-side check for some features but not others, so only partial functionality is protected once the local check is bypassed.",
+    "A validation routine that is obfuscated but calls a single well-known platform function whose result is checked, making the check trivial to neutralise regardless of the surrounding obfuscation."
    ],
    "mitigation": [
     "Treat obfuscation as a raise-the-cost measure only, never as the sole protection for anything with real business/financial value; pair it with genuine server-side license verification wherever feasible.",
@@ -942,6 +1206,7 @@
     "Where offline/local validation is a genuine business requirement (air-gapped environments), use asymmetric cryptography (the client only holds a public key, unable to generate valid signatures itself) rather than a symmetric or purely algorithmic scheme.",
     "Accept that a sufficiently motivated attacker will eventually defeat any purely client-side protection, and design the licensing model's risk tolerance accordingly."
    ],
+   "mitigationClientFacing": "The check that decides whether a licence key is valid runs entirely on the user's computer and is only lightly disguised, so a determined person can understand and defeat it. This is primarily a commercial concern — unauthorised use of the software — rather than a risk to customer data. It is worth being clear-eyed about: any check that runs locally and never consults a server can eventually be bypassed, so disguising it only buys time. If licensing genuinely matters, a periodic server-side check is the only approach that holds, and the local disguise should be seen as a deterrent rather than a control.",
    "reference": {
     "standard": "A08:2021 - Software and Data Integrity Failures",
     "cwe": "CWE-656",
@@ -962,12 +1227,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1204",
+     "name": "User Execution",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V11",
+     "name": "Cryptography"
+    }
+   ]
   },
   {
    "id": "THICK-014",
    "domain": "THICK",
-   "phase": 415,
    "title": "Client-Side Rate Limiting Bypass via Direct API Call (Thick Client)",
    "sequence": 415,
    "severity": "medium",
@@ -981,7 +1262,8 @@
     "Proxy the client's traffic while performing the rate-limited action normally and identify the exact API endpoint/request the client calls.",
     "Replay the captured request directly and repeatedly via the proxy (bypassing the client UI entirely) and observe whether the server processes each attempt without any throttling, lockout, or CAPTCHA challenge appearing.",
     "Measure how many attempts can be sent before any server-side control (if any) engages, to quantify the real-world brute-force feasibility.",
-    "Check whether the endpoint returns any distinguishing response (timing difference, error message variance) that could aid a targeted brute-force attack even if raw rate isn't unlimited."
+    "Check whether the endpoint returns any distinguishing response (timing difference, error message variance) that could aid a targeted brute-force attack even if raw rate isn't unlimited.",
+    "Confirm whether the rate limit is enforced by the server or only by the client's own pacing, by issuing requests directly rather than through the interface."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes direct API brute-force testing against a non-production backend/test account.",
@@ -1002,11 +1284,16 @@
     {
      "label": "Scripted direct API brute-force",
      "command": "ffuf -request captured_request.txt -request-proto https -w otp_candidates.txt -fc 401"
+    },
+    {
+     "label": "Confirm the server accepts requests faster than the interface permits",
+     "command": "# replay the client's API call in a tight loop and observe whether the server throttles independently"
     }
    ],
    "variants": [
     "OTP/verification-code brute-force where the code space is small enough (a 4-6 digit numeric code) that unrestricted attempts make full brute-force practical within minutes.",
-    "Password-reset-token brute-force following the same client-throttle-only pattern."
+    "Password-reset-token brute-force following the same client-throttle-only pattern.",
+    "A limit enforced per-session token rather than per-account, allowing the ceiling to be multiplied by acquiring additional tokens."
    ],
    "mitigation": [
     "Implement rate limiting server-side, at the API layer, independent of and in addition to any client-side UX throttle — the server-side control is the one that actually matters for security.",
@@ -1014,6 +1301,7 @@
     "Ensure verification codes (OTP, reset tokens) have sufficient entropy and a short expiry window so that even a moderate rate limit makes brute-force impractical within the code's validity period.",
     "Monitor and alert on abnormal request-volume patterns against sensitive endpoints as a compensating detective control."
    ],
+   "mitigationClientFacing": "The application limits how quickly certain actions can be performed, but the limit is enforced only by the software on the user's computer, so a user can bypass it and call the underlying service as fast as they like. Depending on what the action is, that can mean overloading the service, running up costs, or defeating a protection the limit was there to provide. The server must enforce the limit itself, per account, rather than relying on the application to pace requests. As with the other client-side controls in this report, the software cannot be trusted to restrain a user acting against it.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-799",
@@ -1033,12 +1321,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1685.002",
+     "name": "Disable or Modify Cloud Log",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
    "id": "THICK-015",
    "domain": "THICK",
-   "phase": 416,
    "title": "Insecure Local Data Storage",
    "sequence": 416,
    "severity": "high",
@@ -1052,7 +1356,8 @@
     "Use the application normally to generate representative local data (log in, perform typical business actions) while monitoring file-system and registry writes with Process Monitor.",
     "Inspect each written location (app-data folders, local database files, log files, registry keys) directly for plaintext sensitive content — credentials, tokens, PII, business data.",
     "For content that appears encoded rather than cleartext, attempt straightforward decoding (Base64, simple XOR) before concluding genuine encryption is in use.",
-    "Check log files and crash-dump locations specifically, since these are commonly overlooked storage locations that end up containing sensitive data logged for debugging purposes (overlaps with the crash-dump/logging-specific finding)."
+    "Check log files and crash-dump locations specifically, since these are commonly overlooked storage locations that end up containing sensitive data logged for debugging purposes (overlaps with the crash-dump/logging-specific finding).",
+    "Establish what protection, if any, the stored data relies on — file permissions, encryption, or merely obscurity of location — since each fails to a different level of access."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes local file-system/registry inspection of the test installation's data storage.",
@@ -1073,11 +1378,16 @@
     {
      "label": "Attempt straightforward decode of a suspicious stored value",
      "command": "echo '<stored-value>' | base64 -d"
+    },
+    {
+     "label": "Enumerate the application's local storage footprint as it runs",
+     "command": "procmon.exe /AcceptEula /Quiet /BackingFile files.pml  # filter: Operation is WriteFile AND Path contains the app data directory"
     }
    ],
    "variants": [
     "Sensitive data logged inadvertently to a debug/verbose log file rather than stored in the application's primary data location.",
-    "Data stored in a local SQLite/embedded database with no at-rest encryption applied at all (distinct from the embedded-database-credentials finding, which covers weak database authentication rather than storage encryption)."
+    "Data stored in a local SQLite/embedded database with no at-rest encryption applied at all (distinct from the embedded-database-credentials finding, which covers weak database authentication rather than storage encryption).",
+    "Data encrypted at rest but decrypted into a predictable temporary file during use, which is readable by any local process for the duration."
    ],
    "mitigation": [
     "Encrypt all sensitive local data at rest using a properly managed key (see the local-cryptography/key-management finding for correct key-handling guidance), not just an encoding scheme.",
@@ -1085,6 +1395,7 @@
     "Exclude sensitive fields from logging entirely, or mask/redact them before they're written to any log file.",
     "Use the platform's proper credential/secret storage API (DPAPI, Keychain) for anything genuinely secret, rather than a custom local-file scheme."
    ],
+   "mitigationClientFacing": "The application stores information on the computer without adequate protection, so another user or a piece of malware on the same machine can read it. How serious this is depends entirely on what is stored — configuration is minor, customer data or credentials are not — so establishing the contents is the first step. Sensitive data should be encrypted at rest with a properly managed key, and the application should avoid leaving readable copies in temporary files while it works. On shared computers this finding carries more weight, because more people can reach the stored files.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-312",
@@ -1105,12 +1416,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A04",
+   "categoryName": "Cryptographic Failures",
+   "attack": [
+    {
+     "id": "T1552",
+     "name": "Unsecured Credentials",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V14",
+     "name": "Data Protection"
+    }
+   ]
   },
   {
    "id": "THICK-016",
    "domain": "THICK",
-   "phase": 417,
    "title": "DLL Hijacking / Insecure Library Loading",
    "sequence": 417,
    "severity": "high",
@@ -1124,7 +1451,8 @@
     "Launch the application under Process Monitor with a filter for `NAME NOT FOUND` results on `Path ends with .dll`, which reveals every DLL the application searched for but didn't find in its immediate directory — each is a hijack candidate if a writable earlier search-path location exists.",
     "For each candidate, determine the exact search order Windows will use for that specific loading mechanism (LoadLibrary vs. LoadLibraryEx with search flags, or an app.manifest specifying a fixed search path) since this affects which directories are actually checked.",
     "Check whether any directory earlier in the resolved search order for a candidate DLL is writable by a standard user.",
-    "Prioritize candidates loaded by an elevated service/companion process, since a hijack there yields privilege escalation rather than just same-privilege code execution."
+    "Prioritize candidates loaded by an elevated service/companion process, since a hijack there yields privilege escalation rather than just same-privilege code execution.",
+    "Prioritise candidates loaded by an elevated companion process, since a hijack there yields privilege escalation rather than only code execution as the current user."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes DLL-hijacking testing against the test installation.",
@@ -1146,11 +1474,16 @@
     {
      "label": "Place the proof-of-concept in the writable search-path location",
      "command": "copy version.dll \"C:\\Program Files\\<Vendor>\\<App>\\version.dll\""
+    },
+    {
+     "label": "Confirm a candidate directory earlier in the search order is writable by a standard user",
+     "command": "accesschk64.exe -d -w \"C:\\Program Files\\<Vendor>\\<App>\""
     }
    ],
    "variants": [
     "Phantom DLL hijacking, where the application references a DLL that doesn't exist anywhere on the system at all, making planting even simpler since there's no legitimate file to displace.",
-    "PATH-directory hijacking, where a malicious DLL is placed in a user-writable directory that appears earlier in the system/user PATH than the legitimate DLL's actual location."
+    "PATH-directory hijacking, where a malicious DLL is placed in a user-writable directory that appears earlier in the system/user PATH than the legitimate DLL's actual location.",
+    "Search-order hijacking where a directory the application adds to its own search path at runtime is user-writable, without any missing-DLL condition being required."
    ],
    "mitigation": [
     "Load DLLs using a fully-qualified path or LoadLibraryEx with `LOAD_LIBRARY_SEARCH_SYSTEM32`/an explicit safe-directory flag, rather than an unqualified name relying on default search order.",
@@ -1158,6 +1491,7 @@
     "Sign all first-party DLLs and verify the signature before loading where the application's own loader logic permits this level of control.",
     "Apply least-privilege file-system ACLs to the application's installation directory so standard users cannot write new files into it."
    ],
+   "mitigationClientFacing": "The application looks for the code libraries it needs in a sequence of locations, and one of those locations can be written to by an ordinary user. That lets a user place their own library where the application will load it, running their code inside the application — and where the application runs with high privileges, taking control of the machine. The fix is for the application to load its libraries only from protected locations using their full path, rather than searching. This is a well-understood vendor correction; its priority rises sharply when the affected component runs with administrative rights.",
    "reference": {
     "standard": "A05:2021 - Security Misconfiguration",
     "cwe": "CWE-427",
@@ -1177,12 +1511,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A08",
+   "categoryName": "Software or Data Integrity Failures",
+   "attack": [
+    {
+     "id": "T1574",
+     "name": "Hijack Execution Flow",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
    "id": "THICK-017",
    "domain": "THICK",
-   "phase": 418,
    "title": "Format String / Buffer Overflow (Native Client)",
    "sequence": 418,
    "severity": "high",
@@ -1196,7 +1546,8 @@
     "Identify every input surface the native application processes: file formats it opens, network protocols it parses, command-line arguments, and any embedded scripting/macro engine.",
     "Fuzz each identified surface with a coverage-guided fuzzer (AFL++/libFuzzer) built against a debug/instrumented build of the application where source or a compatible harness is available.",
     "For any crash produced, triage it with a crash-analysis tool to determine whether it represents a controllable memory-corruption condition (write access violation at an attacker-influenced address) versus a benign null-pointer dereference.",
-    "Separately, grep the codebase or decompiled binary for printf-family calls where the format-string argument originates from user input rather than a fixed literal, which indicates a format-string bug independent of any fuzzing campaign."
+    "Separately, grep the codebase or decompiled binary for printf-family calls where the format-string argument originates from user input rather than a fixed literal, which indicates a format-string bug independent of any fuzzing campaign.",
+    "Identify the native input-handling routines reachable from untrusted input, since memory-safety issues concentrate where the client parses external data in unmanaged code."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes fuzzing and crash/exploitability analysis against the test installation, and agree on effort/time budget given how open-ended fuzzing campaigns can be.",
@@ -1226,7 +1577,8 @@
    ],
    "variants": [
     "Stack-based buffer overflow versus heap-based overflow, which require different exploitation techniques and are affected differently by modern heap-hardening mitigations.",
-    "Format-string information disclosure (read primitive) versus format-string arbitrary write (using %n-style specifiers where supported), the latter being significantly more severe."
+    "Format-string information disclosure (read primitive) versus format-string arbitrary write (using %n-style specifiers where supported), the latter being significantly more severe.",
+    "A memory-safety issue reachable only through an imported file rather than the network, delivered as a crafted document the user is asked to open."
    ],
    "mitigation": [
     "Use bounds-checked string/memory functions (strlcpy, snprintf with explicit size limits) throughout, and adopt a memory-safe language or a hardened C++ standard-library container usage pattern for new development where feasible.",
@@ -1234,6 +1586,7 @@
     "Enable and verify all available compiler/OS memory-protection mitigations (stack canaries, ASLR, DEP/NX, CFG) are active in release builds.",
     "Integrate fuzzing into the regular development/CI pipeline (continuous fuzzing) rather than relying solely on periodic external VAPT engagements to catch this class of bug."
    ],
+   "mitigationClientFacing": "Part of the application is written in a lower-level language that, if it mishandles the size or shape of the data it processes, can be made to run an attacker's code. The risk concentrates where that code handles input from outside — an imported file, a network response. The fix is to ensure those routines rigorously check the data they receive before acting on it, and to build the software with the memory-safety protections the platform provides. Where the risky input is a file the user opens, this is an attack delivered by a document, so files from outside should be treated as untrusted.",
    "reference": {
     "standard": "A06:2021 - Vulnerable and Outdated Components",
     "cwe": "CWE-787",
@@ -1255,12 +1608,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A05",
+   "categoryName": "Injection",
+   "attack": [
+    {
+     "id": "T1204",
+     "name": "User Execution",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
    "id": "THICK-018",
    "domain": "THICK",
-   "phase": 419,
    "title": "Hardcoded Secrets in Binary",
    "sequence": 419,
    "severity": "high",
@@ -1274,7 +1643,8 @@
     "Run a string-extraction pass across the full binary and all bundled resources, filtering for patterns resembling API keys, connection strings, JWT structures, or cloud-provider key formats (AWS AKIA-prefixed keys, etc.).",
     "Decompile the application to trace any suspicious string constant back to its usage context, confirming whether it's actually used as a live credential versus an unrelated string that happens to match a pattern.",
     "For candidates that appear encoded rather than plaintext, test straightforward decodings (Base64, hex) before concluding no secret is present.",
-    "Where a credential type is identifiable (a cloud API key, a third-party service token), attempt to validate it against that service's authentication endpoint (only with authorization, and using a read-only/benign check) to confirm it's live and current rather than a stale/revoked test value."
+    "Where a credential type is identifiable (a cloud API key, a third-party service token), attempt to validate it against that service's authentication endpoint (only with authorization, and using a read-only/benign check) to confirm it's live and current rather than a stale/revoked test value.",
+    "Determine whether the embedded secret is a shared credential used by every installation, since that sets the blast radius of its recovery."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes extraction and, where applicable, use of any discovered hardcoded credential.",
@@ -1295,11 +1665,16 @@
     {
      "label": "Validate a discovered cloud key (read-only check only, with authorization)",
      "command": "aws sts get-caller-identity --profile discovered-key-profile"
+    },
+    {
+     "label": "Recover printable secrets from the binary as a first pass before deeper analysis",
+     "command": "strings -n 8 target_binary.exe | grep -iE 'key|token|secret|password|api'"
     }
    ],
    "variants": [
     "Hardcoded credential shared identically across every deployed instance of the application (highest severity, since one extraction compromises all customers) versus a credential unique to the specific tested installation.",
-    "Secret embedded in a bundled resource file (a config template, an installer script) rather than directly in the compiled binary itself."
+    "Secret embedded in a bundled resource file (a config template, an installer script) rather than directly in the compiled binary itself.",
+    "A secret that is encoded or lightly transformed rather than plaintext, defeating a naive string search but recoverable by tracing where it is decoded at runtime."
    ],
    "mitigation": [
     "Remove all hardcoded secrets from source code and shipped binaries; supply credentials at runtime via a proper secrets-management solution (a vault service, environment-injected configuration) that isn't distributed to end users.",
@@ -1307,6 +1682,7 @@
     "Add automated secret-scanning (gitleaks, truffleHog, or equivalent) to the CI/CD pipeline to catch hardcoded secrets before they reach a release build.",
     "Rotate any credential confirmed to have been exposed in a shipped binary immediately, since it must be treated as fully public once distributed."
    ],
+   "mitigationClientFacing": "The application has secrets built directly into its program files — keys, passwords, or access tokens — and these can be extracted by anyone with a copy of the software. Because the same secret ships to every customer, recovering it once can affect every installation and whatever those secrets unlock. The fix is to remove secrets from the software entirely and obtain them at runtime from a protected source, individually per installation where possible. This should be treated as a priority in proportion to what the embedded secrets grant access to, and any that are found should be rotated on the assumption they are already known.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-798",
@@ -1328,12 +1704,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A07",
+   "categoryName": "Authentication Failures",
+   "attack": [
+    {
+     "id": "T1552.001",
+     "name": "Credentials In Files",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V6",
+     "name": "Authentication"
+    }
+   ]
   },
   {
    "id": "THICK-019",
    "domain": "THICK",
-   "phase": 420,
    "title": "Improper Input Validation (Thick Client)",
    "sequence": 420,
    "severity": "high",
@@ -1347,7 +1739,8 @@
     "Enumerate every input surface: file-import/open dialogs, form fields, command-line arguments, configuration file values, and any IPC/network messages the application consumes.",
     "For each surface, test with boundary and malformed values: oversized strings, unexpected data types, path-traversal sequences (`../../`), null bytes, and format-breaking characters, observing for crashes or unexpected behavior.",
     "Trace how each input flows through the application (does it become a file path, a database query fragment, a command argument, a memory buffer size) to understand what specific vulnerability class a validation gap would enable.",
-    "Cross-reference findings against more specific, related test cases (buffer overflow, deserialization, business-logic bypass) since a general input-validation gap is often the root enabler for those more specific, higher-severity findings."
+    "Cross-reference findings against more specific, related test cases (buffer overflow, deserialization, business-logic bypass) since a general input-validation gap is often the root enabler for those more specific, higher-severity findings.",
+    "Identify the inputs the client processes without server involvement — imported files, protocol responses, local IPC — since those are the surfaces the server cannot validate for it."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes malformed-input testing against the test installation's various input surfaces.",
@@ -1368,11 +1761,16 @@
     {
      "label": "Command-line argument fuzzing",
      "command": "target_app.exe --import \"$(python3 -c 'print(\"A\"*10000)')\""
+    },
+    {
+     "label": "Exercise the client's file or protocol parser with malformed input under a debugger",
+     "command": "# open a deliberately malformed input file with a debugger attached and watch for an unhandled exception"
     }
    ],
    "variants": [
     "Path-traversal-specific input-validation gap in a file-import/export feature.",
-    "Type-confusion input-validation gap where a numeric field accepts non-numeric input that's then used unsafely in a downstream calculation or memory allocation size."
+    "Type-confusion input-validation gap where a numeric field accepts non-numeric input that's then used unsafely in a downstream calculation or memory allocation size.",
+    "Validation performed on the interface field but bypassed by the import or scripting path that reaches the same routine without it."
    ],
    "mitigation": [
     "Apply strict, allowlist-based input validation (expected type, length, character set, range) at every input surface, not just the primary UI path, and validate consistently regardless of entry point (UI, CLI, file, IPC).",
@@ -1380,6 +1778,7 @@
     "Apply the principle of defense in depth: validate at the point of input AND again at the point of use (e.g. before a file-system operation constructs a path from user input), since a single validation layer can be missed or bypassed.",
     "Include boundary and malformed-input test cases in the standard QA/regression suite rather than relying solely on periodic VAPT engagements to surface these gaps."
    ],
+   "mitigationClientFacing": "The application does not properly check some of the data it processes on the user's computer — imported files, responses from other systems, messages from other programs — and malformed data can make it behave unexpectedly or run an attacker's code. These are inputs the server never sees and therefore cannot check for the application, so the application itself must validate them. Where the risky input is a file a user opens, this becomes an attack delivered by a document, so the software should treat files from outside as untrusted regardless of where they appear to come from.",
    "reference": {
     "standard": "A03:2021 - Injection",
     "cwe": "CWE-20",
@@ -1400,12 +1799,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A05",
+   "categoryName": "Injection",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
    "id": "THICK-020",
    "domain": "THICK",
-   "phase": 421,
    "title": "Insecure Auto-Update Rollback Vulnerability",
    "sequence": 421,
    "severity": "high",
@@ -1419,7 +1834,8 @@
     "Obtain a genuinely-signed older version of the application (from the vendor's own historical release archive, if available) alongside the current version.",
     "Proxy the update-check/download flow and attempt to substitute the older, validly-signed package in place of the current update response.",
     "Observe whether the client accepts and installs the older package without any version-currency check, or whether it correctly detects and rejects the downgrade attempt.",
-    "Where the update mechanism relies on an update-manifest/metadata file separate from the package itself, check whether that manifest's own integrity/authenticity (and its stated version number) is independently verified, since manipulating the manifest alone (without needing a fake package) may be sufficient."
+    "Where the update mechanism relies on an update-manifest/metadata file separate from the package itself, check whether that manifest's own integrity/authenticity (and its stated version number) is independently verified, since manipulating the manifest alone (without needing a fake package) may be sufficient.",
+    "Confirm whether the updater accepts an older signed version, since a rollback to a known-vulnerable release reintroduces every issue that release contained."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes update-mechanism manipulation testing against the test installation, and obtain a legitimately-signed older version with a documented, known vulnerability for use as the downgrade target.",
@@ -1440,11 +1856,16 @@
     {
      "label": "Decompile to inspect the update-verification logic for a version-currency check",
      "command": "dnSpy target_app.exe  # search Updater module for version-comparison logic alongside the signature-check call"
+    },
+    {
+     "label": "Confirm the updater does not reject a lower version number that is otherwise validly signed",
+     "command": "# present the updater a correctly-signed but older package and observe whether it installs"
     }
    ],
    "variants": [
     "Unauthenticated update manifest, where only the package itself is signed but the manifest specifying which version/URL to fetch is not, allowing manifest tampering alone to redirect to an older package.",
-    "Signature check present and version-currency check present, but the version-comparison logic itself is flawed (e.g. simple string comparison rather than proper semantic version comparison, allowing a crafted version string to be misread as newer)."
+    "Signature check present and version-currency check present, but the version-comparison logic itself is flawed (e.g. simple string comparison rather than proper semantic version comparison, allowing a crafted version string to be misread as newer).",
+    "Rollback prevented for the main binary but permitted for a bundled component or library, which reintroduces the vulnerability at that layer."
    ],
    "mitigation": [
     "Enforce a strict monotonic version check as part of update installation, independent of and in addition to signature verification — reject any package whose version is not strictly greater than the currently-installed version (absent an explicit, deliberate, separately-authorized downgrade flow).",
@@ -1452,6 +1873,7 @@
     "Maintain a server-side revocation list of known-vulnerable historical versions and have the client check against it (or rely on the monotonic-version enforcement above) so those versions can never be reinstalled even with a valid signature.",
     "Use a well-tested semantic-version comparison library rather than custom string-comparison logic for the version-currency check."
    ],
+   "mitigationClientFacing": "The application's update mechanism can be made to install an older version, which quietly reintroduces every security weakness that the older version contained and the update was meant to fix. An attacker uses this to undo your patches. The updater should refuse to install anything older than what is already present, and should apply that rule to bundled components and libraries as well as the main program, since those are a common gap. This is a vendor change to the update logic and is worth confirming explicitly, because a patched application that can be silently rolled back is not reliably patched.",
    "reference": {
     "standard": "A08:2021 - Software and Data Integrity Failures",
     "cwe": "CWE-345",
@@ -1471,12 +1893,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A08",
+   "categoryName": "Software or Data Integrity Failures",
+   "attack": [
+    {
+     "id": "T1550",
+     "name": "Use Alternate Authentication Material",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
    "id": "THICK-021",
    "domain": "THICK",
-   "phase": 422,
    "title": "Insecure Command-Line Argument Passing of Secrets",
    "sequence": 422,
    "severity": "medium",
@@ -1490,7 +1928,8 @@
     "Trigger the application to spawn the relevant child process/helper script (e.g. during login, an update check, or a specific feature invocation) while monitoring process creation with Process Monitor or Process Explorer.",
     "Inspect the full command line of the spawned process (enabling the Command Line column in Process Explorer, or via `wmic process get commandline` / `ps aux` on Unix-like systems) for any sensitive-looking values.",
     "From a second, separate local user account (or a low-privileged background process), confirm the same command-line argument is visible, demonstrating the cross-user/cross-process exposure rather than assuming it based on same-user observation alone.",
-    "Check whether the same secret is also exposed in shell history, system/application event logs, or process-accounting logs that record command lines."
+    "Check whether the same secret is also exposed in shell history, system/application event logs, or process-accounting logs that record command lines.",
+    "Establish whether secrets are passed on the command line of a launched process, since those are visible to any local user through ordinary process listing."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes process-list inspection during normal application operation on the test installation.",
@@ -1511,11 +1950,16 @@
     {
      "label": "Continuous monitoring for a short-lived spawned process carrying a secret",
      "command": "while ($true) { Get-CimInstance Win32_Process | Select CommandLine | Out-File -Append cmdline_log.txt; Start-Sleep -Milliseconds 200 }"
+    },
+    {
+     "label": "Capture process command lines as the application launches its children",
+     "command": "# run a process-creation monitor and inspect the full command line of each child process for secrets"
     }
    ],
    "variants": [
     "Secret exposed in a short-lived helper process that exits quickly, requiring continuous/rapid process-list polling to catch, versus a long-running process where the exposure window is effectively indefinite.",
-    "Secret additionally persisted in shell history or an event/process-accounting log, extending the exposure window well beyond the process's actual runtime."
+    "Secret additionally persisted in shell history or an event/process-accounting log, extending the exposure window well beyond the process's actual runtime.",
+    "A secret passed to a child process through an environment variable rather than an argument, which is less visible but still readable by a local user with the right access."
    ],
    "mitigation": [
     "Pass sensitive values to spawned processes via a secure channel not visible in the process list: an inherited handle/pipe, a temporary file with restrictive permissions deleted immediately after use, standard input, or an environment variable scoped narrowly (noting some platforms also expose environment variables to sufficiently privileged inspectors, so this is a partial improvement, not a complete fix).",
@@ -1523,6 +1967,7 @@
     "Audit all inter-process secret-passing mechanisms in the application for this pattern, since it's easy to overlook in helper scripts and updater/installer components specifically.",
     "Ensure no logging subsystem (application, OS, or shell history) inadvertently persists command lines containing secrets."
    ],
+   "mitigationClientFacing": "The application passes secrets — passwords or tokens — to other programs in a way that any other user on the same computer can observe simply by listing the running programs. The secret is exposed for as long as the program runs, without any special access required. The fix is to pass secrets through a private channel that other users cannot see, rather than on the visible command line. This is a self-contained vendor change, and its importance scales with how many people share the computers the software runs on and what the exposed secrets protect.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-214",
@@ -1543,12 +1988,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A04",
+   "categoryName": "Cryptographic Failures",
+   "attack": [
+    {
+     "id": "T1550.001",
+     "name": "Application Access Token",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V14",
+     "name": "Data Protection"
+    }
+   ]
   },
   {
    "id": "THICK-022",
    "domain": "THICK",
-   "phase": 423,
    "title": "Insecure Handling of Clipboard Data Containing Secrets",
    "sequence": 423,
    "severity": "medium",
@@ -1562,7 +2023,8 @@
     "Trigger the application's copy-to-clipboard feature for a sensitive value (a password reveal-and-copy button, an OTP code, a payment card number).",
     "From a separate, independent application/process, poll the clipboard immediately after the copy operation and confirm the sensitive value is readable.",
     "Measure how long the value remains on the clipboard before (if ever) the application clears it, and compare against reasonable practice (a short timeout, typically 30-60 seconds, is the common mitigation).",
-    "Check whether the platform's clipboard-history feature (Windows Clipboard History, for example) retains the value even after the application's own clear/timeout, and whether the application used the appropriate API flag to exclude itself from that history."
+    "Check whether the platform's clipboard-history feature (Windows Clipboard History, for example) retains the value even after the application's own clear/timeout, and whether the application used the appropriate API flag to exclude itself from that history.",
+    "Determine whether the application places secrets on the shared clipboard and, if so, whether it clears them, since an uncleared clipboard is readable by every other application."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes clipboard-monitoring testing against the test installation.",
@@ -1583,11 +2045,16 @@
     {
      "label": "Check Windows Clipboard History retention after the app's own session ends",
      "command": "# open Win+V clipboard history UI and check whether the copied sensitive value is still listed"
+    },
+    {
+     "label": "Observe the clipboard after the application copies a sensitive value",
+     "command": "# monitor clipboard contents from a separate process after using the app's copy-password action"
     }
    ],
    "variants": [
     "Sensitive value persisted in OS-level clipboard history (a longer-lived, separate exposure) versus only the immediate, single-slot clipboard buffer.",
-    "Sensitive value copied automatically (without explicit user action) as a side effect of another feature, increasing the chance of inadvertent exposure."
+    "Sensitive value copied automatically (without explicit user action) as a side effect of another feature, increasing the chance of inadvertent exposure.",
+    "A value the application clears after a timeout, which nonetheless remains recoverable from clipboard history features that retain prior entries."
    ],
    "mitigation": [
     "Clear the clipboard automatically a short, fixed time after copying a sensitive value (commonly 30-60 seconds), and clear it immediately if the application is closed or loses focus before that timeout.",
@@ -1595,6 +2062,7 @@
     "Minimize reliance on clipboard-based convenience features for highly sensitive values; where feasible, offer a masked, in-app \"reveal\" instead of a full clipboard copy.",
     "Educate users, where the copy-to-clipboard feature is retained, that clipboard contents are shared system-wide and should be treated as temporarily exposed."
    ],
+   "mitigationClientFacing": "When the application copies a sensitive value such as a password to the clipboard for convenience, it leaves it there, where every other program on the computer can read it — and clipboard-history features can retain it even after it should be gone. The fix is to clear the clipboard automatically a short time after copying a secret, and to be aware that history features can defeat even that, so the most sensitive values are better not placed on the clipboard at all. This is a small change with a real effect on shared or malware-exposed machines.",
    "reference": {
     "standard": "A04:2021 - Insecure Design",
     "cwe": "CWE-200",
@@ -1613,12 +2081,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1213",
+     "name": "Data from Information Repositories",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V14",
+     "name": "Data Protection"
+    }
+   ]
   },
   {
    "id": "THICK-023",
    "domain": "THICK",
-   "phase": 424,
    "title": "Insecure Inter-Process Communication",
    "sequence": 424,
    "severity": "high",
@@ -1632,7 +2116,8 @@
     "Enumerate the application's IPC surface: named pipes, mailslots, and shared-memory/mapped-file objects, using WinObj or a similar object-namespace browser (or `lsof`/`ls /tmp` equivalents for Unix domain sockets).",
     "Check the DACL/permissions on each discovered IPC object for standard-user connect/write access using accesschk.",
     "For channels found to be connectable by a standard user, capture legitimate traffic on the channel (where possible) to understand its message format.",
-    "Determine which component is on the receiving end of each channel and its privilege level, prioritizing channels feeding into an elevated process as higher severity."
+    "Determine which component is on the receiving end of each channel and its privilege level, prioritizing channels feeding into an elevated process as higher severity.",
+    "Enumerate the application's local IPC endpoints and establish which accept connections from any local process rather than only its own components."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes IPC-channel connection and message-injection testing against the test installation.",
@@ -1653,11 +2138,16 @@
     {
      "label": "Enumerate Unix domain sockets (Linux/macOS equivalent)",
      "command": "lsof -U | grep <app-name>"
+    },
+    {
+     "label": "Enumerate the named pipes or local sockets the application exposes",
+     "command": "# list named pipes and confirm which the application creates, then check their access controls"
     }
    ],
    "variants": [
     "IPC channel feeding into an elevated (SYSTEM/root) receiving process, providing a local privilege-escalation path rather than just same-privilege message injection.",
-    "IPC channel carrying sensitive data readable by eavesdropping alone, without needing to inject forged messages at all."
+    "IPC channel carrying sensitive data readable by eavesdropping alone, without needing to inject forged messages at all.",
+    "An IPC channel that authenticates the first connection but not subsequent ones, allowing a local process to attach after the legitimate client."
    ],
    "mitigation": [
     "Restrict IPC object DACLs (named pipe/shared-memory permissions) to only the specific, expected process/service account, denying connect/write access to standard users or Everyone/Authenticated Users groups.",
@@ -1665,6 +2155,7 @@
     "Validate and sanity-check all messages received over IPC as untrusted input, regardless of the sending process's assumed identity.",
     "Where the receiving component is privileged, apply the same least-privilege design principle as the general privilege-escalation findings: minimize what a single IPC message can cause the privileged component to do."
    ],
+   "mitigationClientFacing": "The application's components talk to each other on the computer through channels that other programs can also connect to, which lets a local program interfere with the application or reach functions it should not. The fix is to restrict those internal channels so only the application's own components can use them, and to authenticate connections rather than trusting anything that connects. This requires someone to already be on the machine to exploit, so its severity depends on how exposed the computers are, but it is a route by which limited access is widened.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-419",
@@ -1684,12 +2175,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1204",
+     "name": "User Execution",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
    "id": "THICK-024",
    "domain": "THICK",
-   "phase": 425,
    "title": "Insecure Network Communication",
    "sequence": 425,
    "severity": "high",
@@ -1703,7 +2210,8 @@
     "Capture the application's full network traffic during a comprehensive walkthrough of its features (login, primary functionality, settings, update check, any telemetry/analytics call) using Wireshark or a proxy configured to intercept all traffic, not just HTTP(S).",
     "Filter the capture for any traffic on standard unencrypted ports (80, 23, a custom unencrypted port) or any TLS handshake that fails/downgrades unexpectedly.",
     "For each unencrypted channel found, identify what data it carries — flag any credential, token, or sensitive business data specifically.",
-    "Cross-reference against the certificate-pinning finding, since a channel that does use TLS but without pinning is a related but distinct issue from one using no encryption at all."
+    "Cross-reference against the certificate-pinning finding, since a channel that does use TLS but without pinning is a related but distinct issue from one using no encryption at all.",
+    "Confirm which of the application's connections are encrypted and which fall back to cleartext, testing each endpoint separately rather than assuming the main one is representative."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes network traffic capture during a full feature walkthrough of the test installation.",
@@ -1724,11 +2232,16 @@
     {
      "label": "Extract cleartext credentials from a captured HTTP POST",
      "command": "tshark -r full_app_traffic.pcap -Y 'http.request.method==\"POST\"' -T fields -e http.file_data"
+    },
+    {
+     "label": "Confirm whether any endpoint transmits credentials or data without transport encryption",
+     "command": "# capture the application's traffic and inspect for any plaintext protocol or credential"
     }
    ],
    "variants": [
     "Primary application functionality correctly using TLS while a secondary channel (telemetry, licensing check, crash reporting) uses plain HTTP.",
-    "TLS used but silently downgrading to plaintext on connection failure rather than failing closed, which an active attacker can force by blocking the TLS handshake."
+    "TLS used but silently downgrading to plaintext on connection failure rather than failing closed, which an active attacker can force by blocking the TLS handshake.",
+    "A primary channel correctly encrypted while a diagnostic, update or telemetry channel transmits in cleartext and is overlooked."
    ],
    "mitigation": [
     "Enforce TLS for every network-communicating feature of the application, including secondary/background channels, with no plaintext fallback under any failure condition (fail closed, not open).",
@@ -1736,6 +2249,7 @@
     "Conduct a full-traffic-capture review (as used in this identification process) as a standing pre-release check, specifically to catch overlooked secondary channels.",
     "Disable or remove legacy, unencrypted protocol support entirely rather than leaving it available as a fallback."
    ],
+   "mitigationClientFacing": "Some of the application's network connections are not encrypted, so data — potentially including credentials — travels in a form that anyone on the same network can read. Often the main connection is properly protected while a secondary one for updates, diagnostics or telemetry is overlooked, and that overlooked channel becomes the exposure. The fix is to encrypt every connection the application makes and to verify each endpoint, testing them individually rather than assuming the main one represents them all. This matters most for users on untrusted networks.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-319",
@@ -1755,12 +2269,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A04",
+   "categoryName": "Cryptographic Failures",
+   "attack": [
+    {
+     "id": "T1040",
+     "name": "Network Sniffing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V12",
+     "name": "Secure Communication"
+    }
+   ]
   },
   {
    "id": "THICK-025",
    "domain": "THICK",
-   "phase": 426,
    "title": "Lack of Binary Protection (No Obfuscation/Anti-Tamper)",
    "sequence": 426,
    "severity": "medium",
@@ -1774,7 +2304,8 @@
     "Attempt straightforward decompilation of the binary and assess how close the output is to readable, near-original source code (trivial for unobfuscated .NET/Java bytecode, more involved but still very feasible for unobfuscated native code).",
     "Attempt to attach a standard debugger to a running instance and confirm no anti-debugging countermeasure triggers.",
     "Check whether the binary performs any self-integrity check (a checksum/hash of its own code segments compared against an expected value) at startup, by searching decompiled code for such a routine.",
-    "Assess whether any commercial or open-source packer/obfuscator/protector is applied at all (even weak, defeatable protection is a materially different finding than none whatsoever)."
+    "Assess whether any commercial or open-source packer/obfuscator/protector is applied at all (even weak, defeatable protection is a materially different finding than none whatsoever).",
+    "Establish whether the binary carries any anti-tamper, integrity check or obfuscation, since their absence is what makes every other client-side finding easier to reach."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes static/dynamic analysis of the test installation's binary.",
@@ -1795,11 +2326,16 @@
     {
      "label": "Search for (absence of) a self-integrity-check routine",
      "command": "grep -i 'checksum\\|selfhash\\|integritycheck' decompiled_source/ -r"
+    },
+    {
+     "label": "Confirm the binary can be decompiled to readable logic without meaningful obstruction",
+     "command": "# load the binary in a decompiler and confirm business logic is recoverable in readable form"
     }
    ],
    "variants": [
     "Complete absence of any protection versus weak/outdated protection (an old, publicly-defeated packer or an easily-bypassed anti-debug check) that provides negligible real-world resistance despite technically being present.",
-    "Anti-tamper checks (integrity self-verification, debugger detection) implemented but only client-side and easily patched out with a binary edit, versus checks that also report to a server-side verification endpoint the attacker cannot silence purely by modifying the local binary."
+    "Anti-tamper checks (integrity self-verification, debugger detection) implemented but only client-side and easily patched out with a binary edit, versus checks that also report to a server-side verification endpoint the attacker cannot silence purely by modifying the local binary.",
+    "A binary with some obfuscation on the licensing routine but none on the security-relevant logic, leaving the parts that matter fully exposed."
    ],
    "mitigation": [
     "Apply a reputable commercial or well-maintained open-source obfuscation/protection solution appropriate to the runtime, understanding this raises attacker effort rather than providing an absolute guarantee.",
@@ -1807,6 +2343,7 @@
     "Prioritize moving genuinely security-critical logic server-side (see the client-side-trust-boundary finding) rather than relying on binary protection alone to safeguard client-resident logic.",
     "Treat binary protection as one layer in a defense-in-depth strategy, not a substitute for proper server-side enforcement of anything with real security or financial consequence."
    ],
+   "mitigationClientFacing": "The application has no protection against being taken apart and understood, which does not directly harm anyone but makes every other weakness in this report easier for an attacker to find and exploit. It also exposes the business logic and any secrets inside. Adding integrity checks and obfuscation raises the effort an attacker must spend. The more important lesson, though, is architectural: because the software can be fully understood and modified, it should never be trusted to enforce anything that genuinely matters — those controls belong on the server, out of the attacker's reach.",
    "reference": {
     "standard": "A08:2021 - Software and Data Integrity Failures",
     "cwe": "CWE-656",
@@ -1828,12 +2365,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1204",
+     "name": "User Execution",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
    "id": "THICK-026",
    "domain": "THICK",
-   "phase": 427,
    "title": "Sensitive Data Exposure in Crash Dumps/Logs",
    "sequence": 427,
    "severity": "medium",
@@ -1847,7 +2400,8 @@
     "Trigger a crash or enable verbose logging while the application holds representative sensitive data in memory (logged in, mid-transaction) and inspect the resulting dump/log file directly for plaintext sensitive content.",
     "Check whether crash dumps are automatically uploaded to a vendor backend, and if so, whether that upload occurs over an encrypted channel and to an access-controlled destination.",
     "Review log-level configuration to determine whether verbose/debug logging (which is more likely to capture full request/response bodies including secrets) can be enabled in production, either by the user or by default.",
-    "Cross-reference with the general insecure-local-data-storage finding, since crash dumps/logs are a specific, commonly-overlooked storage location within that broader class."
+    "Cross-reference with the general insecure-local-data-storage finding, since crash dumps/logs are a specific, commonly-overlooked storage location within that broader class.",
+    "Determine what a crash dump or verbose log captures, since these routinely record in-memory secrets that the application otherwise protects."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes crash-inducing and log-inspection testing against the test installation.",
@@ -1868,11 +2422,16 @@
     {
      "label": "Enable and inspect verbose application logging",
      "command": "# set log level to Debug/Verbose via config, reproduce a sensitive action, then grep the resulting log file"
+    },
+    {
+     "label": "Search a generated crash dump or log for known sensitive test values",
+     "command": "strings crash.dmp | grep -iE '<known-test-secret>|authorization|password'"
     }
    ],
    "variants": [
     "Sensitive data captured in a locally-stored crash dump only, versus a dump that's automatically uploaded to a vendor telemetry/crash-reporting backend, which extends exposure beyond the local machine.",
-    "Sensitive data present in verbose/debug-level application logs even without any crash occurring at all."
+    "Sensitive data present in verbose/debug-level application logs even without any crash occurring at all.",
+    "Sensitive values redacted from the application's own logs but present in verbose logs from a bundled third-party library that does not redact."
    ],
    "mitigation": [
     "Implement redaction/scrubbing of known-sensitive fields (passwords, tokens, keys, PII patterns) before writing any crash dump or log entry.",
@@ -1880,6 +2439,7 @@
     "Encrypt crash dumps/logs in transit if automatically uploaded to a vendor backend, and apply strict access control on that backend.",
     "Default to a conservative (non-verbose) logging level in production builds, requiring an explicit, audited action to enable verbose logging temporarily for diagnostic purposes."
    ],
+   "mitigationClientFacing": "When the application crashes or writes detailed logs, it records the contents of its memory, and those records can contain sensitive values — passwords, tokens, customer data — that the application otherwise protects. These files are then stored, and sometimes sent to the vendor, in a readable form. The fix is to strip sensitive values from crash reports and logs before they are written or transmitted, and to check that bundled third-party components do the same, since they frequently log without redacting. This is easy to overlook precisely because it only happens when something goes wrong.",
    "reference": {
     "standard": "A09:2021 - Security Logging and Monitoring Failures",
     "cwe": "CWE-532",
@@ -1900,12 +2460,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A09",
+   "categoryName": "Security Logging and Alerting Failures",
+   "attack": [
+    {
+     "id": "T1552",
+     "name": "Unsecured Credentials",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V14",
+     "name": "Data Protection"
+    }
+   ]
   },
   {
    "id": "THICK-027",
    "domain": "THICK",
-   "phase": 428,
    "title": "Sensitive Data in Memory",
    "sequence": 428,
    "severity": "medium",
@@ -1919,7 +2495,8 @@
     "Use the application to process representative sensitive data (log in, decrypt a protected value, perform a transaction requiring a key).",
     "Immediately after the operation completes (well past when the value should logically still be needed), take a memory snapshot/dump of the running process and search it for the plaintext sensitive value.",
     "Repeat after progressively longer delays to characterize how long the value persists in memory before being overwritten/garbage-collected naturally.",
-    "Identify, via decompilation, whether the code uses an immutable string type for the sensitive value (a strong indicator this finding applies) versus a mutable byte buffer that's explicitly zeroed after use."
+    "Identify, via decompilation, whether the code uses an immutable string type for the sensitive value (a strong indicator this finding applies) versus a mutable byte buffer that's explicitly zeroed after use.",
+    "Establish whether the sensitive value is held in an immutable string type, since that prevents the application clearing it and is a strong indicator the value persists."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes process-memory inspection of the test installation.",
@@ -1940,11 +2517,16 @@
     {
      "label": "Live memory string search without a full dump (Process Hacker)",
      "command": "# Process Hacker: right-click process -> Properties -> Memory -> Strings, filter for known sensitive test value"
+    },
+    {
+     "label": "Confirm a processed sensitive value persists in memory after it is logically no longer needed",
+     "command": "# take a process memory snapshot after the operation completes and search it for the known test value"
     }
    ],
    "variants": [
     "Encryption keys persisting in memory well after the encryption/decryption operation completes, distinct from password/token persistence.",
-    "Sensitive data recoverable from a hibernation file or page file (swapped-out memory) even after the process itself has exited, extending exposure beyond the process's own runtime."
+    "Sensitive data recoverable from a hibernation file or page file (swapped-out memory) even after the process itself has exited, extending exposure beyond the process's own runtime.",
+    "A value swapped out to the page or hibernation file, recoverable from disk after the process has exited entirely."
    ],
    "mitigation": [
     "Use mutable, explicitly-zeroable byte buffers (e.g. `SecureString` where genuinely still appropriate for the platform, or a custom pinned byte array) for sensitive values instead of standard immutable string types, and zero them immediately after use.",
@@ -1952,6 +2534,7 @@
     "Where the platform supports it, use OS-level protected-memory APIs (e.g. Windows CryptProtectMemory) for particularly sensitive material like encryption keys.",
     "Disable or encrypt the system page/swap file and hibernation file on machines handling particularly sensitive data, as a compensating control against memory contents being written to disk."
    ],
+   "mitigationClientFacing": "The application keeps sensitive values in memory for longer than it needs them, which leaves a window in which they can be recovered by another program on the computer, or captured to disk if memory is swapped out or the machine hibernates. Some persistence is unavoidable, but it should be minimised: the application should overwrite sensitive values as soon as it is finished with them rather than leaving them to linger. This is a lower-severity finding for most software, but it rises in importance where the computers are shared or exposed to untrusted programs.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-316",
@@ -1972,12 +2555,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A04",
+   "categoryName": "Cryptographic Failures",
+   "attack": [
+    {
+     "id": "T1552",
+     "name": "Unsecured Credentials",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V14",
+     "name": "Data Protection"
+    }
+   ]
   },
   {
    "id": "THICK-028",
    "domain": "THICK",
-   "phase": 429,
    "title": "Unvalidated Update Mechanism",
    "sequence": 429,
    "severity": "critical",
@@ -1991,7 +2590,8 @@
     "Capture the application's update-check and package-download traffic via a proxy to identify the exact request/response flow and whether it occurs over TLS.",
     "Determine what integrity mechanism (if any) is applied to the downloaded package: a cryptographic signature verified against an embedded public key, a simple checksum, or no verification at all.",
     "If only a checksum is used, confirm it's genuinely insufficient by substituting an alternate file and recomputing a matching checksum, then checking whether the client accepts it.",
-    "If a signature check exists, assess its robustness (does it verify against a properly pinned, non-user-writable public key, or could the trust anchor itself be tampered with locally)."
+    "If a signature check exists, assess its robustness (does it verify against a properly pinned, non-user-writable public key, or could the trust anchor itself be tampered with locally).",
+    "Confirm whether the update package's signature is verified before it is executed, since an unverified package allows a substituted update to run with the updater's privileges."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes update-channel interception and substitute-package delivery testing against the test installation.",
@@ -2012,11 +2612,16 @@
     {
      "label": "Confirm execution and privilege level of the substituted package",
      "command": "# observe Task Manager/Process Explorer for the executed proof-of-concept process and its run-as account"
+    },
+    {
+     "label": "Confirm the updater executes a package whose signature does not validate",
+     "command": "# present the updater a tampered package and observe whether it runs it or rejects it"
     }
    ],
    "variants": [
     "No integrity check at all versus a checksum-only check that provides the illusion of protection without any real cryptographic guarantee.",
-    "Signature check present but the embedded/trusted public key or CA is itself stored in a user-writable location, allowing local tampering with the trust anchor even without a network MITM position."
+    "Signature check present but the embedded/trusted public key or CA is itself stored in a user-writable location, allowing local tampering with the trust anchor even without a network MITM position.",
+    "Signature verified but the download performed over an unauthenticated channel, allowing a valid older or attacker-selected signed package to be substituted in transit."
    ],
    "mitigation": [
     "Sign all update packages with a private key held exclusively by the vendor, and verify that signature client-side against a public key embedded in (and not independently modifiable within) the application.",
@@ -2024,6 +2629,7 @@
     "Ensure the trust anchor (embedded public key/certificate) cannot be overwritten by a standard local user, since a locally-tamperable trust anchor undermines even a correctly-implemented signature check.",
     "Treat the update mechanism as the single highest-value target in the entire thick-client attack surface during design review, given its inherent broad reach and typically elevated execution privilege."
    ],
+   "mitigationClientFacing": "The application's update mechanism does not properly verify that an update genuinely came from the vendor before installing it, so an attacker who can intercept or redirect the update could deliver their own software, which then runs with the updater's privileges. This is one of the more serious findings in this section, because it turns a routine update into a route for taking over the machine. Updates must be cryptographically verified before they run and delivered over a properly authenticated connection. Confirm with the vendor that both are in place, since either alone is insufficient.",
    "reference": {
     "standard": "A08:2021 - Software and Data Integrity Failures",
     "cwe": "CWE-494",
@@ -2043,12 +2649,28 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A03",
+   "categoryName": "Software Supply Chain Failures",
+   "attack": [
+    {
+     "id": "T1195",
+     "name": "Supply Chain Compromise",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
    "id": "THICK-029",
    "domain": "THICK",
-   "phase": 430,
    "sequence": 430,
    "title": "Electron / Web-Hybrid Desktop Application Node Integration Abuse",
    "severity": "critical",
@@ -2114,6 +2736,7 @@
     "Validate deep-link input as untrusted, exactly as a web application would treat a request parameter.",
     "Keep the framework version current, since renderer escapes are patched upstream and an outdated runtime undermines correct configuration."
    ],
+   "mitigationClientFacing": "This application is built with web technology wrapped in a desktop shell, and it is configured in a way that lets content it displays reach out and control the underlying computer. If any of that content can be influenced by an attacker — through a loaded page, a message, or a link — that influence extends to the machine itself. The fix is to lock down the shell so displayed content is confined to displaying, and cannot call into the operating system, which is a well-established configuration for this kind of application. This is an important item because it converts an ordinary web-style weakness into control of the device.",
    "reference": {
     "standard": "A08:2021 - Software and Data Integrity Failures",
     "cwe": "CWE-829",
@@ -2137,12 +2760,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A08",
+   "categoryName": "Software or Data Integrity Failures",
+   "attack": [
+    {
+     "id": "T1195",
+     "name": "Supply Chain Compromise",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
-   "id": "THICK-431",
+   "id": "THICK-030",
    "domain": "THICK",
-   "phase": 431,
    "sequence": 431,
    "title": "Custom URI Protocol Handler Argument Injection",
    "severity": "high",
@@ -2208,6 +2847,7 @@
     "Restrict which application actions a deep link can reach, excluding debug, configuration and update functions entirely.",
     "Where the scheme is used for authentication callbacks, bind the callback to a state value issued at request time so an injected callback is rejected."
    ],
+   "mitigationClientFacing": "The application registers itself to handle special links, so that clicking a link of a certain type opens it. The way those links are processed lets a crafted link pass unintended instructions to the application, which a user could trigger simply by clicking something on a web page or in an email. The fix is for the application to treat everything in such a link as untrusted data and validate it strictly, never as instructions to act on. This matters because the attack needs nothing more than a user clicking a link, which is a low bar for an attacker to arrange.",
    "reference": {
     "standard": "OWASP Application Security Verification Standard - V5 Validation",
     "cwe": "CWE-88",
@@ -2231,12 +2871,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A05",
+   "categoryName": "Injection",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
-   "id": "THICK-432",
+   "id": "THICK-031",
    "domain": "THICK",
-   "phase": 432,
    "sequence": 432,
    "title": "Exposed Localhost HTTP API Surface in Desktop Clients",
    "severity": "high",
@@ -2302,6 +2958,7 @@
     "Keep privileged functions such as file access, update triggers and credential retrieval off the local API entirely.",
     "Prefer a named pipe or Unix domain socket with operating-system access control over an HTTP listener where the communication is genuinely local."
    ],
+   "mitigationClientFacing": "The application runs a small web service on the computer for its own internal use, and that service is reachable by other software on the machine — and in some configurations by web pages the user visits. That exposes the application's functions to callers that were never meant to reach them. The fix is to bind the service so it is reachable only by the application itself, and to require authentication on it rather than trusting any local caller. This is a growing category of issue in modern desktop software and is worth confirming specifically, because the exposure is easy to miss.",
    "reference": {
     "standard": "OWASP Application Security Verification Standard - V13 API",
     "cwe": "CWE-1327",
@@ -2326,12 +2983,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A07",
+   "categoryName": "Authentication Failures",
+   "attack": [
+    {
+     "id": "T1204",
+     "name": "User Execution",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V13",
+     "name": "Configuration"
+    }
+   ]
   },
   {
-   "id": "THICK-433",
+   "id": "THICK-032",
    "domain": "THICK",
-   "phase": 433,
    "sequence": 433,
    "title": "Insecure OAuth and SSO Token Handling in Desktop Clients",
    "severity": "high",
@@ -2397,6 +3070,7 @@
     "Keep refresh token lifetimes proportionate and support revocation, ensuring a password reset invalidates outstanding tokens.",
     "Use the system browser rather than an embedded control, so the user authenticates in a context the application cannot observe."
    ],
+   "mitigationClientFacing": "The application handles the tokens that keep a user signed in to connected accounts, and it stores or manages them insecurely, so another user or program on the computer could take them and impersonate the user to those services — without needing the user's password, and often without triggering the usual sign-in protections. The fix is to hold these tokens in the operating system's protected credential store and to scope them as narrowly as the application's function allows. Given that these tokens are effectively live access to the user's accounts, this warrants prompt attention.",
    "reference": {
     "standard": "OWASP Application Security Verification Standard - V3 Session Management",
     "cwe": "CWE-522",
@@ -2420,12 +3094,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1552",
+     "name": "Unsecured Credentials",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V10",
+     "name": "OAuth and OIDC"
+    }
+   ]
   },
   {
-   "id": "THICK-434",
+   "id": "THICK-033",
    "domain": "THICK",
-   "phase": 434,
    "sequence": 434,
    "title": "Installer and Repair-Mode Privilege Escalation",
    "severity": "critical",
@@ -2491,6 +3181,7 @@
     "Use absolute paths and a controlled search order for any library or helper an elevated installer action loads.",
     "Include the repair path in security testing of the installer, since it is routinely tested only on first installation."
    ],
+   "mitigationClientFacing": "The way the application installs, repairs or updates itself can be misused by an ordinary user to gain administrative control of the computer, because the installer runs with high privileges and can be steered into acting on something the user controls. Installer-based escalation is a well-known route and is often missed because the installer is thought of as a one-time event rather than an ongoing component — repair mode in particular can usually be triggered by any user at any time. The fix is a vendor correction to how the installer handles privileges, and it should be treated as a local-control risk.",
    "reference": {
     "standard": "OWASP Application Security Verification Standard - V1 Architecture",
     "cwe": "CWE-269",
@@ -2515,12 +3206,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1068",
+     "name": "Exploitation for Privilege Escalation",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V8",
+     "name": "Authorization"
+    }
+   ]
   },
   {
-   "id": "THICK-435",
+   "id": "THICK-034",
    "domain": "THICK",
-   "phase": 435,
    "sequence": 435,
    "title": "Unsigned or Unvalidated Plugin and Add-In Loading",
    "severity": "high",
@@ -2586,6 +3293,7 @@
     "Run extensions with reduced privileges where the platform supports it, rather than granting full process trust.",
     "Prompt the user when a new extension appears, since silent loading removes the only remaining chance to notice."
    ],
+   "mitigationClientFacing": "The application loads add-ins or plugins without properly verifying they are genuine and unmodified, so a malicious or tampered add-in placed on the computer would be loaded and run with the application's access. The fix is to require that every add-in is validly signed by a trusted source and to refuse anything that is not, rather than loading whatever is present in the right location. This matters wherever users or third parties can add extensions to the software, since the extension inherits the application's reach into the user's data and accounts.",
    "reference": {
     "standard": "OWASP Application Security Verification Standard - V10 Malicious Code",
     "cwe": "CWE-347",
@@ -2609,12 +3317,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A08",
+   "categoryName": "Software or Data Integrity Failures",
+   "attack": [
+    {
+     "id": "T1550",
+     "name": "Use Alternate Authentication Material",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
-   "id": "THICK-436",
+   "id": "THICK-035",
    "domain": "THICK",
-   "phase": 436,
    "sequence": 436,
    "title": "Telemetry and Third-Party SDK Data Exfiltration",
    "severity": "medium",
@@ -2680,6 +3404,7 @@
     "Validate TLS strictly on telemetry endpoints, since the channel is also a path into the application.",
     "Provide an enterprise policy to disable telemetry centrally, since individual opt-out does not scale to a managed estate."
    ],
+   "mitigationClientFacing": "The application, or a third-party component bundled inside it, sends usage data or telemetry to external destinations, and in doing so transmits more than is necessary — in some cases sensitive information — sometimes to parties beyond the vendor. This is as much a privacy and compliance matter as a security one. The fix is to establish exactly what is sent and to whom, reduce it to what is genuinely needed, ensure it travels encrypted, and confirm it aligns with what users have been told. Bundled analytics components are the usual source and are easy to overlook because they are not the vendor's own code.",
    "reference": {
     "standard": "OWASP Application Security Verification Standard - V8 Data Protection",
     "cwe": "CWE-359",
@@ -2704,12 +3429,28 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1213",
+     "name": "Data from Information Repositories",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V14",
+     "name": "Data Protection"
+    }
+   ]
   },
   {
-   "id": "THICK-437",
+   "id": "THICK-036",
    "domain": "THICK",
-   "phase": 437,
    "sequence": 437,
    "title": "Multi-User and Shared Workstation Data Exposure",
    "severity": "medium",
@@ -2775,6 +3516,7 @@
     "Exclude sensitive application data from roaming profile synchronisation.",
     "Test the application explicitly in a multi-account configuration, since single-user testing cannot surface this class of issue."
    ],
+   "mitigationClientFacing": "On computers shared by more than one person, the application does not properly separate one user's data from another's, so one user can read information belonging to another who uses the same machine. The fix is to store each user's data in their own protected profile with permissions that exclude other users, rather than in a shared location. This finding only matters where computers are genuinely shared — reception desks, clinical workstations, shift-based roles — but in those settings it can amount to one member of staff seeing another's, or a customer's, information.",
    "reference": {
     "standard": "OWASP Application Security Verification Standard - V8 Data Protection",
     "cwe": "CWE-732",
@@ -2799,7 +3541,24 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1068",
+     "name": "Exploitation for Privilege Escalation",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V8",
+     "name": "Authorization"
+    }
+   ]
   }
  ]
 }

@@ -166,7 +166,16 @@ def run():
                                       has_touch=touch, is_mobile=touch and w < 1024)
             page = ctx.new_page()
             errs = []
-            page.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
+            # Capture the resource URL alongside the text: a resource that fails
+            # to load logs "Failed to load resource: net::ERR_..." with the URL
+            # only in the message location, so text-only filtering cannot tell a
+            # sandbox egress block (Google Fonts) from a genuine app error.
+            def _console(m):
+                if m.type != 'error':
+                    return
+                loc = (m.location or {}).get('url', '') if hasattr(m, 'location') else ''
+                errs.append(m.text + ' ' + loc)
+            page.on('console', _console)
             page.on('pageerror', lambda e: errs.append('uncaught: ' + str(e)))
 
             # ============ DASHBOARD ============
@@ -222,10 +231,21 @@ def run():
             }""")
             page.wait_for_timeout(400)
 
-            # expand the two largest domains, then a case detail
+            # A domain opens into its standard's category chooser now, and the
+            # case rows live one level in — so check the chooser, then open a
+            # category and carry on into the rows.
             page.evaluate("""() => {
               ['NET','WEB'].forEach(c => {
                 document.querySelector(`.cat-section[data-cat="${c}"] .cat-head`)?.click();
+              });
+            }""")
+            page.wait_for_timeout(700)
+            check(page, f'category chooser @ {label}', touch)
+            page.screenshot(path=f'{SHOTS}/picker-{tag}.png')
+            page.evaluate("""() => {
+              ['NET','WEB'].forEach(c => {
+                const s = document.querySelector(`.cat-section[data-cat="${c}"]`);
+                s?.querySelector('.cat-pick:not([disabled])')?.click();
               });
             }""")
             page.wait_for_timeout(700)
@@ -239,6 +259,26 @@ def run():
             check(page, f'assessment detail @ {label}', touch)
             page.screenshot(path=f'{SHOTS}/detail-{tag}.png')
 
+            # A row from BEYOND the first chunk. Every earlier check only
+            # opened the first row of a section, so it confirmed that late
+            # rows exist without ever confirming they respond — which is how
+            # a dead expand button on every case past the 30th survived
+            # several audits. Assert behaviour, not presence.
+            late = page.evaluate("() => {\n  if (typeof ensureItemRendered !== 'function') return 'no helper';\n  const el = ensureItemRendered('NET-120');\n  if (!el) return 'row missing';\n  const btn = el.querySelector('.expand-btn');\n  if (!btn) return 'no expand button';\n  btn.click();\n  const opened = el.classList.contains('expanded');\n  btn.click();\n  const closed = !el.classList.contains('expanded');\n  const h = Math.round(el.querySelector('.detail-panel').getBoundingClientRect().height);\n  return { opened, closed, collapsedHeight: h };\n}")
+            if not isinstance(late, dict):
+                fail(f'late row @ {label}', f'could not reach NET-120: {late}')
+            else:
+                if not late.get('opened'):
+                    fail(f'late row @ {label}',
+                         'a case past the first chunk does not open')
+                if not late.get('closed'):
+                    fail(f'late row @ {label}',
+                         'a case past the first chunk does not close')
+                if late.get('collapsedHeight', 0) > 2:
+                    fail(f'late row @ {label}',
+                         f"collapsed detail still {late['collapsedHeight']}px tall")
+            page.wait_for_timeout(300)
+
             # expand all — the heaviest layout in the app
             page.evaluate("document.getElementById('expandBtn')?.click();")
             page.wait_for_timeout(1200)
@@ -250,16 +290,6 @@ def run():
             check(page, f'command palette @ {label}', touch)
             page.screenshot(path=f'{SHOTS}/palette-{tag}.png')
             page.evaluate("typeof closePalette === 'function' && closePalette();")
-            page.wait_for_timeout(250)
-
-            page.evaluate("typeof openAssessMode === 'function' && openAssessMode();")
-            page.wait_for_timeout(700)
-            check(page, f'assessment mode @ {label}', touch)
-            page.screenshot(path=f'{SHOTS}/assessmode-{tag}.png')
-            page.evaluate("typeof assessNext === 'function' && assessNext(); assessNext();")
-            page.wait_for_timeout(400)
-            check(page, f'assessment mode nav @ {label}', touch)
-            page.evaluate("typeof closeAssessMode === 'function' && closeAssessMode();")
             page.wait_for_timeout(250)
 
             page.evaluate("typeof openStats === 'function' && openStats();")
@@ -294,8 +324,14 @@ def run():
             page.evaluate("typeof closeToolkit === 'function' && closeToolkit();")
             page.wait_for_timeout(300)
 
+            # The app's only external dependency is the web font. When the
+            # egress proxy blocks it (CI), the failure carries a fonts.* origin;
+            # a genuine app error will not. A tunnel error to any other host is
+            # left in, so a real egress problem still surfaces.
             real = [e for e in set(errs)
-                    if 'fonts.googleapis.com' not in e and '403' not in e]
+                    if 'fonts.googleapis.com' not in e
+                    and 'fonts.gstatic.com' not in e
+                    and '403' not in e]
             if real:
                 fail(f'console @ {label}', '; '.join(sorted(real)[:4]))
             ctx.close()

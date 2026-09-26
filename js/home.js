@@ -250,6 +250,7 @@ function bootHome(){
   initIdentityCollapse();
   renderDashboardStats();
   renderSeverityBreakdown();
+  renderDashboardCharts();
   renderDomainCards();
   renderContinueCta();
   initDashSearch();
@@ -283,3 +284,155 @@ loadAllData()
         + 'and reload — browsers block fetch() on file:// URLs.</span>';
     }
   });
+
+/* =========================================================
+   DASHBOARD CHARTS
+   Three read-only views over the same data the cards above summarise.
+
+   Everything is hand-built SVG rather than a charting library: the app ships
+   no dependencies, the Content-Security-Policy forbids inline styles, and
+   these shapes are simple enough that a library would cost more than it
+   saves. Geometry lives in SVG attributes (width, stroke-dasharray), which
+   are attributes and not styles, so nothing here needs a CSP exception.
+
+   Each chart is rebuilt from allData on every render, so they always agree
+   with the numbers in the cards. Values come from the dataset, never from
+   user input, and every label is escaped before it reaches innerHTML.
+========================================================= */
+
+/* Rounded to one decimal so a domain with 41 cases does not report a
+   misleading whole-number percentage. */
+const pctOf = (part, whole) => (whole ? (part / whole) * 100 : 0);
+
+/* ---------- 1. status mix: a single stacked bar ---------- */
+function renderStatusChart(){
+  const host = document.getElementById('chartStatus');
+  if(!host) return;
+
+  const total = allData.length;
+  const counts = STATUS_VALUES.map(s => ({
+    key:   s.key,
+    label: s.label,
+    n:     allData.filter(d => (d.status || 'not-tested') === s.key).length,
+  })).filter(s => s.n > 0);
+
+  if(!total){ host.innerHTML = '<p class="chart-empty">No cases loaded.</p>'; return; }
+
+  let x = 0;
+  const segments = counts.map(s => {
+    const w = pctOf(s.n, total);
+    const seg = `<rect class="chart-seg" data-status="${s.key}"
+        x="${x.toFixed(3)}%" y="0" width="${w.toFixed(3)}%" height="100%"
+        rx="2"><title>${escapeHtml(s.label)}: ${s.n} of ${total}</title></rect>`;
+    x += w;
+    return seg;
+  }).join('');
+
+  const legend = counts.map(s => `
+    <li class="chart-legend-item">
+      <span class="chart-swatch status-bg" data-status="${s.key}"></span>
+      <span class="chart-legend-label">${escapeHtml(s.label)}</span>
+      <b class="chart-legend-val">${s.n}</b>
+    </li>`).join('');
+
+  host.innerHTML = `
+    <svg class="chart-stack" viewBox="0 0 100 10" preserveAspectRatio="none"
+         role="img" aria-label="Status mix across all ${total} test cases">
+      ${segments}
+    </svg>
+    <ul class="chart-legend">${legend}</ul>`;
+}
+
+/* ---------- 2. severity profile: a donut ---------- */
+function renderSeverityChart(){
+  const host = document.getElementById('chartSeverity');
+  if(!host) return;
+
+  const slices = SEVERITIES.map(sev => ({
+    key:   sev.key,
+    label: sev.label,
+    n:     allData.filter(d => d.severity === sev.key).length,
+  })).filter(s => s.n > 0);
+
+  const total = slices.reduce((sum, s) => sum + s.n, 0);
+  if(!total){ host.innerHTML = '<p class="chart-empty">No cases loaded.</p>'; return; }
+
+  /* r=42 gives a circumference of ~263.9. Each slice is drawn as a dashed
+     stroke on the same circle and rotated into place, which avoids the arc
+     path arithmetic entirely and degrades gracefully at any size. */
+  const R = 42;
+  const CIRC = 2 * Math.PI * R;
+  let offset = 0;
+  const arcs = slices.map(s => {
+    const len = (s.n / total) * CIRC;
+    const arc = `<circle class="chart-arc" data-sev="${s.key}"
+        cx="60" cy="60" r="${R}" fill="none" stroke-width="15"
+        stroke-dasharray="${len.toFixed(2)} ${(CIRC - len).toFixed(2)}"
+        stroke-dashoffset="${(-offset).toFixed(2)}"
+        transform="rotate(-90 60 60)"
+      ><title>${escapeHtml(s.label)}: ${s.n} (${Math.round(pctOf(s.n, total))}%)</title></circle>`;
+    offset += len;
+    return arc;
+  }).join('');
+
+  const legend = slices.map(s => `
+    <li class="chart-legend-item">
+      <span class="chart-swatch sev-badge" data-sev="${s.key}"></span>
+      <span class="chart-legend-label">${escapeHtml(s.label)}</span>
+      <b class="chart-legend-val">${Math.round(pctOf(s.n, total))}%</b>
+    </li>`).join('');
+
+  host.innerHTML = `
+    <div class="chart-donut-wrap">
+      <svg class="chart-donut" viewBox="0 0 120 120" role="img"
+           aria-label="Severity profile across ${total} test cases">
+        <circle class="chart-donut-track" cx="60" cy="60" r="${R}" fill="none" stroke-width="15"/>
+        ${arcs}
+      </svg>
+      <div class="chart-donut-center">
+        <b>${total}</b><span>cases</span>
+      </div>
+    </div>
+    <ul class="chart-legend">${legend}</ul>`;
+}
+
+/* ---------- 3. coverage by domain: horizontal bars ---------- */
+function renderDomainChart(){
+  const host = document.getElementById('chartDomains');
+  if(!host) return;
+
+  const rows = DOMAIN_META.map(c => {
+    const items = allData.filter(d => d.domain === c.code);
+    const done  = items.filter(d => d.status === 'tested-pass' || d.status === 'not-applicable').length;
+    return { code: c.code, name: c.name, done, total: items.length };
+  }).filter(r => r.total > 0);
+
+  if(!rows.length){ host.innerHTML = '<p class="chart-empty">No cases loaded.</p>'; return; }
+
+  /* Bars are scaled against the largest domain rather than against 100%, so
+     a 24-case domain is not visually dwarfed by a 150-case one. The count
+     beside each bar carries the absolute figure. */
+  const widest = Math.max(...rows.map(r => r.total));
+
+  host.innerHTML = `<ul class="chart-bars">${rows.map(r => {
+    const share = pctOf(r.total, widest);
+    const fill  = pctOf(r.done, r.total);
+    return `<li class="chart-bar-row">
+      <span class="chart-bar-code">${escapeHtml(r.code)}</span>
+      <span class="chart-bar-track csp-w" data-pct="${share.toFixed(2)}">
+        <span class="chart-bar-fill csp-w" data-pct="${fill.toFixed(2)}"
+              title="${escapeHtml(r.name)}: ${r.done} of ${r.total} complete"></span>
+      </span>
+      <span class="chart-bar-val">${r.done}/${r.total}</span>
+    </li>`;
+  }).join('')}</ul>`;
+}
+
+function renderDashboardCharts(){
+  renderStatusChart();
+  renderSeverityChart();
+  renderDomainChart();
+  /* The bar widths are carried on data-pct and resolved to a custom property
+     by applyCspStyles, the same mechanism every other bar in the app uses. */
+  if(typeof applyCspStyles === 'function') applyCspStyles(document.getElementById('dashCharts'));
+}

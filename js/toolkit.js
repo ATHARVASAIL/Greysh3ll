@@ -435,7 +435,8 @@ function renderCustomCasesTab(){
       <div class="ctx-field"><label>Prerequisites <span class="hint">(optional)</span></label><textarea id="ccPrereqs"></textarea></div>
       <div class="ctx-field"><label>Steps to identify <span class="hint">(one per line)</span></label><textarea id="ccSteps"></textarea></div>
       <div class="ctx-field"><label>Exploitation steps <span class="hint">(one per line)</span></label><textarea id="ccExploit"></textarea></div>
-      <div class="ctx-field"><label>Mitigation <span class="hint">(one per line)</span></label><textarea id="ccMitigation"></textarea></div>
+      <div class="ctx-field"><label>Mitigation &mdash; technical fix <span class="hint">(one per line)</span></label><textarea id="ccMitigation"></textarea></div>
+      <div class="ctx-field"><label>Mitigation &mdash; client-facing explanation <span class="hint">(optional, plain language)</span></label><textarea id="ccMitigationClient"></textarea></div>
       <button type="submit" class="btn primary">Add Custom Test Case</button>
     </form>
     <div class="drill-hint u-my-block-a">${existing.length} custom case${existing.length===1?'':'s'} in this engagement</div>
@@ -473,6 +474,7 @@ function bindCustomCasesTab(pane){
         stepsToIdentify: pane.querySelector('#ccSteps').value,
         exploitationSteps: pane.querySelector('#ccExploit').value,
         mitigation: pane.querySelector('#ccMitigation').value,
+        mitigationClientFacing: pane.querySelector('#ccMitigationClient').value,
       });
       renderToolkitPane();
       renderAll();

@@ -32,7 +32,7 @@
 - [Feature Overview](#-feature-overview)
 - [User Manual — How to Use GreySh3ll](#-user-manual--how-to-use-greysh3ll)
   - [1. The Dashboard](#1-the-dashboard)
-  - [2. Assessment Mode](#2-assessment-mode)
+  - [2. Dashboard analytics](#2-dashboard-analytics)
   - [3. Browsing & filtering the checklist](#3-browsing--filtering-the-checklist)
   - [4. Search & Command Palette](#4-search--command-palette)
   - [5. Working a test case](#5-working-a-test-case)
@@ -104,9 +104,9 @@ progress, notes, and flags to your browser's `localStorage`.
 <tr>
 <td width="50%" valign="top">
 
-**🎯 Assessment Mode**
-Walk all 577 cases one at a time, in engagement order, with a live
-progress counter.
+**📊 Dashboard Analytics**
+Status mix, severity profile and per-domain coverage, drawn from your live
+progress — no library, just SVG.
 
 **🔍 Command Palette & Dashboard Search**
 `Ctrl/Cmd + K` in the Workspace, or search straight from the Dashboard —
@@ -163,7 +163,7 @@ GreySh3ll is two pages, not one long scroll:
 | Page | What it's for |
 |---|---|
 | **`index.html`** — Dashboard | Your identity, overall coverage, severity breakdown, and a card per domain. This is where you land and decide what to work on. |
-| **`assessment.html`** — Workspace | The actual full-screen checklist — search, filters, the 577 test cases, Assessment Mode, and every modal (Toolkit/Badges/Stats/Command Palette). |
+| **`assessment.html`** — Workspace | The actual full-screen checklist — search, filters, the 577 test cases, and every modal (Toolkit/Badges/Stats/Command Palette). |
 
 ### 1. The Dashboard
 
@@ -183,18 +183,23 @@ run it locally — see [below](#-running-it-locally)). On first load:
    pre-filtered to that domain (`assessment.html?domain=WEB`).
 4. Your progress starts at **0 / 577** — everything else is ready to go.
 
-### 2. Assessment Mode
+### 2. Dashboard analytics
 
-This is the recommended way to run a real engagement, from the Workspace:
+The Dashboard summarises the engagement three ways, all recomputed from
+your saved progress on every load:
 
-1. Click **Assessment Mode** (in the sidebar or via the command palette).
-2. GreySh3ll presents test cases **one at a time**, in the built-in
-   engagement order — network recon first, human-layer testing last.
-3. For each case, read the **prerequisites → identify → exploit →
-   mitigate** flow, mark it **Pass / Fail / Not Applicable / Flagged**,
-   and move to the next.
-4. The counter in the top bar (`Test X / 577`) tracks exactly where you
-   are — close the tab and come back later, your position is saved.
+1. **Status mix** — a single stacked bar showing every case by its current
+   state, with counts beside it.
+2. **Severity profile** — a donut showing how the corpus itself is
+   weighted, which is what sets expectations for how long a full pass takes.
+3. **Coverage by domain** — one bar per domain, scaled against the largest
+   domain, so a domain holding 24 cases is not visually dwarfed by one
+   holding 150.
+   The figure beside each bar is the absolute count.
+
+These are hand-built SVG. The app ships no dependencies, the CSP forbids
+inline styles, and these shapes are simple enough that a charting library
+would cost more than it saves.
 
 ### 3. Browsing & filtering the checklist
 
@@ -252,7 +257,7 @@ leaving the app:
   gaps, and a remediation status breakdown.
 - **CVSS Calculator** — score a finding and get the vector string instantly.
 - **Payload Cheat-Sheet** — a quick-reference index of common payloads
-  across domains, independent of Assessment Mode.
+  across every domain.
 - **OSCP-style Drills** — short practice scenarios to sharpen specific
   techniques between real engagements.
 - **Scan Import** — paste raw Nmap/Nuclei/Burp output; it's parsed and
@@ -310,7 +315,6 @@ checks across ten domains — noticeably less tedious.
   same on both pages, and stays in sync between them).
 - `Ctrl/Cmd + K` — Command Palette
 - `Esc` — close any open modal, panel, or the mobile sidebar drawer
-- Arrow keys — step through cases while in Assessment Mode
 
 ---
 
@@ -348,10 +352,12 @@ directives in both pages' Content-Security-Policy.
 
 ```bash
 cd tests && npm install
-npm test          # 118 tests across seven suites
+npm test          # 146 tests across seven suites
 npm run audit     # end-to-end driver over both real pages
 npm run responsive  # real-browser layout check, 6 viewports
 npm run fullcheck   # exhaustive: 18 viewports x every feature
+npm run sync        # cross-cutting consistency sweep
+npm run categories  # standards taxonomy verification
 cd .. && python3 tools/check-contrast.py   # WCAG AA gate
 ```
 
@@ -362,8 +368,8 @@ is the exhaustive one — 18 viewports from a 320px phone to a 1920px
 desktop, including phone landscape and the WCAG 1.4.10 reflow condition,
 driving every feature at each one: dashboard search, theme, sidebar, all
 status filters, search, sort, expanding the two largest domains, case
-detail, expand-all, the command palette, assessment mode, stats, and all
-eight toolkit tabs. At every step it checks for horizontal overflow
+detail, expand-all, the command palette, stats, and all eight toolkit
+tabs. At every step it checks for horizontal overflow
 (naming the offending element), text clipped with no ellipsis or scroll,
 overlays that do not fit the viewport, controls below 44px on coarse
 pointers, and console errors. It runs in batches
@@ -411,7 +417,7 @@ js/
   interactions.js              event binding, in-place status/flag
                                 updates, sidebar collapse (drawer + rail),
                                 theme toggle, keyboard shortcuts
-  assessment.js                Assessment Mode, toast notifications,
+  assessment.js                toast notifications,
                                 export/import, domain context editor
   toolkit.js                   Analyst Toolkit (CVSS calculator, payload
                                 cheat-sheet, OSCP-style drills)
@@ -474,6 +480,164 @@ ones: 6 identification steps, 6 exploitation steps, 6 labeled payloads,
 ---
 
 ## 📋 Changelog
+
+- **v1.14 — LLM taxonomy corrected to the 2026 edition, and MITRE ATT&CK
+  mapped across the corpus.**
+
+  *The LLM classification was citing a superseded list.* OWASP published the
+  GenAI LLM Top 10 **2026** on 4 August 2026 — its heaviest rewrite yet, with
+  eight of ten entries renumbered and one renamed. The data was on the 2025
+  edition. Re-mapped through a verified 2025→2026 bridge: Excessive Agency
+  6→3, Unbounded Consumption 10→6, Improper Output Handling 5→10,
+  Misinformation 9→7, and System Prompt Leakage renamed to **Hidden Context
+  Exposure (LLM08)**.
+
+  *Every case now carries its MITRE ATT&CK technique* (553 of 577; the 24 LLM
+  cases are deliberately excluded — enterprise ATT&CK does not describe
+  model-layer attacks and MITRE ATLAS is the right matrix, so the UI says so
+  rather than forcing an id). Technique ids are **never written by hand**:
+  `tools/map-attack.py` validates every id against
+  `tools/attack-techniques.json`, extracted straight from MITRE's published
+  STIX bundles, and aborts on an unknown id.
+
+  That guard earned its keep immediately. Three ids recalled from memory —
+  `T1562` Impair Defenses and two of its sub-techniques — turned out to be
+  **revoked**: MITRE renumbered the whole subtree into **T1685**. A revoked
+  id still looks authoritative in a report and sends a client's detection
+  team after a technique MITRE no longer publishes, so the mapper now also
+  checks `tools/attack-revoked.json` (201 recorded revocations) and fails
+  with the replacement id.
+
+  Human-layer cases are mapped keyword-first: a SOCIAL case carries a CWE
+  because the schema needs one, not because the CWE describes the attack —
+  CWE-200 on an OSINT case was producing "Data from Information
+  Repositories", a post-compromise collection technique, where
+  reconnaissance (T1589) is correct. 97 cases fall back to a domain default
+  and are reported as needing review rather than presented as mapped.
+
+  Harness fix: jsdom 24 does not implement `window.CSS` at all, so
+  `CSS.escape` — present in every browser the app targets — was undefined in
+  tests. Polyfilled to the CSSOM serialisation rules so the suite exercises
+  the real code path instead of routing around it.
+
+- **v1.13 — test cases classified by published standard.** Expanding a
+  domain now lists the categories of that domain's standard; picking one
+  lists its cases, with a breadcrumb back. Searching or filtering skips the
+  picker, because the analyst has already said what they want.
+
+  Taxonomy per domain, each checked against the publisher's own page rather
+  than from memory — which mattered, because **OWASP Top 10:2025** is out and
+  changes things: SSRF no longer exists as a standalone category (absorbed
+  into A01 Broken Access Control), Security Misconfiguration moved to A02,
+  and Software Supply Chain Failures is new at A03.
+
+  | Domain | Standard |
+  |---|---|
+  | WEB, SRC, THICK, CLOUD | OWASP Top 10:2025 |
+  | API | OWASP API Security Top 10:2023 |
+  | MOBILE | OWASP Mobile Top 10:2024 |
+  | LLM | OWASP Top 10 for LLM Applications 2025 |
+  | NET, WIFI, SOCIAL | NIST SP 800-53 Rev. 5 control families |
+
+  Network, wireless and human-layer testing do not map honestly onto an
+  application risk list, so those use NIST control families — which is what
+  a report for that work cites anyway.
+
+  The mapping lives in `tools/map-categories.py`, so it is re-derivable and
+  reviewable rather than 577 hand-edits. CWE is the primary signal, because
+  OWASP defines each category as a set of CWEs; the prose label in
+  `reference.standard` is only a restatement of it. That ordering fixed a
+  real contradiction where two identical XXE cases carried disagreeing
+  hand-written labels and landed in different categories.
+
+  Errors found and fixed while spot-checking the first pass: SSRF in the API
+  domain was classified "Broken Object Level Authorization" when the API list
+  has a dedicated API7; the Mobile domain had **no M5 or M9 at all**, with
+  cleartext traffic landing in "Insufficient Cryptography" instead of
+  Insecure Communication; and JWT signature bypass (CWE-347) sat in
+  Cryptographic Failures when OWASP places it in A08 Software or Data
+  Integrity Failures.
+
+  Each picker shows its standard's **complete** category list, including
+  categories with no cases — an empty A09 tells an analyst the corpus has no
+  logging coverage, which a silently absent row does not. Custom cases get
+  their own bucket rather than being asserted into a published category
+  nobody verified.
+
+- **v1.12.1 — consistency sweep after the v1.12 changes.** Two real gaps,
+  both in custom cases, which are built at runtime and so never pass
+  through `build-data.py`: they had no `domainIndex`, so the row badge
+  rendered **#undefined**; and their `sequence` was `maxSeq + 1`, which —
+  now that every domain owns a contiguous integer block — landed on the
+  first case of the *next* domain and scrambled both Testing Order sort and
+  the "next untested" lookup. Custom cases now take the next number in
+  their own domain and a fractional sequence that sorts immediately after
+  it and cannot collide. The dead `phase` field (a duplicate of `sequence`
+  that nothing read) was removed from all 577 source cases. Added
+  `tests/sync_check.py` (`npm run sync`): 21 cross-cutting assertions
+  driving a real browser through numbering, custom cases, collapse/expand,
+  an export/import round trip, a hostile import, and agreement between the
+  dashboard charts and the dataset.
+
+- **v1.12 — Assessment Mode removed, per-domain numbering, dashboard
+  analytics, and a cleanup pass.**
+  *Assessment Mode is gone* — button, overlay, logic, keyboard handlers and
+  every CSS rule that served it, plus a rename of `.assess-close` to
+  `.overlay-close` since that button now belongs to the stats, badges and
+  toolkit overlays.
+  *Collapse all now means all.* It previously closed only the domain
+  sections, so expanding again brought back every case you had opened —
+  sometimes dozens — which is not what the control says it does.
+  *Cases are numbered from 1 within their own domain.* "#401" told an
+  analyst nothing about where they were in MOBILE. A derived `domainIndex`
+  now drives the row badge and the CSV column (renamed `DomainCaseNo`);
+  `sequence` stays as the internal global ordering key.
+  *Dashboard analytics* — status mix, severity profile and per-domain
+  coverage, hand-built as SVG with geometry in attributes so the CSP needs
+  no exception, and every reveal animation behind a reduced-motion guard.
+  *Security:* attachment data URLs were interpolated into an `<img src>`
+  unescaped, gated only by a `startsWith('data:image')` check — and
+  attachments arrive from imported progress files, which are
+  attacker-controlled. A value like `data:image/png,x" onerror="…` passes
+  that check and breaks out of the attribute. Now allowlisted to base64
+  PNG/JPEG/GIF/WebP, escaped and size-capped, with SVG excluded.
+  Separately, `applyProgress` assigned imported JSON straight onto
+  `assessorNotes`, so a file with `evidenceLinks` as a string crashed the
+  renderer; every field is now forced to its expected type.
+  *Cleanup:* 13 verified-dead CSS classes removed, including defensive
+  selectors that matched nothing. `sev-critical` and friends were kept —
+  they look unused but are built at runtime by `'sev-' + sev`.
+
+- **v1.11 — three bugs the earlier audits could not have caught.**
+  *Cases past the 30th in a domain would not open.* Rows in the first
+  chunk are bound with the list container as root; every chunk appended
+  afterwards is bound with the row itself, and the expand handler resolved
+  its row with `root.querySelector('.test-item…')` — a descendant search,
+  which cannot find the element it is called on. It returned null and the
+  click did nothing. Now resolved with `closest()`, which is correct
+  whatever root happens to be.
+  *Closing a case left a strip of detail behind.* The `0fr` grid track
+  zeroes the content box but not padding, so `.detail-inner`'s 30px of
+  vertical padding survived under every collapsed row. Separately,
+  `content-visibility:auto` with `contain-intrinsic-size:0 900px` was
+  applied to collapsed panels too, so every off-screen empty panel
+  reserved 900px of layout. The optimisation now applies only while
+  expanded, and collapsed padding is zeroed.
+  *Cases added in v1.6-v1.8 carried wrong ids.* `sequence` is a global
+  test number, and deriving the id suffix from it produced MOBILE-402
+  inside a 39-case domain. 45 ids across eight domains renumbered to their
+  per-domain ordinal. The same mistake had left 134 duplicate `sequence`
+  values — LLM-001 and NET-001 were both "#1" — so `sequence` is now
+  derived in `build-data.py` from the canonical `CATEGORIES` order and is
+  unique and contiguous across all 577 cases.
+
+  **Why these survived several audits:** every check confirmed that late
+  rows *existed* — the chunk tests counted them, the browser sweep scrolled
+  past them — but only ever clicked the *first* row of a section. Presence
+  was tested; behaviour was not. `full_check.py` now opens and closes a row
+  from beyond the first chunk at every viewport and asserts the collapsed
+  height, and the jsdom chunk suite drives the expand button on an appended
+  row. Both were confirmed to fail against the unfixed code.
 
 - **v1.10 — sidebar redesign.** The rail was 68px wide, which could not
   fit the longest domain code, so every label was ellipsised to its first

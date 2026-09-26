@@ -17,16 +17,16 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="GreySh3ll — 577-case penetration testing checklist">
 <meta name="twitter:image" content="https://atharvasail.github.io/GreySh3ll/assets/og-banner.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Typography is Calibri via a system font stack (see css/base.css --font-calibri):
+     no web fonts are loaded, so there is no Google Fonts dependency and the CSP
+     needs no third-party style/font origins. -->
 <!-- CSP: script-src and style-src are both 'self' — no 'unsafe-inline'.
      Dynamic colours use data-sev / data-status / data-rem attributes and CSS
      custom properties set via element.style.setProperty(), which is CSP-safe.
      PDF report colours use setProperty() too; the four inline styles in
      REPORT_SEV_COLOR are the only remaining legitimate keeps and apply only
      to a generated print document, not to any page rendered by the browser. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/components.css">
@@ -152,7 +152,6 @@
         <option value="unchecked">Sort: Unchecked first</option>
       </select>
       <button class="btn" id="expandBtn" title="All 10 domain sections start collapsed — this toggles them all open/closed at once" aria-label="Expand or collapse all domain sections"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3.5H5.8a2.3 2.3 0 0 0-2.3 2.3v2.7"/><path d="M15.5 3.5h2.7a2.3 2.3 0 0 1 2.3 2.3v2.7"/><path d="M20.5 15.5v2.7a2.3 2.3 0 0 1-2.3 2.3h-2.7"/><path d="M3.5 15.5v2.7a2.3 2.3 0 0 0 2.3 2.3h2.7"/></svg><span class="lbl">Expand all</span></button>
-      <button class="btn primary" id="assessModeBtn" aria-label="Start Assessment Mode"><svg class="icn" viewBox="0 0 24 24" stroke="none"><polygon points="6.2,4.2 19.5,12 6.2,19.8" fill="currentColor"/></svg><span class="lbl">Start Assessment Mode</span></button>
     </div>
 
     <div id="results"></div>
@@ -199,24 +198,11 @@
   <div class="fab" id="fabNext" title="Jump to next incomplete test in sequence"><span class="icon"><svg class="icn" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,4.2 15,12 5,19.8" fill="currentColor" stroke="none"/><line x1="19" y1="4.2" x2="19" y2="19.8"/></svg></span><span class="lbl2">Next test</span></div>
 </div>
 
-<div class="assess-overlay" id="assessOverlay">
-  <div class="assess-card">
-    <div class="assess-progress-track"><div class="assess-progress-fill" id="assessProgressFill"></div></div>
-    <div class="assess-head">
-      <span class="assess-counter" id="assessCounter">Test 1 / 577</span>
-      <button class="assess-close" id="assessClose" aria-label="Close assessment mode"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
-    </div>
-    <div class="assess-body" id="assessBody">
-      <!-- populated by JS -->
-    </div>
-  </div>
-</div>
-
 <div class="stats-overlay" id="statsOverlay">
   <div class="stats-card">
     <div class="stats-head">
       <h3>Assessment Dashboard</h3>
-      <button class="assess-close" id="statsClose" aria-label="Close dashboard"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      <button class="overlay-close" id="statsClose" aria-label="Close dashboard"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
     </div>
     <div class="stats-grid" id="statsGrid">
       <!-- populated by JS -->
@@ -235,7 +221,7 @@
   <div class="stats-card">
     <div class="stats-head">
       <h3>Progress, XP &amp; Badges</h3>
-      <button class="assess-close" id="badgesClose" aria-label="Close badges"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      <button class="overlay-close" id="badgesClose" aria-label="Close badges"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
     </div>
     <div id="badgesBody"><!-- populated by JS --></div>
   </div>
@@ -246,7 +232,7 @@
   <div class="stats-card toolkit-card">
     <div class="stats-head">
       <h3>Analyst Toolkit</h3>
-      <button class="assess-close" id="toolkitClose" aria-label="Close toolkit"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      <button class="overlay-close" id="toolkitClose" aria-label="Close toolkit"><svg class="icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
     </div>
     <div class="toolkit-tabs" id="toolkitTabs">
       <button class="ttab active" data-tab="cvss">CVSS Calculator</button>

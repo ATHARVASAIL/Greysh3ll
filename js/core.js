@@ -25,7 +25,12 @@
 ========================================================= */
 let state = {
   search:'', status:'all', sort:'default', activeDomain:null,
-  activeSevs: new Set(), collapsed: new Set(), expanded: new Set(),
+  activeSevs: new Set(), collapsed: new Set(),
+  /* Which standard category the user is inside, per domain. Deliberately
+     not persisted: it is a navigation position rather than a preference,
+     and restoring it would drop a returning user inside a category with
+     no visible explanation of why the domain looks half empty. */
+  activeCategory: new Map(), expanded: new Set(),
 };
 let assessIndex = 0;
 let lastPct = -1;

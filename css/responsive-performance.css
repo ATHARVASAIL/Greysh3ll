@@ -66,7 +66,7 @@ body.sidebar-locked{ overflow:hidden; }
 /* ---- small tablet / large phone ---- */
 @media (max-width:768px){
   .topbar{ padding:10px 14px; }
-  .assess-card, .stats-card, .palette-card{ max-width:calc(100vw - 24px); }
+  .stats-card, .palette-card{ max-width:calc(100vw - 24px); }
 }
 
 /* ---- phones ---- */
@@ -77,12 +77,12 @@ body.sidebar-locked{ overflow:hidden; }
   .btn span.lbl{ display:none; }
   .btn{ padding:9px; min-height:38px; }
   .menu-btn{ min-width:38px; min-height:38px; }
-  .chip{ min-height:32px; }
+  .chip{ min-height:44px; }
   .topbar{ gap:8px; }
   .topbar-actions{ gap:2px; padding-left:8px; }
   .detail-inner{ padding:6px 14px 20px 14px; }
   .detail-prereq{ flex-direction:column; gap:6px; padding:10px 12px; }
-  .detail-desc, .detail-impact{ padding:11px 13px; }
+  .detail-desc, .detail-impact, .detail-client{ padding:11px 13px; }
   .detail-chapter-head{ padding:11px 12px; font-size:11px; }
   .detail-chapter.open .detail-chapter-body-inner{ padding:2px 12px 12px; }
   .test-row{ padding-left:12px; }
@@ -96,13 +96,25 @@ body.sidebar-locked{ overflow:hidden; }
      screen before any text even started. The inner content already
      provides its own comfortable margin, so the outer shell only
      needs a thin one. */
-  .assess-overlay{ padding:8px; }
-  .assess-head{ padding:16px 14px 0; }
-  .assess-body{ padding:14px 10px 20px; }
-  .assess-nav{ margin-top:20px; padding-top:16px; }
+
   .stats-overlay{ padding:8px; }
   .stats-card{ padding:18px 14px; }
   .palette-overlay{ padding:6vh 8px 8px; }
+}
+
+/* =========================================================
+   TOUCH TARGETS (coarse pointers, any width)
+   The filter chips are sized by their label. In Calibri the shortest labels
+   ("All", "N/A") render narrow enough to fall under the 44px minimum tap
+   target — and this happens on a landscape phone too, which is wider than the
+   600px phone breakpoint above, so the fix must key off the pointer type, not
+   the viewport width. Enforced only where a coarse pointer is the primary
+   input so the compact desktop chip row is untouched. */
+@media (pointer:coarse){
+  .chip{
+    min-width:44px; min-height:44px;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
 }
 
 /* ---- very small phones ---- */
@@ -111,20 +123,17 @@ body.sidebar-locked{ overflow:hidden; }
   .identity-wrap{ padding:18px 10px 4px; }
   .main{ padding:16px 12px 92px; }
   .sidebar{ padding-left:12px; padding-right:12px; }
-  .assess-card, .stats-card, .palette-card, .toolkit-card{ max-width:calc(100vw - 16px); border-radius:var(--r-md); }
+  .stats-card, .palette-card, .toolkit-card{ max-width:calc(100vw - 16px); border-radius:var(--r-md); }
   .cat-head{ padding:12px; }
   .item-title{ font-size:13px; }
-  .assess-nav{ gap:6px; }
-  .assess-nav .btn{ padding:11px 6px; font-size:12.5px; }
+
   .detail-inner{ padding:6px 10px 16px 10px; }
   .detail-chapter-head{ padding:10px; gap:7px; }
   .detail-chapter-title{ font-size:10.5px; }
-  .assess-overlay{ padding:4px; }
-  .assess-head{ padding:12px 10px 0; }
-  .assess-body{ padding:10px 6px 16px; }
+
   .stats-card{ padding:14px 10px; }
   .detail-chapter.open .detail-chapter-body-inner{ padding:2px 9px 9px; }
-  .detail-desc, .detail-impact{ padding:10px 11px; }
+  .detail-desc, .detail-impact, .detail-client{ padding:10px 11px; }
 }
 
 /* ---- category header: severity bar + count crowding the title on narrow screens ---- */
@@ -150,10 +159,16 @@ body.sidebar-locked{ overflow:hidden; }
   @page{ margin:16mm 14mm; }
   body *{ visibility:hidden; }
   #reportRoot, #reportRoot *{ visibility:visible; }
+  /* Calibri for the whole printed report (was Georgia/Arial/Courier). Calibri
+     is proprietary and can't be embedded here, so it falls back to Carlito —
+     the metric-identical open clone — then the platform UI sans; on a Windows
+     machine printing the PDF this is real Calibri. One variable drives every
+     --report-font reference below, so the report stays single-family. */
   #reportRoot{
+    --report-font:Calibri, Carlito, 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
     display:block; position:absolute; inset:0; margin:0;
     background:#fff; color:#1a1a1a;
-    font-family:Georgia, 'Times New Roman', serif;
+    font-family:var(--report-font);
     font-size:11pt; line-height:1.55;
   }
 
@@ -166,45 +181,45 @@ body.sidebar-locked{ overflow:hidden; }
     min-height:250mm; padding:20mm 6mm 10mm;
   }
   .report-cover-eyebrow{
-    font-family:'Courier New', monospace; font-size:10pt; letter-spacing:2px; text-transform:uppercase;
+    font-family:var(--report-font); font-size:10pt; letter-spacing:2px; text-transform:uppercase;
     color:#2F5CA6; margin-bottom:28mm;
   }
   .report-cover-title{
-    font-family:Georgia, serif; font-size:34pt; font-weight:700; line-height:1.15;
+    font-family:var(--report-font); font-size:34pt; font-weight:700; line-height:1.15;
     color:#111; margin:0 0 10mm;
   }
   .report-cover-rule{ width:40mm; height:2pt; background:#2F5CA6; margin-bottom:10mm; }
   .report-cover-meta{ border-collapse:collapse; font-size:11pt; }
   .report-cover-meta td{ padding:2.2mm 0; border-bottom:1px solid #ddd; }
-  .report-cover-meta td:first-child{ color:#666; padding-right:8mm; font-family:'Courier New', monospace; font-size:9.5pt; text-transform:uppercase; letter-spacing:.5px; vertical-align:top; }
+  .report-cover-meta td:first-child{ color:#666; padding-right:8mm; font-family:var(--report-font); font-size:9.5pt; text-transform:uppercase; letter-spacing:.5px; vertical-align:top; }
   .report-cover-meta td:last-child{ font-weight:600; }
   .report-cover-footer{
-    font-family:Arial, sans-serif; font-size:8.5pt; line-height:1.6; color:#666;
+    font-family:var(--report-font); font-size:8.5pt; line-height:1.6; color:#666;
     border-top:1px solid #ccc; padding-top:5mm;
   }
   .report-cover-footer strong{ color:#B91C1C; }
 
   /* ---- headings & body text ---- */
   .report-h2{
-    font-family:Georgia, serif; font-size:18pt; font-weight:700; color:#111;
+    font-family:var(--report-font); font-size:18pt; font-weight:700; color:#111;
     border-bottom:2pt solid #2F5CA6; padding-bottom:2.5mm; margin:0 0 6mm;
   }
-  .report-h3{ font-family:Georgia, serif; font-size:13pt; font-weight:700; color:#222; margin:8mm 0 3mm; }
+  .report-h3{ font-family:var(--report-font); font-size:13pt; font-weight:700; color:#222; margin:8mm 0 3mm; }
   .report-body{ font-size:10.5pt; color:#333; margin:0 0 5mm; }
-  .report-footnote{ font-family:Arial, sans-serif; font-size:8pt; color:#888; margin-top:8mm; border-top:1px solid #ddd; padding-top:3mm; }
+  .report-footnote{ font-family:var(--report-font); font-size:8pt; color:#888; margin-top:8mm; border-top:1px solid #ddd; padding-top:3mm; }
 
   /* ---- exec summary stat row ---- */
   .report-stat-row{ display:flex; gap:4mm; margin:5mm 0 7mm; }
   .report-stat-box{
     flex:1; border:1px solid #ccc; border-radius:2mm; padding:4mm 3mm; text-align:center;
-    font-family:Arial, sans-serif;
+    font-family:var(--report-font);
   }
-  .report-stat-box b{ display:block; font-family:Georgia, serif; font-size:19pt; color:#111; }
+  .report-stat-box b{ display:block; font-family:var(--report-font); font-size:19pt; color:#111; }
   .report-stat-box span{ font-size:7.5pt; color:#777; text-transform:uppercase; letter-spacing:.4px; }
   .report-stat-warn b{ color:#B91C1C; }
 
   /* ---- tables ---- */
-  .report-table{ width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:9.5pt; margin-bottom:6mm; }
+  .report-table{ width:100%; border-collapse:collapse; font-family:var(--report-font); font-size:9.5pt; margin-bottom:6mm; }
   .report-table th{
     text-align:left; background:#F1F4F9; color:#333; font-size:8pt; text-transform:uppercase; letter-spacing:.4px;
     padding:2.5mm 3mm; border-bottom:1.5pt solid #2F5CA6;
@@ -216,19 +231,33 @@ body.sidebar-locked{ overflow:hidden; }
   .report-table-context td{ font-size:8.8pt; }
 
   .report-sev-chip{
-    display:inline-block; color:#fff; font-family:Arial, sans-serif; font-size:7.5pt; font-weight:700;
+    display:inline-block; color:#fff; font-family:var(--report-font); font-size:7.5pt; font-weight:700;
     text-transform:uppercase; letter-spacing:.3px; padding:1mm 2.5mm; border-radius:1.5mm;
   }
+  /* Severity colours as classes rather than inline style= — the report HTML is
+     built as a string, so setProperty() isn't available; a fixed 5-value class
+     set keeps the strict CSP (style-src 'self', no unsafe-inline) intact while
+     the printed chips and "action required" text still carry their colour. */
+  .report-sev-chip.rsev-critical{ background:#B91C1C; }
+  .report-sev-chip.rsev-high{ background:#C2410C; }
+  .report-sev-chip.rsev-medium{ background:#A16207; }
+  .report-sev-chip.rsev-low{ background:#15803D; }
+  .report-sev-chip.rsev-info{ background:#0369A1; }
+  .rsev-text-critical{ color:#B91C1C; }
+  .rsev-text-high{ color:#C2410C; }
+  .rsev-text-medium{ color:#A16207; }
+  .rsev-text-low{ color:#15803D; }
+  .rsev-text-info{ color:#0369A1; }
 
   /* ---- findings ---- */
   .report-finding{ border:1px solid #ddd; border-radius:2mm; padding:5mm 6mm; margin-bottom:6mm; page-break-inside:avoid; }
-  .report-finding-head{ display:flex; align-items:center; gap:3mm; font-family:Arial, sans-serif; margin-bottom:2mm; }
-  .report-finding-id{ font-family:'Courier New', monospace; font-size:9pt; color:#666; }
-  .report-finding-status{ margin-left:auto; font-family:Arial, sans-serif; font-size:8pt; font-weight:700; color:#B91C1C; text-transform:uppercase; }
-  .report-finding-title{ font-family:Georgia, serif; font-size:13pt; font-weight:700; color:#111; margin:0 0 1.5mm; }
-  .report-finding-meta{ font-family:Arial, sans-serif; font-size:8.5pt; color:#888; margin-bottom:4mm; }
+  .report-finding-head{ display:flex; align-items:center; gap:3mm; font-family:var(--report-font); margin-bottom:2mm; }
+  .report-finding-id{ font-family:var(--report-font); font-size:9pt; color:#666; }
+  .report-finding-status{ margin-left:auto; font-family:var(--report-font); font-size:8pt; font-weight:700; color:#B91C1C; text-transform:uppercase; }
+  .report-finding-title{ font-family:var(--report-font); font-size:13pt; font-weight:700; color:#111; margin:0 0 1.5mm; }
+  .report-finding-meta{ font-family:var(--report-font); font-size:8.5pt; color:#888; margin-bottom:4mm; }
   .report-field{ margin-bottom:3.5mm; }
-  .report-field-label{ font-family:Arial, sans-serif; font-size:8pt; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#2F5CA6; margin-bottom:1mm; }
+  .report-field-label{ font-family:var(--report-font); font-size:8pt; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:#2F5CA6; margin-bottom:1mm; }
   .report-field p{ margin:0; font-size:10pt; color:#333; }
   .report-field ul{ margin:0; padding-left:5mm; font-size:10pt; color:#333; }
   .report-field li{ margin-bottom:1mm; }
@@ -238,7 +267,7 @@ body.sidebar-locked{ overflow:hidden; }
   .report-attachment-img{ max-width:60mm; max-height:60mm; border:1px solid #ccc; border-radius:1.5mm; object-fit:cover; }
 
   /* ---- attack chain sequences ---- */
-  .report-chain-path{ font-family:Arial, sans-serif; }
+  .report-chain-path{ font-family:var(--report-font); }
   .report-chain-node{ font-size:10pt; color:#222; padding:1.5mm 0; }
   .report-chain-arrow{ font-size:9pt; color:#2F5CA6; padding-left:3mm; }
   .report-chain-arrow em{ font-style:normal; color:#666; }
@@ -317,6 +346,9 @@ body.sidebar-locked{ overflow:hidden; }
   .workspace-back,
   .rem-btn,
   .chip,
+  /* ATT&CK chips are outbound links in the detail pane, so they are tap
+     targets like any other control despite reading as metadata. */
+  .attack-chip,
   select{
     min-height:44px;
     display:inline-flex;
@@ -327,6 +359,10 @@ body.sidebar-locked{ overflow:hidden; }
   /* Sidebar and profile buttons hide their labels at this width and become
      icon-only, so they need the width raised as well as the height. The
      profile row is allowed to wrap rather than compress below the target. */
+  /* The category breadcrumb's back-link is the only way out of a category on
+     a phone, so it gets the full target like any other primary control. */
+  .cat-crumb-back{ min-height:44px; }
+
   .btn,
   .pbtn,
   .sidebar-close-btn,
@@ -371,8 +407,7 @@ body.sidebar-locked{ overflow:hidden; }
 
   /* Overlay close buttons are the one control a user needs to hit under
      pressure, so they get the full target rather than the 32px default. */
-  .assess-close,
-  .toolkit-close,
+  .overlay-close,
   .modal-close{
     min-width:44px;
     min-height:44px;
@@ -397,7 +432,6 @@ body.sidebar-locked{ overflow:hidden; }
   /* Primer contents links sit in a dense list; 44px would stretch the list
      considerably, so they get a comfortable 36px plus full-row width, which
      makes the whole line tappable rather than just the text. */
-  .primer-contents a,
   .primer-toc a{
     display:flex;
     align-items:center;

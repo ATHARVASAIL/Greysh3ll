@@ -104,6 +104,40 @@ function boot(opts){
     },
     set(){ return true; },
   });
+  /* jsdom (24.x) does not implement window.CSS at all, so CSS.escape — which
+     the app uses to build attribute selectors from case ids — is undefined
+     here while being available in every browser the app targets. Polyfilled
+     per the CSSOM spec's serialisation rules so the tests exercise the real
+     code path rather than routing around it. */
+  if(!win.CSS) win.CSS = {};
+  if(typeof win.CSS.escape !== 'function'){
+    win.CSS.escape = function(value){
+      const s = String(value);
+      let out = '';
+      for(let i = 0; i < s.length; i++){
+        const c = s.charCodeAt(i);
+        const ch = s.charAt(i);
+        if(c === 0x0000){ out += '\uFFFD'; continue; }
+        if((c >= 0x0001 && c <= 0x001F) || c === 0x007F
+           || (i === 0 && c >= 0x0030 && c <= 0x0039)
+           || (i === 1 && c >= 0x0030 && c <= 0x0039 && s.charCodeAt(0) === 0x002D)){
+          out += '\\' + c.toString(16) + ' ';
+          continue;
+        }
+        if(i === 0 && c === 0x002D && s.length === 1){ out += '\\' + ch; continue; }
+        if(c >= 0x0080 || c === 0x002D || c === 0x005F
+           || (c >= 0x0030 && c <= 0x0039)
+           || (c >= 0x0041 && c <= 0x005A)
+           || (c >= 0x0061 && c <= 0x007A)){
+          out += ch;
+          continue;
+        }
+        out += '\\' + ch;
+      }
+      return out;
+    };
+  }
+
   win.HTMLCanvasElement.prototype.getContext = function(){ return noopCtx; };
   /* jsdom implements no layout, so these are absent. They are called for
      their visual effect only; a no-op is faithful enough for behaviour. */

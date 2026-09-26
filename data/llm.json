@@ -10,7 +10,6 @@
   {
    "id": "LLM-001",
    "domain": "LLM",
-   "phase": 1,
    "sequence": 1,
    "title": "Direct & Indirect Prompt Injection",
    "severity": "critical",
@@ -78,6 +77,7 @@
     "Apply least-privilege scoping to every credential or tool the model can reach, so a successful injection is limited to what that specific context genuinely needs.",
     "Log and monitor model inputs, outputs, and tool calls centrally so anomalous injection attempts and their downstream effects are detectable post-hoc, not just preventable."
    ],
+   "mitigationClientFacing": "Your AI assistant cannot reliably tell the difference between an instruction from you and text that merely looks like an instruction. Anything it reads — a user's message, a support ticket, a web page, an uploaded file — can contain wording that hijacks it and makes it act against your rules. The fix is not to teach the assistant to spot bad instructions, because that will never be reliable; it is to stop trusting it with decisions that matter. Every action it can take should be independently checked and permitted by your own systems, so that even a fully hijacked assistant cannot do anything it was not already authorised to do. Treat this as an architecture change rather than a wording change, and expect it to be the single highest-value item on this report.",
    "reference": {
     "standard": "LLM01:2025 - Prompt Injection",
     "cwe": "CWE-1427",
@@ -101,12 +101,22 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM01",
+   "categoryName": "Prompt Injection",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.7",
+     "name": "MEASURE 2.7 — AI system security and resilience evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-002",
    "domain": "LLM",
-   "phase": 2,
    "sequence": 2,
    "title": "Sensitive Information Disclosure via LLM Responses",
    "severity": "high",
@@ -172,6 +182,7 @@
     "Minimize what the system prompt and connected tool definitions reveal about internal architecture, and treat that configuration itself as sensitive data subject to the same protections.",
     "Adopt differential-privacy or data-minimization techniques during fine-tuning where the training corpus contains sensitive records that don't need to be individually memorizable."
    ],
+   "mitigationClientFacing": "The assistant can reveal information it was never meant to share — personal data about your customers, internal credentials, or one customer's documents shown to another. This happens for three separate reasons: sensitive material left in the data it was trained on, missing permission checks in the search layer that feeds it documents, and weak separation between customer accounts. Each needs its own fix, and only the first two are usually visible in testing. The practical priority is to enforce your existing access permissions in the retrieval layer, before any document reaches the assistant — asking the assistant to keep a secret it has already been shown does not work. This carries direct regulatory exposure under data protection law, so we recommend treating it as a compliance item as well as a security one.",
    "reference": {
     "standard": "LLM02:2025 - Sensitive Information Disclosure",
     "cwe": "CWE-200",
@@ -194,12 +205,22 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM02",
+   "categoryName": "Sensitive Information Disclosure",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.10",
+     "name": "MEASURE 2.10 — Privacy risk of the AI system evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-003",
    "domain": "LLM",
-   "phase": 3,
    "sequence": 3,
    "title": "LLM Supply Chain Risks (Models, Adapters, Plugins & Datasets)",
    "severity": "high",
@@ -265,6 +286,7 @@
     "Maintain a signed model/artifact bill-of-materials (BOM) and re-verify integrity on every deployment, not just at initial onboarding.",
     "Establish an internal approval gate for any new external model, adapter, dataset, or plugin before it reaches production, mirroring standard third-party software procurement review."
    ],
+   "mitigationClientFacing": "Your AI feature depends on components built by other people — the model itself, add-on modules, plug-ins, and the supporting software. If any of those is tampered with before it reaches you, the assistant can behave normally in every test and misbehave only when an attacker triggers it. This is difficult to detect after the fact, so the controls have to sit at the point you bring a component in: only take models and data from suppliers who can prove where they came from, pin to a specific verified version rather than automatically accepting updates, and keep a record of what is running in production. This is largely a procurement and release-process change rather than a coding one, and it is the kind of control an auditor will expect to see documented.",
    "reference": {
     "standard": "LLM03:2025 - Supply Chain",
     "cwe": "CWE-1357",
@@ -288,12 +310,22 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM04",
+   "categoryName": "Supply Chain",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "GOVERN-6.1",
+     "name": "GOVERN 6.1 — Third-party and supply-chain risk policies"
+    }
+   ]
   },
   {
    "id": "LLM-004",
    "domain": "LLM",
-   "phase": 4,
    "sequence": 4,
    "title": "Data and Model Poisoning",
    "severity": "high",
@@ -359,6 +391,7 @@
     "Periodically red-team the production model/index for canary-style backdoor triggers as an ongoing control, not just a one-time pre-launch check.",
     "Cross-check any third-party or public dataset against known-compromised dataset hash registries before ingestion, as also covered under LLM03 supply-chain review."
    ],
+   "mitigationClientFacing": "If someone can influence the material your assistant learns from or searches through, they can change its behaviour permanently rather than for a single conversation. A competitor or insider who gets one crafted document into the collection can skew answers for every user who asks a related question, and the effect survives restarts because it is baked into the data rather than the conversation. Controlling this means treating your data sources like suppliers: know where each one comes from, rank them by how much you trust them, and require a review step before anything from a lower-trust source is accepted. Keep the ability to trace an answer back to the document that produced it — without it, you cannot investigate a complaint or roll back a bad change.",
    "reference": {
     "standard": "LLM04:2025 - Data and Model Poisoning",
     "cwe": "CWE-349",
@@ -382,12 +415,22 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM05",
+   "categoryName": "Data and Model Poisoning",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MAP-5.1",
+     "name": "MAP 5.1 — Likelihood and impact of identified risks"
+    }
+   ]
   },
   {
    "id": "LLM-005",
    "domain": "LLM",
-   "phase": 5,
    "sequence": 5,
    "title": "Improper Output Handling (Insecure Downstream Use of LLM Output)",
    "severity": "critical",
@@ -453,6 +496,7 @@
     "Apply Content Security Policy (CSP) headers on any surface rendering AI-generated content, as defense-in-depth against markup-based payloads that slip past encoding.",
     "Add automated output scanning for common injection patterns (script tags, SQL metacharacters, suspicious URLs) as a pre-render/pre-execution gate, understanding this is a secondary control, not a substitute for proper encoding."
    ],
+   "mitigationClientFacing": "Your systems currently treat whatever the AI writes as if a member of your own development team had written it, and pass it straight into places where text is acted upon — web pages, databases, command lines. Because an attacker can influence what the AI writes, this effectively hands them a route into those systems. The remedy is well understood and does not involve the AI at all: apply the same safety handling to AI-generated text that you already apply to text typed in by a stranger on the internet. This is standard defensive coding your developers will be familiar with, and it is usually a contained piece of work with a clear finish line, which makes it a good early win.",
    "reference": {
     "standard": "LLM05:2025 - Improper Output Handling",
     "cwe": "CWE-1426",
@@ -476,12 +520,22 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM10",
+   "categoryName": "Improper Output Handling",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.7",
+     "name": "MEASURE 2.7 — AI system security and resilience evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-006",
    "domain": "LLM",
-   "phase": 6,
    "sequence": 6,
    "title": "Excessive Agency in LLM-Integrated Agents",
    "severity": "critical",
@@ -547,6 +601,7 @@
     "Log every tool invocation with full attribution to the triggering end-user session and input, enabling post-incident investigation of any excessive-agency abuse.",
     "Periodically re-review granted tool permissions against actual usage patterns, revoking scope that is never exercised by legitimate use cases."
    ],
+   "mitigationClientFacing": "The assistant has been given more power than its job requires — access to tools it does not need, permissions broader than necessary, and the ability to take consequential actions without anyone checking. On its own that is not an attack, but it is what converts any successful manipulation into real-world damage such as money moving, records changing, or messages being sent in your name. Reducing this is mostly a scoping exercise: list every action the assistant can take, remove the ones it does not genuinely need, narrow the permissions on the rest, and require a human approval step for anything irreversible or financially significant. It reduces your exposure to every other finding in this report at once, which is why we rate it so highly.",
    "reference": {
     "standard": "LLM06:2025 - Excessive Agency",
     "cwe": "CWE-269",
@@ -570,12 +625,22 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM03",
+   "categoryName": "Excessive Agency",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MANAGE-2.1",
+     "name": "MANAGE 2.1 — Resources to manage AI risks accounted for"
+    }
+   ]
   },
   {
    "id": "LLM-007",
    "domain": "LLM",
-   "phase": 7,
    "sequence": 7,
    "title": "System Prompt Leakage",
    "severity": "medium",
@@ -641,6 +706,7 @@
     "Periodically red-team the production system prompt for extraction, since guardrail effectiveness varies across model updates and prompt-template changes.",
     "If proprietary business logic must live in the prompt, treat its potential disclosure as an accepted risk documented in the threat model rather than an unexamined assumption of secrecy."
    ],
+   "mitigationClientFacing": "The hidden instructions your team wrote to shape how the assistant behaves can be coaxed out of it by a determined user. On its own this is usually embarrassing rather than damaging — but it becomes serious if those instructions contain anything you would not publish, such as keys, internal system addresses, or commercially sensitive business rules. The realistic position to take is that these instructions are recoverable and always will be, so nothing confidential should ever be placed in them. Move any secrets into proper secrets management, and design the assistant so that publishing its instructions tomorrow would cost you nothing. The rest is a monitoring and brand-consistency concern rather than a security boundary.",
    "reference": {
     "standard": "LLM07:2025 - System Prompt Leakage",
     "cwe": "CWE-200",
@@ -662,12 +728,22 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM08",
+   "categoryName": "Hidden Context Exposure",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.7",
+     "name": "MEASURE 2.7 — AI system security and resilience evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-008",
    "domain": "LLM",
-   "phase": 8,
    "sequence": 8,
    "title": "Vector and Embedding Weaknesses (RAG Pipelines)",
    "severity": "high",
@@ -733,6 +809,7 @@
     "Avoid exposing raw embedding vectors to any client or lower-trust service where embedding-inversion risk is credible for the sensitivity of the underlying data.",
     "Periodically audit retrieval logs for cross-tenant or cross-permission-boundary access patterns as an ongoing detective control."
    ],
+   "mitigationClientFacing": "The search system that finds relevant documents for the assistant does not consistently respect who is allowed to see what. Because the assistant is given whatever that search returns, a user can end up receiving content from documents they could never have opened directly — including, in shared setups, another customer's material. The correction is to carry your existing permissions across into the search index and apply them as the search runs, rather than deciding afterwards what to hide. Where several customers share one index, we recommend separating them properly rather than relying on a filter, because a filter that is missed once exposes data silently and leaves no obvious trace.",
    "reference": {
     "standard": "LLM08:2025 - Vector and Embedding Weaknesses",
     "cwe": "CWE-284",
@@ -755,12 +832,22 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM09",
+   "categoryName": "Vector and Embedding Weaknesses",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.7",
+     "name": "MEASURE 2.7 — AI system security and resilience evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-009",
    "domain": "LLM",
-   "phase": 9,
    "sequence": 9,
    "title": "Misinformation & Hallucination Over-Reliance",
    "severity": "medium",
@@ -826,6 +913,7 @@
     "Fine-tune or prompt-engineer the model toward appropriate refusal/uncertainty expression for out-of-distribution or unverifiable queries, rather than always attempting a confident answer.",
     "Periodically benchmark the production application's factual accuracy against a maintained, domain-specific test set, treating accuracy as an ongoing metric rather than a one-time launch check."
    ],
+   "mitigationClientFacing": "The assistant states incorrect information with the same confidence it uses for correct information, and there is no visible signal to tell the two apart. In casual use that is a quality problem; where staff or customers act on the answers in finance, legal, medical or engineering contexts it becomes a liability one. The mitigations are about design rather than the model: base answers on your verified documents and show the source alongside them, make it visible when an answer could not be grounded in a source, and require a person to review anything consequential before it is used. Set the expectation with your users explicitly — an assistant presented as authoritative will be trusted as authoritative.",
    "reference": {
     "standard": "LLM09:2025 - Misinformation",
     "cwe": "CWE-1039",
@@ -848,12 +936,22 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM07",
+   "categoryName": "Misinformation",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.6",
+     "name": "MEASURE 2.6 — AI system safety risks evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-010",
    "domain": "LLM",
-   "phase": 10,
    "sequence": 10,
    "title": "Unbounded Consumption (Denial of Wallet / Model DoS)",
    "severity": "medium",
@@ -919,6 +1017,7 @@
     "Apply query-pattern anomaly detection to catch systematic, high-volume querying indicative of model-extraction attempts, distinct from normal usage patterns.",
     "For self-hosted deployments, isolate LLM inference resource pools from unrelated services so resource exhaustion in one does not degrade the other."
    ],
+   "mitigationClientFacing": "There is no effective ceiling on how much work a single user can make the AI feature do, and because you pay per unit of processing, that is both an availability risk and a direct financial one. A small number of crafted requests can slow the service for everyone or generate a very large bill with no attack on your systems at all. Controls are straightforward and worth putting in before scale rather than after: limit by volume of processing rather than by number of requests, cap how long any single answer or task can run, and set spending alerts that notify a person quickly. We would also suggest a hard monthly ceiling with your AI provider, so that the worst case is a service interruption rather than an unbounded invoice.",
    "reference": {
     "standard": "LLM10:2025 - Unbounded Consumption",
     "cwe": "CWE-400",
@@ -940,12 +1039,22 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM06",
+   "categoryName": "Unbounded Consumption",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MANAGE-2.1",
+     "name": "MANAGE 2.1 — Resources to manage AI risks accounted for"
+    }
+   ]
   },
   {
    "id": "LLM-011",
    "domain": "LLM",
-   "phase": 11,
    "sequence": 11,
    "title": "Indirect Prompt Injection via Retrieved Documents (RAG Poisoning at Query Time)",
    "severity": "critical",
@@ -1011,6 +1120,7 @@
     "Require a non-model authorisation check for any tool call, so a successful injection cannot escalate from influencing text to triggering an action.",
     "Log retrieved document ids alongside responses so a poisoned document can be traced back after the fact, and re-scan the corpus when ingestion sources change."
    ],
+   "mitigationClientFacing": "An attacker does not need access to your systems to influence what your assistant tells your staff and customers. They only need to get one crafted document into the collection your assistant searches — through a shared folder, a submitted form, a support ticket, or a public page you index. From then on, any user whose question matches that document receives an answer shaped by the attacker, with nothing on screen to indicate it. The defences are to apply your access permissions at the moment documents are retrieved, to keep the assistant's ability to act limited so a manipulated answer stays an answer, and to log which documents shaped each response so an incident can actually be investigated.",
    "reference": {
     "standard": "LLM01:2025 - Prompt Injection",
     "cwe": "CWE-1427",
@@ -1034,12 +1144,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM01",
+   "categoryName": "Prompt Injection",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.7",
+     "name": "MEASURE 2.7 — AI system security and resilience evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-012",
    "domain": "LLM",
-   "phase": 12,
    "sequence": 12,
    "title": "Conversation History Exfiltration via Rendered Markdown Images",
    "severity": "high",
@@ -1105,6 +1225,7 @@
     "Treat model output as untrusted input in the front-end code, applying the same encoding discipline used for user-generated content.",
     "Monitor for model responses containing outbound URLs with long or high-entropy query parameters, which is a strong indicator of this technique in production."
    ],
+   "mitigationClientFacing": "Answers from the assistant are displayed in a way that lets them quietly send information out to an outside server. If an image reference appears in an answer, the user's browser fetches it automatically the moment the answer appears — and the address of that image can be made to carry the contents of the conversation. Nothing is clicked and nothing looks unusual to the user. The fix is on your side of the screen and does not depend on the AI behaving well: restrict where the page is permitted to load images and send data, and strip or route external media through your own servers. This is a contained piece of front-end work and should be scheduled early, because it turns several other findings from information disclosure into silent data theft.",
    "reference": {
     "standard": "LLM02:2025 - Sensitive Information Disclosure",
     "cwe": "CWE-200",
@@ -1127,12 +1248,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM02",
+   "categoryName": "Sensitive Information Disclosure",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.10",
+     "name": "MEASURE 2.10 — Privacy risk of the AI system evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-013",
    "domain": "LLM",
-   "phase": 13,
    "sequence": 13,
    "title": "Tool / Function Call Argument Injection in LLM Agents",
    "severity": "critical",
@@ -1198,6 +1329,7 @@
     "Require explicit human confirmation for irreversible or high-value actions, breaking the fully-automatic chain from injected text to real-world effect.",
     "Log every tool call with its full arguments and the originating conversation, so abuse is detectable after the fact and attributable to a specific input."
    ],
+   "mitigationClientFacing": "When the assistant uses one of your connected tools, it also writes the details of that request itself — the search term, the file path, the address to fetch. Those details are currently passed through to the underlying system without being checked, so text that reaches the assistant can be turned into a command against your database, your files, or your internal network, using your application's own credentials rather than the user's. The remedy is for your systems to validate what the assistant asks for exactly as they would validate something typed in by an anonymous user, and to give each tool the narrowest possible interface — fixed choices rather than free text wherever the task allows it.",
    "reference": {
     "standard": "LLM06:2025 - Excessive Agency",
     "cwe": "CWE-77",
@@ -1221,12 +1353,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM03",
+   "categoryName": "Excessive Agency",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MANAGE-2.1",
+     "name": "MANAGE 2.1 — Resources to manage AI risks accounted for"
+    }
+   ]
   },
   {
    "id": "LLM-014",
    "domain": "LLM",
-   "phase": 14,
    "sequence": 14,
    "title": "Cross-Tenant Data Leakage in Shared Vector Stores",
    "severity": "critical",
@@ -1292,6 +1434,7 @@
     "Reconcile the index against source systems on a schedule to purge deleted or access-revoked content, closing the stale-entry variant.",
     "Log retrieved document ids with their owning tenant alongside the requesting tenant, and alert on any mismatch — this makes the failure detectable rather than silent."
    ],
+   "mitigationClientFacing": "Documents belonging to different customers are held in one shared search index, separated only by a filter applied when a search runs. If that filter is missed on any single code path, one customer receives another customer's confidential material through completely ordinary use of your product — no attack required, and usually no alert raised. Given the contractual and regulatory consequences of a cross-customer disclosure, we recommend separating customers at the storage level so that reaching another customer's data is structurally impossible rather than dependent on a filter being applied correctly every time. Until that is in place, all searches should be routed through a single piece of code that applies the filter, so there is one place to get right instead of many.",
    "reference": {
     "standard": "LLM08:2025 - Vector and Embedding Weaknesses",
     "cwe": "CWE-863",
@@ -1314,12 +1457,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM09",
+   "categoryName": "Vector and Embedding Weaknesses",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.7",
+     "name": "MEASURE 2.7 — AI system security and resilience evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-015",
    "domain": "LLM",
-   "phase": 15,
    "sequence": 15,
    "title": "Model Denial of Wallet via Unbounded Agent Loops and Recursive Tool Calls",
    "severity": "high",
@@ -1385,6 +1538,7 @@
     "Require the agent to declare a plan with a bounded step count before executing, and abort if execution exceeds it.",
     "Log tokens consumed per request with the originating user and input, so abusive patterns are attributable and detectable in near real time rather than at invoicing."
    ],
+   "mitigationClientFacing": "Where the assistant works through tasks on its own, it also decides how many steps the task needs — and each step costs you money. Without a hard limit, a single crafted request, or one poisoned document processed in bulk, can loop far longer than any legitimate task and generate charges out of all proportion to the work done. Organisations have reported very large unplanned bills from short unattended runs. Set firm ceilings on how many steps and how much processing any single task may consume, fail the task cleanly when a ceiling is reached, and give each customer a budget over a rolling period. Billing alerts alone are not sufficient, because the damage is usually done before anyone reads the alert.",
    "reference": {
     "standard": "LLM10:2025 - Unbounded Consumption",
     "cwe": "CWE-770",
@@ -1408,12 +1562,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM06",
+   "categoryName": "Unbounded Consumption",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MANAGE-2.1",
+     "name": "MANAGE 2.1 — Resources to manage AI risks accounted for"
+    }
+   ]
   },
   {
    "id": "LLM-016",
    "domain": "LLM",
-   "phase": 16,
    "sequence": 16,
    "title": "Guardrail Bypass via Encoding, Translation and Role-Play Framing",
    "severity": "medium",
@@ -1479,6 +1643,7 @@
     "Evaluate guardrails continuously with an adversarial test suite run against each model or prompt change, since updates routinely shift the boundary.",
     "Log and alert on refusal-adjacent patterns — repeated reformulation of a blocked request by one user is a strong signal of active probing."
    ],
+   "mitigationClientFacing": "The content filters protecting the assistant recognise patterns rather than enforce rules, so they can be worked around by rephrasing a request — encoding it, asking in another language, or framing it as fiction. Some of this is inevitable and the right response is to be clear about what the filters are for. They are a quality and brand control, and they are a useful extra layer, but they must never be the only thing standing between a user and a capability or dataset they are not entitled to. Wherever a filter is currently doing that job, the restriction needs to move into your own systems, where it is enforced as a permission rather than judged as a request.",
    "reference": {
     "standard": "LLM01:2025 - Prompt Injection",
     "cwe": "CWE-693",
@@ -1501,12 +1666,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM01",
+   "categoryName": "Prompt Injection",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.7",
+     "name": "MEASURE 2.7 — AI system security and resilience evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-017",
    "domain": "LLM",
-   "phase": 17,
    "sequence": 17,
    "title": "Malicious or Compromised MCP Server (Tool Description Poisoning)",
    "severity": "critical",
@@ -1572,6 +1747,7 @@
     "Constrain which tools can be invoked as a consequence of another tool being in context, so one server cannot steer another's use.",
     "Maintain an allowlist of servers for managed deployments, and log every tool definition change with the identity of the serving endpoint."
    ],
+   "mitigationClientFacing": "The descriptions of the tools you connect to the assistant are not just configuration — the assistant reads them as instructions. That means a supplier of a connected tool, or anyone who compromises one, can influence how your assistant uses every other tool it has, including ones handling sensitive data. Approving a connection on the basis of its name alone is not sufficient. Before connecting a tool, review its full description as the assistant will receive it; record what was approved so that a later change requires fresh approval; and limit connected tools to suppliers you would be willing to grant equivalent access to by any other means. This is a governance control as much as a technical one, and it should sit with whoever approves third-party suppliers.",
    "reference": {
     "standard": "LLM03:2025 - Supply Chain",
     "cwe": "CWE-1427",
@@ -1595,12 +1771,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM04",
+   "categoryName": "Supply Chain",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "GOVERN-6.1",
+     "name": "GOVERN 6.1 — Third-party and supply-chain risk policies"
+    }
+   ]
   },
   {
    "id": "LLM-018",
    "domain": "LLM",
-   "phase": 18,
    "sequence": 18,
    "title": "Multimodal Prompt Injection via Images and Documents",
    "severity": "high",
@@ -1666,6 +1852,7 @@
     "Flag images whose recovered text contains imperative instruction patterns for manual review instead of processing them silently.",
     "Where classification decisions matter, derive them from structured extraction rather than from free-form model output over raw recovered text."
    ],
+   "mitigationClientFacing": "Instructions to the assistant do not have to be typed. Wording placed inside an image, a scanned page or a submitted document is read by the assistant just as readily as a chat message — including text small enough or faint enough that a person reviewing the file would not notice it. In any workflow where documents arrive from outside, such as invoices, applications or CVs, this gives the sender a route to influence how the assistant handles them. Treat text recovered from any attachment as untrusted, apply the same checks you apply to typed input, and where the assistant's reading of a document drives an automated decision, show the reviewer what the assistant actually extracted.",
    "reference": {
     "standard": "LLM01:2025 - Prompt Injection",
     "cwe": "CWE-1427",
@@ -1689,12 +1876,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM01",
+   "categoryName": "Prompt Injection",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.7",
+     "name": "MEASURE 2.7 — AI system security and resilience evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-019",
    "domain": "LLM",
-   "phase": 19,
    "sequence": 19,
    "title": "Persistent Memory Poisoning in Long-Lived Assistants",
    "severity": "high",
@@ -1760,6 +1957,7 @@
     "Prevent content from documents, tool results and other users from reaching the memory writer without a human step.",
     "Ensure deletion removes the entry, its embedding and any derived summary, and verify this with a retrieval test rather than a UI check."
    ],
+   "mitigationClientFacing": "Because the assistant remembers things between conversations, a single manipulation can become permanent rather than lasting one session. Instruction-shaped text placed into its memory is loaded again at the start of every future conversation, so the effect persists after the original conversation is deleted and often after the user believes they have cleared everything. Memory should only be written with the user's explicit confirmation, showing exactly what will be stored; it should hold facts rather than instructions; and the user should be able to see and delete the complete contents at any time. Without a visible, editable memory there is no way for a user or your support team to detect or undo this.",
    "reference": {
     "standard": "LLM01:2025 - Prompt Injection",
     "cwe": "CWE-1427",
@@ -1783,12 +1981,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM01",
+   "categoryName": "Prompt Injection",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.7",
+     "name": "MEASURE 2.7 — AI system security and resilience evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-020",
    "domain": "LLM",
-   "phase": 20,
    "sequence": 20,
    "title": "Training Data Extraction and Memorised Secret Regurgitation",
    "severity": "high",
@@ -1854,6 +2062,7 @@
     "Filter outbound responses for credential and personal-data patterns, and alert on detections rather than only redacting.",
     "Rotate any credential that was present in a training corpus, on the basis that it should be considered disclosed."
    ],
+   "mitigationClientFacing": "A model trained or fine-tuned on your own material can reproduce parts of that material word for word, particularly anything that appeared repeatedly or was unusual enough to stick — credentials, internal addresses, and personal details among them. Once a model has memorised a secret it cannot be made to forget it selectively, so the only remedy after the fact is to rotate whatever leaked and retrain. The controls therefore have to sit before training: remove secrets and personal data from the material first and treat that removal as a control worth testing, and never train one shared model on documents that span different levels of confidentiality. Where information needs to be current or access-controlled, look it up at the time of the question rather than training it in.",
    "reference": {
     "standard": "LLM02:2025 - Sensitive Information Disclosure",
     "cwe": "CWE-200",
@@ -1877,12 +2086,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM02",
+   "categoryName": "Sensitive Information Disclosure",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MEASURE-2.10",
+     "name": "MEASURE 2.10 — Privacy risk of the AI system evaluated"
+    }
+   ]
   },
   {
    "id": "LLM-021",
    "domain": "LLM",
-   "phase": 21,
    "sequence": 21,
    "title": "Confused Deputy in Agent Tool Authorisation",
    "severity": "critical",
@@ -1948,6 +2167,7 @@
     "Log the end-user identity alongside the service identity for every tool call, so access can be attributed after the fact.",
     "Give each tool the narrowest credential that lets it do its job, rather than one broad credential shared by all tools."
    ],
+   "mitigationClientFacing": "The assistant holds one broad set of credentials capable of reaching every customer's data, and decides for itself which records a given user should be shown. That decision is a judgement rather than an enforced permission, so any user able to steer the conversation can potentially reach anything the credential can reach. Your backend needs to make that decision instead, based on who the user actually signed in as, with the user's identity passed through as a verified fact that the assistant cannot influence or supply. This is the same access-control principle you already apply elsewhere in the product; the finding is that the AI feature currently sits outside it.",
    "reference": {
     "standard": "LLM06:2025 - Excessive Agency",
     "cwe": "CWE-441",
@@ -1971,12 +2191,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM03",
+   "categoryName": "Excessive Agency",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MANAGE-2.1",
+     "name": "MANAGE 2.1 — Resources to manage AI risks accounted for"
+    }
+   ]
   },
   {
    "id": "LLM-022",
    "domain": "LLM",
-   "phase": 22,
    "sequence": 22,
    "title": "Server-Side Request Forgery via Agent Fetch Tools",
    "severity": "high",
@@ -2042,6 +2272,7 @@
     "Require the instance metadata service to use session tokens, and deny the agent's role access to it where possible.",
     "Run the fetch tool in a network segment with no route to internal services, so a bypass in validation has nothing to reach."
    ],
+   "mitigationClientFacing": "The assistant can fetch web addresses, and it runs inside your network, so it can be directed at internal systems that are protected only by not being reachable from outside — administrative interfaces, cloud configuration services, internal tools. The address it fetches can come from a document or a message rather than from a user typing it, so this can be triggered without anyone intending it. Restrict outbound requests to an approved list of destinations, block internal and cloud-internal address ranges at the network level rather than by checking the text of the address, and re-check the destination after any redirect. Treat this as a network control, because text-based checks in the application are routinely bypassed.",
    "reference": {
     "standard": "LLM06:2025 - Excessive Agency",
     "cwe": "CWE-918",
@@ -2065,12 +2296,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM03",
+   "categoryName": "Excessive Agency",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MANAGE-2.1",
+     "name": "MANAGE 2.1 — Resources to manage AI risks accounted for"
+    }
+   ]
   },
   {
    "id": "LLM-023",
    "domain": "LLM",
-   "phase": 23,
    "sequence": 23,
    "title": "Model Extraction and Distillation via API Abuse",
    "severity": "medium",
@@ -2136,6 +2377,7 @@
     "Consider watermarking or canary responses that let a suspected substitute be attributed later.",
     "Treat the model as disclosed if a sustained extraction campaign is detected, and plan the response around that assumption rather than around prevention alone."
    ],
+   "mitigationClientFacing": "A model exposed through an API can be approximated by anyone who queries it enough times and trains their own model on the answers. The result is not a copy of your model, but it is a functional substitute that behaves much like it — which erodes the advantage your investment in the model was meant to buy, and can be run by a competitor without your rate limits, costs or logging. Return only what the client genuinely needs in each response, tie usage quotas to a verified identity rather than to an API key that can be reissued, and watch for the usage pattern this produces: high volume, unusually uniform requests, systematic rather than natural coverage of a topic.",
    "reference": {
     "standard": "LLM10:2025 - Unbounded Consumption",
     "cwe": "CWE-1240",
@@ -2159,12 +2401,22 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM06",
+   "categoryName": "Unbounded Consumption",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MANAGE-2.1",
+     "name": "MANAGE 2.1 — Resources to manage AI risks accounted for"
+    }
+   ]
   },
   {
    "id": "LLM-024",
    "domain": "LLM",
-   "phase": 24,
    "sequence": 24,
    "title": "Insufficient Logging and Traceability of Model and Agent Decisions",
    "severity": "medium",
@@ -2230,6 +2482,7 @@
     "Alert on injection-shaped signals such as imperative text in retrieved content and tool calls with unexpected argument shapes.",
     "Set retention and access controls on prompt logs proportionate to their sensitivity, and test that an investigation can actually be performed."
    ],
+   "mitigationClientFacing": "If the assistant does something unexpected, you currently cannot reconstruct why. The records kept show the user's question and the final answer, but not the documents the assistant was given, the actions it took, or the information it was working from — which is precisely the material an investigation needs. In practice this means an incident cannot be scoped, a customer complaint cannot be answered with evidence, and a regulator's question about a specific decision cannot be satisfied. Extend logging to cover the documents retrieved, the actions taken with their details, and the identity of the user, with sensitive values masked at the point of writing and a shared reference that links the conversation to your existing system logs. This finding is low severity in isolation but it is what determines how well you can respond to any of the others.",
    "reference": {
     "standard": "LLM06:2025 - Excessive Agency",
     "cwe": "CWE-778",
@@ -2253,7 +2506,18 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "OWASP Top 10 for LLM Applications 2026",
+   "categoryCode": "LLM03",
+   "categoryName": "Excessive Agency",
+   "attack": [],
+   "frameworks": [
+    {
+     "standard": "NIST AI RMF",
+     "code": "MANAGE-4.1",
+     "name": "MANAGE 4.1 — Post-deployment monitoring in place"
+    }
+   ]
   }
  ]
 }

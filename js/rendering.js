@@ -181,11 +181,29 @@ function renderPayloadsSection(item){
    RENDER: DETAIL INNER HTML
 ========================================================= */
 const MAX_ATTACHMENTS = 4;
+
+/* Attachments arrive from two places: a file the user picked, and a progress
+   file they imported — and an imported file is attacker-controlled. A
+   startsWith('data:image') check is not enough on its own, because the value
+   was being interpolated straight into a src attribute: a dataUrl of
+   `data:image/png,x" onerror="…` passes that check and then breaks out of the
+   attribute. This allowlists the concrete image types the picker can produce,
+   requires the base64 form, and rejects anything else outright.
+
+   SVG is deliberately excluded. It passes any "is this an image" test and can
+   carry script; an <img> will not execute it today, but the data URL also ends
+   up in exports and print output, and it is not worth the risk for a format
+   the screenshot workflow never produces. */
+const SAFE_IMAGE_URL = /^data:image\/(png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=]+$/;
+function isDisplayableAttachment(url){
+  return typeof url === 'string' && url.length < 8 * 1024 * 1024 && SAFE_IMAGE_URL.test(url);
+}
+
 function renderAttachmentGrid(item){
   const attachments = (item.assessorNotes && item.assessorNotes.attachments) || [];
   const thumbs = attachments.map((a, i) => `
     <div class="attachment-thumb">
-      ${a.dataUrl && a.dataUrl.startsWith('data:image') ? `<img src="${a.dataUrl}" alt="${escapeHtml(a.name||'attachment')}">` : `<span class="file-glyph">${escapeHtml((a.name||'file').slice(0,14))}</span>`}
+      ${isDisplayableAttachment(a && a.dataUrl) ? `<img src="${escapeHtml(a.dataUrl)}" alt="${escapeHtml(a.name||'attachment')}">` : `<span class="file-glyph">${escapeHtml((a && a.name || 'file').slice(0,14))}</span>`}
       <button class="attachment-remove" data-action="attachment-remove" data-id="${item.id}" data-idx="${i}" title="Remove" aria-label="Remove attachment">×</button>
     </div>
   `).join('');
@@ -381,11 +399,25 @@ function renderDetailInner(item){
   `;
   const fixRefHtml = `
     <div class="detail-section"><div class="sec-label">Alternative exploitation / variants</div>${listHtml(item.variants,'bullets')}</div>
-    <div class="detail-section"><div class="sec-label">Mitigation</div>${listHtml(item.mitigation,'mitigation')}</div>
+    <div class="detail-section"><div class="sec-label">Mitigation — technical fix</div>${listHtml(item.mitigation,'mitigation')}</div>
+    ${item.mitigationClientFacing ? `<div class="detail-section"><div class="sec-label">Mitigation — client-facing explanation</div><div class="detail-client">${escapeHtml(item.mitigationClientFacing)}</div></div>` : ''}
     <div class="detail-section"><div class="sec-label">Reference &amp; tooling</div>
       <div class="detail-grid">
         <div class="detail-field"><div class="k">Standard / Reference</div><div class="v">${escapeHtml(ref.standard||'—')}</div></div>
+        <div class="detail-field"><div class="k">Framework Category</div><div class="v">${item.categoryCode ? `<b>${escapeHtml(item.categoryCode)}</b> ${escapeHtml(item.categoryName||'')}<span class="detail-sub">${escapeHtml(item.categoryStandard||'')}</span>` : '—'}</div></div>
+        <div class="detail-field"><div class="k">MITRE ATT&amp;CK</div><div class="v">${
+          (item.attack && item.attack.length)
+            ? item.attack.map(a => `<a class="attack-chip" href="https://attack.mitre.org/techniques/${escapeHtml(a.id.replace('.', '/'))}/" target="_blank" rel="noopener noreferrer"><b>${escapeHtml(a.id)}</b> ${escapeHtml(a.name)}</a>`).join(' ')
+            : (item.domain === 'LLM'
+                ? '<span class="detail-sub">Model-layer risk — see MITRE ATLAS rather than ATT&amp;CK</span>'
+                : '—')
+        }</div></div>
         <div class="detail-field"><div class="k">CWE</div><div class="v">${escapeHtml(item.cwe||'—')}</div></div>
+        <div class="detail-field u-full-row"><div class="k">Additional framework mappings</div><div class="v">${
+          (item.frameworks && item.frameworks.length)
+            ? item.frameworks.map(f => `<span class="fw-chip"><b>${escapeHtml(f.code)}</b> ${escapeHtml(f.name)}<span class="detail-sub">${escapeHtml(f.standard)}</span></span>`).join(' ')
+            : '<span class="detail-sub">—</span>'
+        }</div></div>
         <div class="detail-field u-full-row"><div class="k">Recommended Tools</div><div class="v">${escapeHtml(toolsList.join(', ')||'—')}</div></div>
       </div>
       ${linksList.length ? `<div class="ref-list">${listHtml(linksList,'bullets')}</div>` : ''}
@@ -467,7 +499,7 @@ function renderItemSummary(item){
         <div class="checkbox" data-action="toggle" data-id="${item.id}">${checkSvg()}</div>
         <div class="item-body" data-action="expand" data-id="${item.id}">
           <div class="item-top">
-            <span class="order-badge">#${item.sequence}</span>
+            <span class="order-badge" title="Case ${item.domainIndex} of ${item.domain}">#${item.domainIndex}</span>
             <span class="item-id">${item.id}</span>
             <span class="sev-badge sev-chip" data-sev="${item.severity}">${escapeHtml(item.severityLabel||item.severity)}</span>
             <span class="cwe-badge">${escapeHtml(item.cwe||'—')}</span>

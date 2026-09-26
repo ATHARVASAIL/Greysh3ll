@@ -1,4 +1,4 @@
-/* csp.test.js — 12 tests
+/* csp.test.js — 13 tests
    style-src has no 'unsafe-inline', so any inline style="..." that creeps
    back into a template is not a style bug — it is a silently unstyled
    element in production. These tests are the tripwire. */
@@ -67,25 +67,34 @@ S.test('neither page contains an inline style attribute', () => {
   PAGES.forEach(p => excludes(read(p), 'style="', `${p} inline style`));
 });
 
-S.test('the only inline styles in JS are the sanctioned PDF report ones', () => {
+S.test('no JS file emits an inline style attribute (report builder included)', () => {
+  // The PDF report used to be a sanctioned exception (4 inline style= in the
+  // report builder driven by REPORT_SEV_COLOR). Those were actually blocked by
+  // the strict style-src 'self' CSP, so the report chips rendered colourless.
+  // They are now .rsev-* / .rsev-text-* classes, so there is no exception left.
   const offenders = [];
   JS_FILES.forEach(f => {
     const src = read('js/' + f);
     src.split('\n').forEach((line, i) => {
       if(/style="/.test(line) || /style='/.test(line)){
-        if(f === 'assessment.js' && /REPORT_SEV_COLOR/.test(line)) return;  // print document
         offenders.push(`js/${f}:${i+1}`);
       }
     });
   });
-  eq(offenders, [], 'inline styles outside the report builder');
+  eq(offenders, [], 'inline styles anywhere in JS');
 });
 
-S.test('the report-builder exception is real and bounded', () => {
+S.test('the report severity palette is class-driven, not inline', () => {
   const src = read('js/assessment.js');
-  includes(src, 'REPORT_SEV_COLOR', 'constant present');
-  const uses = (src.match(/style="[^"]*\$\{REPORT_SEV_COLOR/g) || []).length;
-  ok(uses > 0 && uses <= 4, `expected 1-4 sanctioned uses, got ${uses}`);
+  // no inline style= built from the palette anywhere in the report builder
+  const inlineUses = (src.match(/style="[^"]*\$\{REPORT_SEV_COLOR/g) || []).length;
+  eq(inlineUses, 0, 'no inline REPORT_SEV_COLOR styles remain');
+  // the templates reference the severity classes instead
+  includes(src, 'rsev-', 'report builder uses .rsev-* severity classes');
+  // and those classes are defined in the print CSS with their hexes
+  ['.rsev-critical','.rsev-high','.rsev-medium','.rsev-low','.rsev-info',
+   '.rsev-text-critical']
+    .forEach(cls => includes(CSS, cls, `missing report severity class ${cls}`));
 });
 
 /* ---------- the CSS side of the migration ---------- */

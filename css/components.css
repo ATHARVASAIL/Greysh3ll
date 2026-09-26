@@ -48,8 +48,28 @@
 .test-item.expanded .expand-btn .icn{transform:rotate(180deg);}
 
 /* Smooth grid-based accordion for detail panel */
-.detail-panel{display:grid; grid-template-rows:0fr; transition:grid-template-rows .42s var(--ease-out); content-visibility:auto; contain-intrinsic-size:0 900px;}
-.test-item.expanded .detail-panel{grid-template-rows:1fr;}
+/* content-visibility/contain-intrinsic-size are applied ONLY while expanded.
+   On the collapsed panel they reserved 900px of layout for every row that
+   was off-screen — an empty panel claiming the height of a full one — which
+   inflated the page enormously and left a visible strip of detail under
+   collapsed rows. The optimisation is worth having for open panels, which
+   really are ~900px; it is meaningless for an empty one. */
+.detail-panel{display:grid; grid-template-rows:0fr; transition:grid-template-rows .42s var(--ease-out);}
+.test-item.expanded .detail-panel{grid-template-rows:1fr; content-visibility:auto; contain-intrinsic-size:0 900px;}
+/* A collapsed panel must contribute no height at all. The 0fr track zeroes
+   the CONTENT box, but padding sits outside it, so .detail-inner's 6px top
+   and 24px bottom survived as a 30px strip of detail showing under every
+   closed row. min-height:0 cannot remove padding — only zeroing it can. */
+.test-item:not(.expanded) > .detail-panel{ min-height:0; overflow:hidden; }
+/* Every direct child, not just .detail-inner. Collapsing a row while its
+   detail is still loading leaves a .detail-loading placeholder in the panel
+   instead, and that kept its own vertical padding — a 61px strip under a
+   row the user had just closed. Whatever is in there, a collapsed panel
+   contributes no height. */
+.test-item:not(.expanded) > .detail-panel > *{
+  padding-top:0; padding-bottom:0;
+  min-height:0;
+}
 .detail-panel > .detail-inner{overflow:hidden; min-height:0;}
 .test-item{contain:layout style;}
 
@@ -87,11 +107,14 @@
 .detail-list.numbered li::before{content:counter(step); position:absolute; left:0; top:1px; width:15px; height:15px; border-radius:5px; background:var(--surface-3); color:var(--accent); font-family:var(--font-mono); font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; line-height:1;}
 .detail-list.bullets li::before{content:'▸'; position:absolute; left:2px; color:var(--high);}
 .detail-list.mitigation li::before{content:''; position:absolute; left:1px; top:5px; width:8px; height:8px; border-radius:2px; background:rgba(var(--low-rgb),.18); box-shadow:inset 0 0 0 1.5px var(--low);}
+/* Client-facing mitigation copy. Deliberately styled apart from the technical
+   bullets above it: this is the paragraph an assessor lifts straight into a
+   report for a non-technical reader, so it reads as prose, not as a checklist. */
+.detail-client{font-size:12.6px; color:var(--text); line-height:1.8; padding:14px 16px; background:rgba(var(--info-rgb),.05); border-left:2px solid var(--info); border-radius:0 var(--r-sm) var(--r-sm) 0;}
 .detail-impact{font-size:12.6px; color:var(--text); line-height:1.75; padding:14px 16px; background:rgba(var(--crit-rgb),.06); border-left:2px solid var(--crit); border-radius:0 var(--r-sm) var(--r-sm) 0;}
 
 /* ---------- Terminal-window payload blocks (signature component) ---------- */
 .payload-stack{display:flex; flex-direction:column; gap:11px;}
-.payload-label{font-family:var(--font-mono); font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.6px; margin-bottom:6px; font-weight:600;}
 .term-window{border-radius:var(--r-md); overflow:hidden; border:1px solid var(--border-strong); background:#0A0A0A; box-shadow:var(--shadow-sm);}
 .term-bar{display:flex; align-items:center; gap:9px; padding:7px 10px; background:var(--surface-2); border-bottom:1px solid var(--border);}
 .term-dots{display:flex; gap:5px; flex-shrink:0;}
@@ -115,10 +138,6 @@
 .detail-field{background:var(--surface-2); border:1px solid var(--border-soft); border-radius:var(--r-sm); padding:10px 13px;}
 .detail-field .k{font-family:var(--font-mono); font-size:9.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;}
 .detail-field .v{font-size:12px; color:var(--text-bright); font-family:var(--font-mono); line-height:1.5;}
-.detail-notes label{font-family:var(--font-mono); font-size:9.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:7px; display:block; font-weight:600;}
-.detail-notes textarea{width:100%; min-height:72px; background:var(--surface-2); border:1px solid var(--border); color:var(--text-bright); border-radius:var(--r-sm); padding:11px 13px; font-family:var(--font-body); font-size:12.5px; resize:vertical; transition:border-color .18s, background .18s;}
-.detail-notes textarea:focus{border-color:var(--accent); background:var(--surface-3);}
-.detail-notes textarea::placeholder{color:var(--text-faint);}
 .notes-saved-indicator{font-family:var(--font-mono); font-size:9.5px; color:var(--low); opacity:0; transition:opacity .3s ease; margin-top:6px; display:inline-flex; align-items:center; gap:4px;}
 .notes-saved-indicator.show{opacity:1;}
 .detail-meta{display:flex; justify-content:space-between; margin-top:6px; font-family:var(--font-mono); font-size:10px; color:var(--text-faint); flex-wrap:wrap; gap:6px;}
@@ -162,7 +181,6 @@
 }
 .status-btn:hover{background:var(--surface-3);}
 .status-btn.active{background:var(--surface-3); font-weight:700;}
-.status-btn .status-icon{font-size:13px; line-height:1;}
 
 /* Mini status row inside item summary */
 .item-status-row{margin-top:4px;}

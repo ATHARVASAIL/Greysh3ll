@@ -10,7 +10,6 @@
   {
    "id": "WIFI-001",
    "domain": "WIFI",
-   "phase": 430,
    "title": "Rogue DNS Injection via Malicious Captive Portal",
    "sequence": 430,
    "severity": "high",
@@ -56,7 +55,7 @@
     },
     {
      "label": "Confirm hijacked resolution from the client side",
-     "command": "nslookup randomstring123.example.com"
+     "command": "nslookup nonexistent-canary-$RANDOM.example.test"
     },
     {
      "label": "One-shot automated rogue-AP + portal framework",
@@ -76,6 +75,7 @@
     "Segment guest wireless VLANs so a rogue-AP compromise can't reach internal DNS/DHCP infrastructure, and monitor for unauthorized DHCP servers with DHCP snooping on wired switches.",
     "Push mobile device management (MDM) configuration that pins expected captive-portal certificates/domains for managed corporate devices."
    ],
+   "mitigationClientFacing": "When a device joins your guest network it accepts, without question, whatever address book that network hands it for finding websites. On this network that address book can be replaced, which lets an attacker silently send a user to a page of their choosing while the address in the browser still looks correct. Everything the user sees tells them they are in the right place. The fix is to make the network hand out only resolvers you control, block devices from using any other, and ensure the sign-in portal itself sits on a proper certificate for a name you own. This is configuration work on equipment you already have rather than new spend.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-300",
@@ -100,12 +100,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1557",
+     "name": "Adversary-in-the-Middle",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "AUTH",
+     "name": "WLAN authentication and access"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "OWE",
+     "name": "Opportunistic Wireless Encryption / open network"
+    }
+   ]
   },
   {
    "id": "WIFI-002",
    "domain": "WIFI",
-   "phase": 431,
    "title": "Wireless Reconnaissance / Information Disclosure",
    "sequence": 431,
    "severity": "low",
@@ -151,7 +172,9 @@
    ],
    "variants": [
     "Hidden-SSID de-cloaking, where the SSID is revealed the instant any legitimate client associates or sends a directed probe.",
-    "Client-side tracking via persistent probe requests even when MAC randomization is enabled but SSID lists are not (see the related MAC-randomization-bypass finding for the tracking angle specifically)."
+    "Client-side tracking via persistent probe requests even when MAC randomization is enabled but SSID lists are not (see the related MAC-randomization-bypass finding for the tracking angle specifically).",
+    "Wardriving the perimeter rather than surveying from inside, which finds APs whose coverage spills into a car park or neighbouring unit and are therefore attackable without entering the building.",
+    "Passive capture over a multi-day window to profile shift patterns and site occupancy from association counts, which supports timing a later physical or social-engineering attempt."
    ],
    "mitigation": [
     "Treat SSID hiding as an inconvenience rather than a security control — don't rely on it, and avoid embedding sensitive internal naming in SSIDs regardless of whether they're hidden.",
@@ -160,6 +183,7 @@
     "Where physical footprint inference is a genuine concern (e.g. high-security facilities), consider RF shielding or reduced transmit power to limit signal leakage beyond the building perimeter.",
     "Monitor for and periodically conduct your own passive surveys to understand what an external attacker would learn about the site before they do."
    ],
+   "mitigationClientFacing": "Simply listening to the air around your building reveals a useful amount about your organisation — which equipment you run, how your sites and departments are named, roughly how many people are present and when, and in some cases which networks your staff's devices have previously joined and will try to rejoin. None of this requires connecting to anything, so there is nothing in your logs to show it happened. You cannot stop the broadcasting, since that is how wireless works, but you can reduce what it says: avoid network names that reveal departments, floors or equipment types, and be aware that an attacker planning a visit already knows your quiet hours.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-200",
@@ -180,12 +204,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AC",
+   "categoryName": "Access Control",
+   "attack": [
+    {
+     "id": "T1213",
+     "name": "Data from Information Repositories",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "MONITOR",
+     "name": "WLAN security monitoring"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "802.11w",
+     "name": "Protected Management Frames (802.11w)"
+    }
+   ]
   },
   {
    "id": "WIFI-003",
    "domain": "WIFI",
-   "phase": 432,
    "title": "Rogue/Misconfigured Hotspot (Karma)",
    "sequence": 432,
    "severity": "high",
@@ -230,7 +275,9 @@
    ],
    "variants": [
     "MANA mode targeting WPA2-Enterprise networks by also cloning the EAP identity exchange, capturing credentials where certificate validation is weak (overlaps with the Evil-Twin-EAP finding).",
-    "Selective/targeted Karma limited to a curated SSID list to reduce bystander impact and detectability during red-team engagements."
+    "Selective/targeted Karma limited to a curated SSID list to reduce bystander impact and detectability during red-team engagements.",
+    "EAP-relay Karma, where the rogue AP forwards the EAP exchange to the real network in real time so the victim authenticates successfully and notices nothing while credentials are captured in transit.",
+    "Known-Beacons attack, which broadcasts a dictionary of common SSID names rather than waiting for probe requests, defeating clients that no longer broadcast their saved network list."
    ],
    "mitigation": [
     "Disable auto-connect / auto-join for open and legacy-security networks on managed devices via MDM policy.",
@@ -239,6 +286,7 @@
     "Deploy WIDS/WIPS capable of detecting Karma/MANA behavior (a single AP answering many distinct SSIDs from one BSSID is a strong signature).",
     "Where feasible, disable client-side probe-request broadcasting for saved networks (passive-scan-only mode) to remove the information Karma attacks rely on."
    ],
+   "mitigationClientFacing": "Phones and laptops remember the networks they have joined and will reconnect automatically when a network with that name appears. An attacker can simply answer 'yes, that's me' to whatever a passing device asks for, and the device joins without the user doing anything or noticing. Company devices found during testing behaved this way. Fix it through your device management rather than by asking staff to be careful: turn off automatic joining of open networks, remove old saved networks from the managed profile, and require that corporate wireless only connects when the network proves its identity with a certificate. That last setting is what makes an impersonated network fail rather than succeed.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-290",
@@ -259,12 +307,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1078",
+     "name": "Valid Accounts",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "MONITOR",
+     "name": "WLAN security monitoring"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "OWE",
+     "name": "Opportunistic Wireless Encryption / open network"
+    }
+   ]
   },
   {
    "id": "WIFI-004",
    "domain": "WIFI",
-   "phase": 433,
    "title": "Deauthentication Attack",
    "sequence": 433,
    "severity": "medium",
@@ -320,6 +389,7 @@
     "For business-critical wireless (POS, OT/ICS), maintain a wired fallback and incident-response runbook for sustained RF denial-of-service.",
     "Periodically test PMF enforcement after any AP firmware upgrade or configuration change, since defaults sometimes reset to optional."
    ],
+   "mitigationClientFacing": "Anyone within range can knock devices off your wireless network at will, using inexpensive equipment and without joining the network or knowing any password. On its own this is a nuisance; it matters because it is the standard opening move for a more serious attack, since a device thrown off a network will look for another one to join and can be steered onto an attacker's. It is also what an attacker uses if they want to interrupt whatever your business does over wireless. Enabling protected management frames on your controllers stops the common form of this, and it is a setting on equipment you already own.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-306",
@@ -341,12 +411,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1078",
+     "name": "Valid Accounts",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "MONITOR",
+     "name": "WLAN security monitoring"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "802.11w",
+     "name": "Protected Management Frames (802.11w)"
+    }
+   ]
   },
   {
    "id": "WIFI-005",
    "domain": "WIFI",
-   "phase": 434,
    "title": "Insecure Guest Network Password Rotation Policy",
    "sequence": 434,
    "severity": "low",
@@ -378,11 +469,25 @@
     {
      "label": "Confirm resulting network reachability scope",
      "command": "ping -c3 <internal-test-host> ; traceroute <internal-test-host>"
+    },
+    {
+     "label": "Confirm whether the guest PSK still authenticates after its stated rotation date",
+     "command": "wpa_passphrase '<GuestSSID>' '<aged-passphrase>' > /tmp/gp.conf && wpa_supplicant -i wlan0 -c /tmp/gp.conf -d"
+    },
+    {
+     "label": "Pull the controller's record of when the guest PSK last changed (Cisco WLC)",
+     "command": "ssh admin@<wlc-mgmt-ip> 'show wlan <wlan-id>' | grep -iE 'psk|passphrase|modified'"
+    },
+    {
+     "label": "Check whether the current passphrase follows the prior pattern by generating the expected candidates",
+     "command": "for y in 2024 2025 2026; do for s in Spring Summer Autumn Winter; do echo \"$s$y!\"; done; done > guest_pattern.txt"
     }
    ],
    "variants": [
     "No rotation policy at all versus a documented-but-unenforced policy that has silently lapsed.",
-    "Rotation performed but the same passphrase pattern/predictable increment is reused each cycle (e.g. season+year), which meaningfully weakens the benefit of rotating at all."
+    "Rotation performed but the same passphrase pattern/predictable increment is reused each cycle (e.g. season+year), which meaningfully weakens the benefit of rotating at all.",
+    "Rotation performed on the controller but never propagated to printed cards or digital signage, so reception continues to hand out the previous passphrase and staff keep it working by request.",
+    "A separate long-lived 'events' or 'contractor' SSID excluded from the rotation policy entirely, which becomes the practical way in once the main guest key changes."
    ],
    "mitigation": [
     "Adopt WPA2/WPA3-Enterprise with per-user or per-device credentials for guest access where the environment allows, removing the shared-secret rotation problem entirely.",
@@ -391,6 +496,7 @@
     "Enforce client isolation and strict guest-to-internal network segmentation so the blast radius of a stale/leaked passphrase is bounded to internet access only.",
     "Track and log guest-network authentication events so unusual usage patterns after a rotation are noticeable."
    ],
+   "mitigationClientFacing": "Your guest wireless password has not changed on the schedule your policy sets out, and the password we tested still works. That means every visitor, contractor and former employee who has ever been given it still has access today. Because the password is deliberately shared widely, its strength is irrelevant — the only control is how often it changes and how little the guest network can reach. Set a rotation the team will realistically keep to and automate the reminder, make sure the new password actually reaches reception and any printed cards on the day it changes, and confirm the guest network can reach the internet and nothing else. The second point matters more than the first.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-262",
@@ -410,12 +516,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1040",
+     "name": "Network Sniffing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "DESIGN",
+     "name": "WLAN architecture and isolation"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "PMKID",
+     "name": "PMKID / four-way handshake"
+    }
+   ]
   },
   {
    "id": "WIFI-006",
    "domain": "WIFI",
-   "phase": 435,
    "title": "WPA2-Enterprise Credential Theft (Evil Twin EAP)",
    "sequence": 435,
    "severity": "high",
@@ -460,7 +587,8 @@
    ],
    "variants": [
     "EAP-TTLS/PAP configurations that leak the inner credential in cleartext rather than as an MSCHAPv2 challenge/response, removing the offline-cracking step entirely.",
-    "Man-in-the-middle relay mode, where the rogue AP proxies the captured credential through to the real RADIUS server in real time so the victim's connection still appears to succeed."
+    "Man-in-the-middle relay mode, where the rogue AP proxies the captured credential through to the real RADIUS server in real time so the victim's connection still appears to succeed.",
+    "Relaying the captured MSCHAPv2 challenge-response straight into the real network rather than cracking it offline, which yields access without ever recovering the password."
    ],
    "mitigation": [
     "Enforce EAP-TLS with mutual certificate authentication (client and server certificates) rather than password-based PEAP/EAP-TTLS wherever device provisioning allows it.",
@@ -469,6 +597,7 @@
     "Deploy WIDS/WIPS capable of detecting rogue APs broadcasting the corporate SSID with a mismatched certificate fingerprint.",
     "Rotate any credential confirmed or suspected to have been exposed to a rogue AP during testing or a real incident, and audit for reuse of that credential on VPN/SSO."
    ],
+   "mitigationClientFacing": "An attacker can stand up a copy of your corporate wireless network and collect staff login details as devices try to join it. The devices try to join because they cannot tell the copy from the original — they were never configured to check. This is one of the most direct routes from the car park to a working set of domain credentials. The remedy is a device configuration change rather than user training: every managed device must be told exactly which certificate the real network presents, and be set to refuse anything else. Once that is deployed, an impersonated network simply fails to connect, and the failure is itself a useful warning sign.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-295",
@@ -489,12 +618,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1557",
+     "name": "Adversary-in-the-Middle",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "WPA2-EAP",
+     "name": "WPA2/WPA3-Enterprise (802.1X/EAP)"
+    }
+   ]
   },
   {
    "id": "WIFI-007",
    "domain": "WIFI",
-   "phase": 436,
    "title": "Management Frame Injection (No PMF)",
    "sequence": 436,
    "severity": "medium",
@@ -508,7 +658,9 @@
     "Confirm 802.11w status (disabled / capable-optional / required) via the RSN information element, distinct from simply checking the SSID's headline security type.",
     "With authorization, inject a forged BSS Transition Management request toward a nominated test client and observe whether it attempts to roam to an attacker-specified BSSID.",
     "Fuzz/inspect how the target AP and a sample client handle malformed or unexpected action-frame subtypes, watching for crashes, reboots, or unexpected disconnects (coordinate carefully — this can cause real outages).",
-    "Check whether all client device types on the network (including embedded/IoT Wi-Fi stacks) support 802.11w, since a single legacy device can force the AP to leave PMF in optional mode network-wide."
+    "Check whether all client device types on the network (including embedded/IoT Wi-Fi stacks) support 802.11w, since a single legacy device can force the AP to leave PMF in optional mode network-wide.",
+    "Confirm whether the controller sets PMF to optional rather than required, since optional leaves any client that does not negotiate it fully exposed while the network reports itself as protected.",
+    "Verify PMF state per-SSID rather than globally, because a corporate SSID is frequently hardened while a guest or IoT SSID on the same controller is left at the default."
    ],
    "exploitationSteps": [
     "Confirm scope explicitly authorizes forged management-frame injection beyond simple deauthentication testing, given the higher potential for unintended disruption.",
@@ -529,11 +681,21 @@
     {
      "label": "Baseline capture of legitimate action frames for template comparison",
      "command": "tshark -i wlan0mon -Y 'wlan.fc.type==0 && wlan.fc.type_subtype==0x0d'"
+    },
+    {
+     "label": "Read the PMF capability and requirement bits directly from the RSN capabilities field",
+     "command": "tshark -i wlan0mon -Y 'wlan.fc.type_subtype==0x08 && wlan.ssid==\"<target-ssid>\"' -T fields -e wlan.ssid -e wlan.rsn.capabilities.mfpc -e wlan.rsn.capabilities.mfpr"
+    },
+    {
+     "label": "Confirm a disassociation frame is accepted by observing the client re-authenticate after injection",
+     "command": "aireplay-ng --deauth 1 -a <bssid> -c <client-mac> wlan0mon && tshark -i wlan0mon -Y 'wlan.fc.type_subtype==0x0b' -c 5"
     }
    ],
    "variants": [
     "Spoofed BSS Transition Management (steering) requests used to herd clients toward a rogue AP as a more surgical alternative to a blunt deauth flood.",
-    "Malformed action-frame fuzzing aimed at crashing a specific AP/driver implementation rather than simply disrupting association."
+    "Malformed action-frame fuzzing aimed at crashing a specific AP/driver implementation rather than simply disrupting association.",
+    "Channel Switch Announcement injection, which moves clients to a channel the real AP is not using and produces a denial of service that survives longer than a deauthentication burst.",
+    "Spoofed Quiet or Silence action frames, which suppress client transmission entirely and are usually unmonitored because they are a legitimate part of the standard."
    ],
    "mitigation": [
     "Enable and require 802.11w across all APs and enforce it in the pushed client Wi-Fi profile.",
@@ -541,6 +703,7 @@
     "Deploy WIDS/WIPS tuned to detect anomalous management-frame patterns beyond simple deauth floods (e.g. unexpected BSS Transition requests).",
     "Segregate legacy, PMF-incapable devices onto an isolated SSID/VLAN so they don't force the primary network into PMF-optional mode."
    ],
+   "mitigationClientFacing": "Certain wireless control messages are accepted by your network without any check that they came from a legitimate source, which lets someone nearby disconnect devices, move them to a channel that does not work, or steer them toward a network they control. The protection against this is part of the wireless standard and your equipment supports it, but it is currently either off or set to optional — and optional provides no protection to any device that does not ask for it. Move it to required on the networks that matter, checking each network name separately rather than assuming a global setting applies, and confirm your older devices can still connect before you enforce it everywhere.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-306",
@@ -561,12 +724,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1078",
+     "name": "Valid Accounts",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "802.11w",
+     "name": "Protected Management Frames (802.11w)"
+    }
+   ]
   },
   {
    "id": "WIFI-008",
    "domain": "WIFI",
-   "phase": 437,
    "title": "Insecure 802.11r Fast Transition Roaming Key Reuse",
    "sequence": 437,
    "severity": "medium",
@@ -580,7 +764,9 @@
     "Confirm 802.11r is enabled on the target network by checking the beacon/probe-response Mobility Domain information element.",
     "Identify AP vendor/firmware version and cross-reference against published advisories for FT key-derivation or nonce-reuse bugs specific to that hardware/software combination.",
     "With authorization, capture the FT authentication/reassociation frames during a real or induced roam (e.g. by walking a test device between two APs, or attenuating signal to force a roam) and inspect for nonce/replay-counter values repeating across sessions.",
-    "Check whether firmware is current against the vendor's advisory history for this class of bug — this finding is almost always a firmware-currency issue rather than a fundamental 802.11r design flaw."
+    "Check whether firmware is current against the vendor's advisory history for this class of bug — this finding is almost always a firmware-currency issue rather than a fundamental 802.11r design flaw.",
+    "Establish whether FT is offered over-the-air, over-the-DS, or both, since the two paths derive keys through different message flows and a vendor fix frequently lands on only one.",
+    "Confirm whether the deployment uses a single mobility domain across the whole estate, because a shared domain widens the consequence of any key-derivation weakness from one AP to all of them."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes triggering roaming events and capturing the resulting FT handshake traffic.",
@@ -601,11 +787,21 @@
     {
      "label": "Inspect nonce/replay counter fields across captured roams",
      "command": "tshark -r ft_roam-01.cap -Y 'wlan.fc.type_subtype==0x02 || wlan.fc.type_subtype==0x03' -V"
+    },
+    {
+     "label": "Enumerate the mobility domain identifier advertised by every AP in the estate",
+     "command": "tshark -i wlan0mon -Y 'wlan.fc.type_subtype==0x08' -T fields -e wlan.ssid -e wlan.bssid -e wlan.mobility_domain.mdid | sort -u"
+    },
+    {
+     "label": "Force a roam on a test client so the FT exchange can be captured on demand",
+     "command": "wpa_cli -i wlan0 roam <target-bssid>"
     }
    ],
    "variants": [
     "Nonce reuse specific to the FT-over-DS (over the Distribution System) roaming path versus the over-the-air FT path, which some implementations handle differently.",
-    "Combined exploitation with a rogue AP that advertises the same mobility domain to lure a fast-transition-eligible client and attempt key material capture during the resulting handshake."
+    "Combined exploitation with a rogue AP that advertises the same mobility domain to lure a fast-transition-eligible client and attempt key material capture during the resulting handshake.",
+    "A rogue AP advertising the same mobility domain identifier, which invites a fast transition from a legitimate client and moves the exchange onto attacker-controlled hardware.",
+    "FT enabled on an SSID that also permits legacy clients, where the fallback path negotiates without the FT protections the deployment is assumed to provide."
    ],
    "mitigation": [
     "Apply vendor firmware updates promptly — this class of bug is consistently fixed via patch rather than requiring 802.11r to be disabled outright.",
@@ -613,6 +809,7 @@
     "Monitor vendor security advisories specifically for Fast Transition / 802.11r implementation bugs, not just general Wi-Fi CVEs.",
     "Periodically re-test roaming behavior after firmware upgrades to confirm the fix is actually effective rather than assuming patch notes are sufficient."
    ],
+   "mitigationClientFacing": "Your wireless uses a fast-roaming feature so that devices moving around the building do not drop calls or sessions. The way keys are handled during those handovers has had a series of vendor security fixes, and the equipment here is behind on them. This is a patching finding rather than a design flaw: the feature is worth keeping and the answer is to bring the firmware current and stay current. Worth knowing for planning: because the same roaming domain is shared across the estate, a weakness in one place is not contained to one access point, so treat the firmware update as an estate-wide job rather than a site-by-site one.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-323",
@@ -632,12 +829,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "SC",
+   "categoryName": "System and Communications Protection",
+   "attack": [
+    {
+     "id": "T1550.001",
+     "name": "Application Access Token",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "PMKID",
+     "name": "PMKID / four-way handshake"
+    }
+   ]
   },
   {
    "id": "WIFI-009",
    "domain": "WIFI",
-   "phase": 438,
    "title": "KRACK (Key Reinstallation Attack)",
    "sequence": 438,
    "severity": "high",
@@ -651,7 +869,9 @@
     "Inventory client Wi-Fi driver/firmware and OS patch levels across the wireless estate and cross-reference against the vendor advisory list published alongside the original KRACK disclosure (CVE-2017-13077 through CVE-2017-13088).",
     "Prioritize embedded/IoT and long-lifecycle devices (older Android versions, unmanaged IoT Wi-Fi modules) since these are the most likely to still be unpatched years after disclosure.",
     "With authorization, run the krackattacks-scripts test suite against a nominated test client to confirm practically whether the reinstallation/nonce-reuse condition is exploitable, rather than relying on version numbers alone.",
-    "Check whether the network uses TKIP or GCMP anywhere (legacy compatibility mode), since successful exploitation there additionally permits forgery/injection, not just decryption."
+    "Check whether the network uses TKIP or GCMP anywhere (legacy compatibility mode), since successful exploitation there additionally permits forgery/injection, not just decryption.",
+    "Confirm whether the AP side is patched as well as the client side, since the FT and group-key variants are AP-side issues while the original four-way handshake variant is client-side.",
+    "Identify any device on the estate that can no longer receive firmware updates, because for those the only available remediation is network segmentation or replacement rather than patching."
    ],
    "exploitationSteps": [
     "Confirm scope explicitly authorizes active 4-way-handshake manipulation against a specific, nominated test client — this is not a passive check.",
@@ -673,6 +893,18 @@
     {
      "label": "Check client driver/version quickly for known-vulnerable stacks",
      "command": "dmesg | grep -i wifi ; adb shell getprop ro.build.version.security_patch  # example for Android test devices"
+    },
+    {
+     "label": "Test a nominated client for the four-way handshake reinstallation variant",
+     "command": "python3 krack-test-client.py --target <client-mac> --interface wlan0mon"
+    },
+    {
+     "label": "Test the group-key handshake variant, which affects broadcast traffic and is patched separately",
+     "command": "python3 krack-test-client.py --group --target <client-mac> --interface wlan0mon"
+    },
+    {
+     "label": "Confirm whether the AP retransmits handshake message 3, which is the precondition for the attack",
+     "command": "tshark -r krack_test-01.cap -Y 'eapol.type==3' -T fields -e frame.number -e wlan.sa -e wlan.da -e eapol.replay_counter"
     }
    ],
    "variants": [
@@ -686,6 +918,7 @@
     "Segment legacy/unpatchable IoT devices onto an isolated VLAN with no access to sensitive internal resources.",
     "Track vendor security advisories for Wi-Fi driver/firmware CVEs as part of routine patch management, not just OS-level patching."
    ],
+   "mitigationClientFacing": "A known weakness in how wireless encryption keys are set up allows someone nearby to decrypt traffic from an affected device. Fixes have been available for years, so the issue is not the flaw but the devices that never received the update — typically older handsets, embedded equipment and anything from a supplier that has stopped issuing firmware. Patch what can be patched, on access points as well as clients, since different parts of the problem are fixed on each side. For equipment that can no longer be updated, the remaining option is to place it on its own network segment that reaches only what it must, and to plan its replacement.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-323",
@@ -707,12 +940,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "SC",
+   "categoryName": "System and Communications Protection",
+   "attack": [
+    {
+     "id": "T1200",
+     "name": "Hardware Additions",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "PMKID",
+     "name": "PMKID / four-way handshake"
+    }
+   ]
   },
   {
    "id": "WIFI-010",
    "domain": "WIFI",
-   "phase": 439,
    "title": "Open/Unencrypted Network",
    "sequence": 439,
    "severity": "high",
@@ -748,11 +1002,21 @@
     {
      "label": "Extract cleartext HTTP credentials from a capture (test traffic only)",
      "command": "tshark -r open_net_capture.pcap -Y 'http.request.method==\"POST\"' -T fields -e http.file_data"
+    },
+    {
+     "label": "Recover cleartext credentials and session cookies from a capture taken on the open network",
+     "command": "tshark -r open_net_capture.pcap -Y 'http.authorization || http.cookie' -T fields -e ip.src -e http.host -e http.authorization -e http.cookie"
+    },
+    {
+     "label": "Confirm whether client isolation is enforced by attempting to reach a second associated test host",
+     "command": "arp-scan --interface=wlan0 --localnet && nmap -sn $(ip -4 route show dev wlan0 | awk '/proto kernel/{print $1}')"
     }
    ],
    "variants": [
     "Open network paired with a captive portal (see the related rogue-DNS-via-captive-portal finding), where authentication happens at the portal but link-layer traffic remains unencrypted regardless.",
-    "Open network intended only for IoT provisioning that has since been left permanently accessible beyond its original provisioning window."
+    "Open network intended only for IoT provisioning that has since been left permanently accessible beyond its original provisioning window.",
+    "An open SSID retained solely for a printer or legacy handset that now provides an unauthenticated foothold onto a segment reachable from the corporate VLAN.",
+    "An enhanced-open (OWE) network misreported internally as encrypted, which does encrypt the air link but still authenticates nobody, so association control is absent despite the encryption claim."
    ],
    "mitigation": [
     "Migrate the SSID to WPA2/WPA3-Personal at minimum, or WPA2/WPA3-Enterprise for corporate use cases, so link-layer encryption is restored.",
@@ -760,6 +1024,7 @@
     "Enforce HTTPS-only application design and HSTS so that even without link-layer encryption, application data in transit is protected end-to-end.",
     "Segregate IoT-provisioning-only open networks with a strict time-bounded availability window rather than leaving them permanently active."
    ],
+   "mitigationClientFacing": "One of your wireless networks has no encryption at all, so everything sent over it can be read by anyone within range using freely available software, with no password needed and no trace left behind. Even where the applications in use add their own protection, enough remains visible to be useful. If this network exists for visitors, replace it with one that encrypts the air link while still being easy to join; if it exists for a printer or some older equipment, the answer is to move that equipment onto a properly protected network or isolate it entirely. Either way, confirm that devices on it cannot see each other or reach anything internal.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-319",
@@ -779,12 +1044,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "SC",
+   "categoryName": "System and Communications Protection",
+   "attack": [
+    {
+     "id": "T1040",
+     "name": "Network Sniffing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "OWE",
+     "name": "Opportunistic Wireless Encryption / open network"
+    }
+   ]
   },
   {
    "id": "WIFI-011",
    "domain": "WIFI",
-   "phase": 440,
    "title": "WEP Encryption",
    "sequence": 440,
    "severity": "critical",
@@ -798,7 +1084,9 @@
     "Survey in-scope SSIDs and flag any advertising WEP encryption in the beacon frame — this alone is sufficient to raise a critical finding without further testing being strictly necessary to prove impact.",
     "Confirm the network is in active production use (versus a legacy/decommissioned AP left broadcasting) to correctly scope business impact.",
     "Identify what's reachable from the WEP-secured segment (flat network vs. isolated VLAN) to size the blast radius beyond simple network access.",
-    "Where the SSID naming pattern suggests IoT or legacy operational technology (e.g. a distinct 'guest-legacy' or vendor-default SSID style), flag this specifically, since WEP is frequently retained on such devices even after being fully retired from the main corporate WLAN."
+    "Where the SSID naming pattern suggests IoT or legacy operational technology (e.g. a distinct 'guest-legacy' or vendor-default SSID style), flag this specifically, since WEP is frequently retained on such devices even after being fully retired from the main corporate WLAN.",
+    "Establish whether the WEP network bridges onto the same VLAN as any production system, since a legacy AP on an isolated segment is a materially different finding from one bridged to the corporate network.",
+    "Identify what still requires WEP, because the finding is closed by replacing or isolating those devices rather than by reconfiguring the access point."
    ],
    "exploitationSteps": [
     "Confirm scope explicitly authorizes recovering the live WEP key.",
@@ -819,17 +1107,26 @@
     {
      "label": "Recover the key from captured IVs",
      "command": "aircrack-ng -b <bssid> wep_capture-01.cap"
+    },
+    {
+     "label": "Recover the key from a low-traffic network using the fragmentation attack to generate keystream",
+     "command": "aireplay-ng --fragment -b <bssid> -h <own-mac> wlan0mon && packetforge-ng -0 -a <bssid> -h <own-mac> -k 255.255.255.255 -l 255.255.255.255 -y fragment-*.xor -w forged_arp.cap"
     }
    ],
    "variants": [
     "Shared-key authentication bypass, where the WEP challenge-response itself can be used to derive keystream without needing to crack the key first, enabling injection even before full key recovery.",
-    "Fragmentation attack, an alternative keystream-recovery technique usable when little legitimate traffic is available to replay."
+    "Fragmentation attack, an alternative keystream-recovery technique usable when little legitimate traffic is available to replay.",
+    "Caffe Latte attack, which recovers the key from an isolated client that is merely in range of a spoofed SSID, without the real access point being present at all.",
+    "Retrospective decryption of previously captured traffic once the key is recovered, which extends the impact backwards to every session captured before the test."
    ],
    "mitigation": [
     "Migrate immediately to WPA2 or WPA3 — there is no configuration-level mitigation for WEP; the protocol must be replaced entirely.",
     "Audit the estate for any remaining legacy hardware that only supports WEP (older barcode scanners, industrial equipment) and plan hardware replacement or network isolation as an interim measure.",
-    "Where legacy WEP-only devices cannot be replaced immediately, isolate them on a dedicated VLAN with no access to sensitive resources and treat the segment as untrusted."
+    "Where legacy WEP-only devices cannot be replaced immediately, isolate them on a dedicated VLAN with no access to sensitive resources and treat the segment as untrusted.",
+    "Replace the access points or client devices that require WEP; the protocol has no secure configuration and disabling it at the controller is the only supported remediation path.",
+    "Where a device genuinely cannot be replaced within the remediation window, move it to a dedicated VLAN with no route to any production segment and restrict it to the specific destinations it needs."
    ],
+   "mitigationClientFacing": "This network uses WEP, a protection standard broken beyond repair and formally withdrawn. The password can be recovered in minutes by anyone within range, regardless of how long or complex it is, because the weakness is in the standard itself and no setting makes it safe. Anything previously captured can also be decrypted retrospectively once that password is recovered. There is no configuration fix. The equipment requiring WEP must be replaced, and until it is, it must be moved onto an isolated network with no route to anything else you run. We would treat this as the highest-priority item in the wireless section of this report.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-326",
@@ -848,12 +1145,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "SC",
+   "categoryName": "System and Communications Protection",
+   "attack": [
+    {
+     "id": "T1040",
+     "name": "Network Sniffing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "RSN",
+     "name": "Robust Security Network / cipher negotiation"
+    }
+   ]
   },
   {
    "id": "WIFI-012",
    "domain": "WIFI",
-   "phase": 441,
    "title": "Weak Pre-Shared Key Reuse",
    "sequence": 441,
    "severity": "high",
@@ -867,7 +1185,9 @@
     "Confirm the network uses WPA2/WPA3-Personal (PSK) rather than -Enterprise, since this finding doesn't apply to per-user 802.1X authentication.",
     "Interview the wireless team on passphrase complexity policy, rotation cadence, and whether the same passphrase is reused across multiple sites.",
     "With authorization, capture a handshake or PMKID and attempt cracking against a curated wordlist (including the organization's likely naming conventions, not just generic dictionaries) within an agreed time/compute budget to estimate real-world crackability.",
-    "Check whether the passphrase follows an inferable pattern from publicly available information (company name + year, address, common defaults)."
+    "Check whether the passphrase follows an inferable pattern from publicly available information (company name + year, address, common defaults).",
+    "Determine whether the same PSK is configured across sites, franchises or tenants, because that turns a single recovered key into estate-wide access.",
+    "Establish how the PSK is distributed and how many people have held it, since a key known to departed staff is compromised regardless of its entropy."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes capturing a live handshake/PMKID and offline-cracking the recovered material.",
@@ -896,7 +1216,9 @@
    ],
    "variants": [
     "PMKID-based cracking (clientless, see the dedicated PMKID finding), which removes the need to capture a full 4-way handshake or trigger client reassociation at all.",
-    "Passphrase reuse across multiple physical sites or franchise locations, where a single successful crack compromises every site using the same value."
+    "Passphrase reuse across multiple physical sites or franchise locations, where a single successful crack compromises every site using the same value.",
+    "A high-entropy passphrase undermined by being stored in a shared document or MDM profile readable by every enrolled user, which defeats the entropy entirely.",
+    "Identity PSK (iPSK) deployed but with a shared fallback key left enabled for onboarding, which reintroduces the single-key weakness the feature exists to remove."
    ],
    "mitigation": [
     "Enforce a long, high-entropy, randomly generated passphrase (20+ characters) rather than a memorable phrase, and store it in a password manager for distribution rather than relying on staff memorization.",
@@ -905,6 +1227,7 @@
     "Rotate the passphrase on a defined cadence and immediately upon any suspected disclosure or staff turnover with knowledge of it.",
     "Where WPA3-Personal (SAE) is supported by all clients, prefer it over WPA2-PSK, since SAE's handshake resists offline dictionary attacks even against weaker passphrases."
    ],
+   "mitigationClientFacing": "The same wireless password is used across a wide part of your estate, and everyone who has ever needed it still knows it. That includes people who have left. Because one password protects everything, a single disclosure — a leaver, a shared document, a photograph of a whiteboard — opens every site at once, and changing it means touching every device that uses it, which is why it rarely gets changed. The durable fix is to move corporate wireless onto individual logins, so access can be removed for one person without affecting anyone else. Where that is not yet practical, at minimum use a different password per site so one disclosure does not compromise all of them.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-521",
@@ -925,12 +1248,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1110",
+     "name": "Brute Force",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "WPA3-SAE",
+     "name": "WPA3-Personal SAE"
+    }
+   ]
   },
   {
    "id": "WIFI-013",
    "domain": "WIFI",
-   "phase": 442,
    "title": "Wireless Client MAC Randomization Bypass Tracking",
    "sequence": 442,
    "severity": "low",
@@ -944,7 +1288,9 @@
     "Capture probe requests from a nominated test device over a period covering at least one MAC randomization cycle (varies by OS/vendor).",
     "Extract non-MAC fingerprint features (IE ordering, supported rate set, extended capabilities, vendor-specific IEs, sequence-number increment behavior) and check whether they remain stable across the observed MAC changes.",
     "Attempt to cluster probes by fingerprint similarity alone (ignoring MAC address) and confirm whether the clustering correctly re-identifies the same test device across its randomized addresses.",
-    "Check the test device's OS/patch level against known public research on MAC-randomization bypass techniques for that platform and version."
+    "Check the test device's OS/patch level against known public research on MAC-randomization bypass techniques for that platform and version.",
+    "Establish whether randomisation is per-network or per-session on the client platforms in use, since per-network randomisation keeps a stable address for the corporate SSID and provides no privacy at all on site.",
+    "Determine whether any deployed system deliberately depends on a stable client MAC — captive portals and MAC allowlists both do — because that dependency forces randomisation off and is usually the real root cause."
    ],
    "exploitationSteps": [
     "Confirm scope and, where individuals other than nominated test devices might be incidentally observed, agree handling/retention limits for that data given its privacy sensitivity.",
@@ -961,17 +1307,30 @@
     {
      "label": "Kismet-based passive client tracking",
      "command": "kismet -c wlan0mon --no-log-devices=false"
+    },
+    {
+     "label": "Cluster probe requests by information-element fingerprint rather than address to defeat randomisation",
+     "command": "tshark -r probes.pcap -Y 'wlan.fc.type_subtype==0x04' -T fields -e wlan.sa -e wlan.tag.number -e wlan.ht.capabilities -e wlan.extcap | sort | uniq -c | sort -rn"
+    },
+    {
+     "label": "Confirm sequence-number continuity across an address change on a nominated test device",
+     "command": "tshark -r probes.pcap -Y 'wlan.fc.type_subtype==0x04' -T fields -e frame.time_relative -e wlan.sa -e wlan.seq"
     }
    ],
    "variants": [
     "Sequence-number-continuity bypass, where a randomized-MAC device's 802.11 sequence counter doesn't reset, allowing trivial linkage between old and new MAC addresses.",
-    "Timing-pattern correlation, where randomization interval and probe cadence alone (without any IE fingerprint) are enough to cluster devices in low-density environments."
+    "Timing-pattern correlation, where randomization interval and probe cadence alone (without any IE fingerprint) are enough to cluster devices in low-density environments.",
+    "Correlation through the association itself, where the randomised address becomes stable the moment the device joins the corporate network and can be tied to the user by the RADIUS log.",
+    "Vendor-specific information elements that remain constant across randomisation cycles, allowing a device model and often an individual handset to be tracked regardless of address."
    ],
    "mitigation": [
     "Keep client OS/firmware current, since MAC-randomization implementation weaknesses are an active area of vendor patching (iOS, Android, and major chipset vendors have shipped multiple fixes).",
     "For organizations concerned about this specifically (retail, event venues), avoid deploying Wi-Fi analytics/tracking solutions that rely on MAC address alone, and disclose any such tracking transparently to comply with privacy expectations/regulations.",
-    "Where privacy is a priority for a managed device fleet, prefer devices/OS versions with documented resistance to IE-fingerprinting-based re-identification."
+    "Where privacy is a priority for a managed device fleet, prefer devices/OS versions with documented resistance to IE-fingerprinting-based re-identification.",
+    "Remove any dependency on a stable client MAC address, since MAC allowlists and MAC-based portal sessions are the reason randomisation gets disabled across an estate.",
+    "Set device policy to use per-session rather than per-network randomisation where the platform supports it, accepting the onboarding cost that follows."
    ],
+   "mitigationClientFacing": "Modern phones and laptops disguise their identity to prevent being tracked as they move between places. On your network that protection is ineffective: devices can still be recognised and followed across visits by other characteristics they broadcast. The usual cause is not an attack but a configuration decision — something in your environment, typically a guest portal or an approved-device list, needs a stable identity and so the privacy feature gets turned off. This is a privacy finding rather than a route into your systems. Removing the dependency on a fixed device identity is the real fix, and it is worth doing because that same list is also weak as a security control.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-200",
@@ -990,12 +1349,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AC",
+   "categoryName": "Access Control",
+   "attack": [
+    {
+     "id": "T1213",
+     "name": "Data from Information Repositories",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "MONITOR",
+     "name": "WLAN security monitoring"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "MFP-DoS",
+     "name": "Management-frame / RF availability"
+    }
+   ]
   },
   {
    "id": "WIFI-014",
    "domain": "WIFI",
-   "phase": 443,
    "title": "Bluetooth/BLE Coexistence Attacks",
    "sequence": 443,
    "severity": "medium",
@@ -1009,7 +1389,9 @@
     "Inventory Bluetooth/BLE-capable devices in scope and check chipset/firmware versions against the published KNOB and BLURtooth advisory lists.",
     "With authorization, monitor a pairing/reconnection event between two test devices and inspect the negotiated encryption key length for evidence of downgrade susceptibility.",
     "Check whether affected devices have received the vendor firmware patches addressing KNOB (most major stacks patched by 2020) and BLURtooth (2020 disclosure, Bluetooth 4.0-5.0 affected).",
-    "Assess what's reachable or controllable via the paired BLE peripheral if the session is compromised (e.g. a smart lock, industrial sensor, or wireless keyboard) to size real-world impact."
+    "Assess what's reachable or controllable via the paired BLE peripheral if the session is compromised (e.g. a smart lock, industrial sensor, or wireless keyboard) to size real-world impact.",
+    "Inventory which Bluetooth and BLE devices share a radio with the wireless adapter, since combo chipsets arbitrate between the two and a saturated Bluetooth channel degrades Wi-Fi on the same device.",
+    "Confirm whether any security control depends on a Bluetooth link — a proximity unlock, a wireless barcode scanner, a medical telemetry link — because those are the assets a coexistence attack actually reaches."
    ],
    "exploitationSteps": [
     "Confirm scope explicitly authorizes active Bluetooth/BLE key-negotiation manipulation against nominated test devices.",
@@ -1030,11 +1412,21 @@
     {
      "label": "Inspect negotiated key length in a capture",
      "command": "tshark -r capture.pcap -Y 'btl2cap or bthci_evt' -V | grep -i 'key size\\|entropy'"
+    },
+    {
+     "label": "Enumerate BLE devices advertising in range along with their addresses and RSSI",
+     "command": "sudo btmgmt find || sudo hcitool lescan --duplicates"
+    },
+    {
+     "label": "Confirm channel overlap between the active Wi-Fi channel and observed Bluetooth activity",
+     "command": "iw dev wlan0 info && sudo btmon | grep -i 'channel'"
     }
    ],
    "variants": [
     "BLURtooth cross-transport key derivation abuse, where a compromised BLE session key is used to derive or overwrite the classic BR/EDR key (or vice versa) on dual-mode devices.",
-    "Coexistence-firmware trust bridging specific to combo Wi-Fi/Bluetooth chipsets, where shared firmware state allows a compromise on one radio to weaken the other."
+    "Coexistence-firmware trust bridging specific to combo Wi-Fi/Bluetooth chipsets, where shared firmware state allows a compromise on one radio to weaken the other.",
+    "BLE advertisement flooding, which saturates the scanning window of nearby devices and prevents a legitimate peripheral being discovered or reconnecting.",
+    "Deliberate 2.4 GHz coexistence pressure on a combo chipset, degrading the Wi-Fi link on a target device without transmitting any 802.11 frame that a wireless IDS would record."
    ],
    "mitigation": [
     "Apply vendor firmware/OS patches addressing KNOB (CVE-2019-9506) and BLURtooth (CVE-2020-15802 and related) across all Bluetooth/BLE-capable devices.",
@@ -1042,6 +1434,7 @@
     "Disable Bluetooth/BLE entirely on devices that don't require it, reducing the attack surface regardless of patch status.",
     "For high-security environments, treat combo Wi-Fi/Bluetooth chipsets as a single trust boundary during risk assessment rather than assuming the two radios are independently secured."
    ],
+   "mitigationClientFacing": "Bluetooth and Wi-Fi share the same radio space and, on most devices, the same chip. That means Bluetooth activity nearby can degrade or interrupt a device's wireless connection without a single wireless frame being sent, so nothing appears in your wireless monitoring. This matters where something you depend on runs over Bluetooth — a proximity unlock, a scanner, a headset, telemetry equipment. Identify those dependencies first, since they determine whether this is a minor issue or an operational one, and make sure anything critical has a fallback that does not rely on either radio.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-326",
@@ -1063,12 +1456,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "SC",
+   "categoryName": "System and Communications Protection",
+   "attack": [
+    {
+     "id": "T1110",
+     "name": "Brute Force",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "MFP-DoS",
+     "name": "Management-frame / RF availability"
+    }
+   ]
   },
   {
    "id": "WIFI-015",
    "domain": "WIFI",
-   "phase": 444,
    "title": "Captive Portal Bypass",
    "sequence": 444,
    "severity": "medium",
@@ -1096,7 +1510,7 @@
    "examplePayloads": [
     {
      "label": "Test pre-authentication DNS resolution",
-     "command": "dig @<portal-dns-ip> example.com"
+     "command": "dig @<portal-dns-ip> canary.example.test +short"
     },
     {
      "label": "DNS tunneling proof-of-concept through an open pre-auth DNS channel",
@@ -1113,7 +1527,9 @@
    ],
    "variants": [
     "HTTPS-only fail-open, where only port 80 is intercepted by the portal and port 443 traffic passes through unauthenticated entirely.",
-    "Session-cookie replay, where a captured portal session token is replayed from a different device/MAC to inherit authentication."
+    "Session-cookie replay, where a captured portal session token is replayed from a different device/MAC to inherit authentication.",
+    "MAC address cloning of an already-authorised session, where the portal treats the address as the session identity and a second device inherits the authenticated state.",
+    "Pre-authentication DNS or ICMP tunnelling, which carries traffic through the resolver the portal must leave open before any payment or acceptance step has completed."
    ],
    "mitigation": [
     "Block all traffic (including DNS) other than what's strictly required to reach the portal itself until authentication/acceptance is complete, closing the DNS-tunneling side channel.",
@@ -1122,6 +1538,7 @@
     "Rate-limit and monitor for rapid MAC-address changes or duplicate-MAC association attempts, which are strong indicators of an in-progress bypass attempt.",
     "Periodically re-test the portal after any controller/firmware upgrade, since bypass regressions are common when vendors update their captive-portal implementation."
    ],
+   "mitigationClientFacing": "The sign-in page on your guest network can be bypassed, so a visitor can use the connection without ever accepting the terms or being recorded. That undermines the acceptable-use agreement and the visitor record that the portal exists to produce, which may matter more for your obligations than for security. Some bypass methods are inherent to how these portals work and cannot be fully closed. The practical position is to stop treating the portal as a security control, ensure the guest network is properly separated from everything internal regardless of who is on it, and keep the portal for the terms acceptance and logging it genuinely does provide.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-284",
@@ -1142,12 +1559,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AC",
+   "categoryName": "Access Control",
+   "attack": [
+    {
+     "id": "T1078",
+     "name": "Valid Accounts",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "DESIGN",
+     "name": "WLAN architecture and isolation"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "OWE",
+     "name": "Opportunistic Wireless Encryption / open network"
+    }
+   ]
   },
   {
    "id": "WIFI-016",
    "domain": "WIFI",
-   "phase": 445,
    "title": "Evil Twin / Rogue Access Point",
    "sequence": 445,
    "severity": "high",
@@ -1161,7 +1599,9 @@
     "Establish a baseline inventory of legitimate BSSIDs for every corporate SSID (from the wireless controller) and periodically scan for any additional AP broadcasting the same SSID from an unrecognized BSSID.",
     "Compare signal strength and channel of any suspect duplicate against the legitimate AP's documented deployment to assess how competitive the rogue AP would be for real client association.",
     "Check whether the security type advertised by the duplicate matches the legitimate network exactly (an Evil Twin cloning an open network is far easier to pull off convincingly than one attempting to clone WPA2-Enterprise, see the related EAP-specific finding).",
-    "Confirm whether WIDS/WIPS is deployed and correctly alerting on unauthorized BSSIDs broadcasting known corporate SSIDs."
+    "Confirm whether WIDS/WIPS is deployed and correctly alerting on unauthorized BSSIDs broadcasting known corporate SSIDs.",
+    "Compare the BSSID and vendor OUI of every AP advertising the corporate SSID against the controller's own inventory, since a rogue is identified by the address behind the name rather than the name itself.",
+    "Check whether client devices are configured to require a specific server certificate for the corporate SSID, because a client that validates the certificate will not complete authentication against a twin."
    ],
    "exploitationSteps": [
     "Confirm scope explicitly authorizes active Evil Twin deployment against a named corporate SSID and, where real bystander devices may associate, the handling process for that traffic.",
@@ -1190,7 +1630,9 @@
    ],
    "variants": [
     "Signal-strength-only Evil Twin relying purely on physical positioning rather than active deauthentication to win the association race.",
-    "Evil Twin combined with a spoofed captive portal for credential harvesting (overlaps with the rogue-DNS/captive-portal finding)."
+    "Evil Twin combined with a spoofed captive portal for credential harvesting (overlaps with the rogue-DNS/captive-portal finding).",
+    "A rogue AP plugged into a live corporate access port, which bridges the wireless attacker directly onto the internal network rather than merely intercepting traffic.",
+    "An evil twin standing up only outside working hours, which evades a survey conducted during the day and is the common shape when the operator has periodic physical access."
    ],
    "mitigation": [
     "Deploy WIDS/WIPS with rogue-AP detection tuned to alert on any BSSID broadcasting a known corporate SSID that isn't in the authorized inventory.",
@@ -1199,6 +1641,7 @@
     "Educate users to check for consistent, expected certificate/portal behavior and to report unexpected reconnection prompts or repeated login requests.",
     "Physically survey for unauthorized APs periodically, especially near high-traffic areas (lobbies, meeting rooms) where a rogue AP is easy to plant discreetly."
    ],
+   "mitigationClientFacing": "An attacker can broadcast a network with the same name as yours, and devices in range will join it, believing it is the real one. Everything those devices then send passes through equipment the attacker controls. The reason this works is that your devices check the name but not the identity behind it. Configure managed devices to verify the network's certificate before connecting, which makes an imitation fail outright. Separately, enable rogue detection on your wireless controllers, because at present a copy of your network could operate indefinitely without anyone knowing — and the same detection catches an unauthorised access point plugged in by a well-meaning employee.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-290",
@@ -1219,12 +1662,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1078",
+     "name": "Valid Accounts",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "MONITOR",
+     "name": "WLAN security monitoring"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "WPA2-EAP",
+     "name": "WPA2/WPA3-Enterprise (802.1X/EAP)"
+    }
+   ]
   },
   {
    "id": "WIFI-017",
    "domain": "WIFI",
-   "phase": 446,
    "title": "Insecure Wi-Fi Direct Pairing",
    "sequence": 446,
    "severity": "medium",
@@ -1238,7 +1702,9 @@
     "Enumerate Wi-Fi Direct-capable/discoverable devices in scope and record their advertised provisioning methods (PIN, push-button, NFC) from the P2P discovery frames.",
     "With authorization, attempt PIN-based pairing against a nominated test device and check whether the PIN is fixed, predictable, or brute-forceable within a reasonable attempt budget.",
     "Test whether a previously-captured pairing exchange can be replayed to re-establish a connection without fresh user interaction on the target device.",
-    "Check whether the device correctly requires explicit, per-session user confirmation (a visible prompt) for push-button pairing, or whether it silently auto-accepts under certain conditions."
+    "Check whether the device correctly requires explicit, per-session user confirmation (a visible prompt) for push-button pairing, or whether it silently auto-accepts under certain conditions.",
+    "Determine which Wi-Fi Direct pairing method each device negotiates, since push-button pairing authenticates nobody and PIN-based pairing inherits the WPS weaknesses covered separately.",
+    "Establish whether Wi-Fi Direct remains enabled on printers and displays outside their provisioning window, because most are configured once and left advertising permanently."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes active Wi-Fi Direct pairing attempts against the nominated test device.",
@@ -1255,11 +1721,25 @@
     {
      "label": "Attempt WPS-style PIN pairing (reusing WPS toolkit against the P2P PIN method)",
      "command": "reaver -i wlan0mon -b <p2p-device-mac> -c <channel> -vv"
+    },
+    {
+     "label": "Enumerate Wi-Fi Direct peers and the pairing methods they advertise",
+     "command": "wpa_cli -i p2p-dev-wlan0 p2p_find && wpa_cli -i p2p-dev-wlan0 p2p_peers"
+    },
+    {
+     "label": "Confirm a push-button group can be joined without any authorisation step",
+     "command": "wpa_cli -i p2p-dev-wlan0 p2p_connect <peer-mac> pbc"
+    },
+    {
+     "label": "Check whether the joined group provides a route beyond the peer itself",
+     "command": "ip -4 addr show p2p-wlan0-0 && nmap -sn $(ip -4 route show dev p2p-wlan0-0 | awk '/proto kernel/{print $1}')"
     }
    ],
    "variants": [
     "Push-button auto-accept misconfiguration, where the device pairs without a genuine user confirmation prompt under specific state conditions (e.g. screen already unlocked and app in foreground).",
-    "NFC-triggered pairing bypass, relevant only on devices that support NFC-initiated Wi-Fi Direct handoff."
+    "NFC-triggered pairing bypass, relevant only on devices that support NFC-initiated Wi-Fi Direct handoff.",
+    "A persistent Wi-Fi Direct group that re-forms automatically after a reboot, so a single successful pairing survives the maintenance window that was expected to clear it.",
+    "A device bridging its Wi-Fi Direct group to the corporate WLAN it is also joined to, which turns an unauthenticated peer link into a path onto the production network."
    ],
    "mitigation": [
     "Disable Wi-Fi Direct on managed devices where the business use case doesn't require it.",
@@ -1267,6 +1747,7 @@
     "Keep device OS/firmware current, since PIN predictability and replay-acceptance issues are typically vendor-specific bugs addressed via patches.",
     "For high-security environments, use MDM policy to block P2P/Wi-Fi Direct connections entirely at the OS level."
    ],
+   "mitigationClientFacing": "Printers, displays and similar equipment support a direct device-to-device wireless mode that is typically switched on during setup and then left on permanently. On the equipment we examined, a nearby device can connect to it with no authentication at all. Where that equipment is also connected to your main network, this can provide a path onto it. Turn the feature off on devices that do not need it, which is most of them once initial setup is complete; where it is genuinely required, ensure the device is not simultaneously bridging to your corporate network.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-294",
@@ -1286,12 +1767,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1550",
+     "name": "Use Alternate Authentication Material",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CONFIG",
+     "name": "WLAN security configuration"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "MFP-DoS",
+     "name": "Management-frame / RF availability"
+    }
+   ]
   },
   {
    "id": "WIFI-018",
    "domain": "WIFI",
-   "phase": 447,
    "title": "Insecure Wireless Printer Direct Connection",
    "sequence": 447,
    "severity": "medium",
@@ -1336,7 +1838,9 @@
    ],
    "variants": [
     "Print-job interception/injection on the raw JetDirect (port 9100) protocol, which carries no authentication or encryption by default.",
-    "Stored scan/job-history exposure via an unauthenticated web interface, independent of any network-bridging concern."
+    "Stored scan/job-history exposure via an unauthenticated web interface, independent of any network-bridging concern.",
+    "The printer's embedded web server reachable over its direct link with default or absent credentials, exposing stored scan destinations and address-book entries.",
+    "Stored print jobs retrievable from the device over the direct link, which discloses document content without any access to the corporate network."
    ],
    "mitigation": [
     "Disable Wi-Fi Direct/AP-mode printing where not operationally required, or set a strong, unique passphrase where it is.",
@@ -1344,6 +1848,7 @@
     "Change default admin credentials on every network-attached printer/MFP and disable unauthenticated raw-port printing where the fleet supports it.",
     "Include printers and MFPs in the regular asset inventory and firmware-patching cycle rather than treating them as out-of-scope peripherals."
    ],
+   "mitigationClientFacing": "Your wireless printers accept direct connections from nearby devices without requiring any credentials. That exposes the documents held on them, their stored address books and scan destinations, and their administrative interface — which in several cases still had default credentials. Printers are routinely excluded from security work because they are thought of as office equipment rather than computers, but they hold documents and network credentials and sit on your internal network. Disable direct connection where it is not needed, set administrative passwords, and bring the printers into your normal patching and inventory processes.",
    "reference": {
     "standard": "A05:2021 - Security Misconfiguration",
     "cwe": "CWE-306",
@@ -1363,12 +1868,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1078",
+     "name": "Valid Accounts",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CONFIG",
+     "name": "WLAN security configuration"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "MFP-DoS",
+     "name": "Management-frame / RF availability"
+    }
+   ]
   },
   {
    "id": "WIFI-019",
    "domain": "WIFI",
-   "phase": 448,
    "title": "Insufficient Client Isolation",
    "sequence": 448,
    "severity": "high",
@@ -1382,7 +1908,9 @@
     "Associate two independent test devices to the same target SSID and attempt direct communication (ping, port scan) between them.",
     "Repeat the test across every AP/controller in the deployment if the environment uses more than one, since isolation enforcement can vary by hardware/firmware version or configuration group.",
     "Check for broadcast/multicast traffic visibility between clients (e.g. mDNS/Bonjour, NetBIOS) even where unicast isolation is correctly enforced, since some implementations isolate unicast but still forward multicast discovery traffic.",
-    "Review the wireless controller's isolation policy configuration directly where admin access is available, rather than relying solely on black-box testing, to confirm consistent application across SSIDs and AP groups."
+    "Review the wireless controller's isolation policy configuration directly where admin access is available, rather than relying solely on black-box testing, to confirm consistent application across SSIDs and AP groups.",
+    "Confirm isolation separately for unicast, broadcast and multicast, since controllers commonly block client-to-client unicast while leaving mDNS and SSDP discovery fully reachable.",
+    "Test isolation between clients on different APs as well as the same AP, because the setting is frequently enforced per-AP and fails across a controller-managed roam."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes lateral communication testing between wireless clients on the target SSID.",
@@ -1404,11 +1932,25 @@
     {
      "label": "Check for multicast/broadcast discovery leakage",
      "command": "tcpdump -i wlan0 'udp port 5353 or udp port 1900 or udp port 137'"
+    },
+    {
+     "label": "Enumerate other associated clients through ARP, which bypasses isolation that filters only IP forwarding",
+     "command": "sudo arp-scan --interface=wlan0 --localnet --retry=3"
+    },
+    {
+     "label": "Confirm whether multicast discovery crosses the isolation boundary",
+     "command": "avahi-browse -art || sudo nmap --script broadcast-dhcp-discover,broadcast-listener -e wlan0"
+    },
+    {
+     "label": "Test reachability to a second nominated test client directly",
+     "command": "nc -vz <second-test-client-ip> 22 445 3389"
     }
    ],
    "variants": [
     "Isolation correctly enforced for unicast traffic but multicast/broadcast discovery protocols still forwarded between clients.",
-    "Isolation enforced inconsistently across a multi-AP/multi-controller deployment due to configuration drift between hardware generations or firmware versions."
+    "Isolation enforced inconsistently across a multi-AP/multi-controller deployment due to configuration drift between hardware generations or firmware versions.",
+    "Isolation enforced on the wireless controller but bypassed through the wired gateway, where traffic leaving and re-entering the segment is no longer subject to the client-to-client rule.",
+    "IPv6 link-local reachability retained while IPv4 isolation is correctly enforced, which is a frequent oversight because the control is written against the IPv4 path only."
    ],
    "mitigation": [
     "Enable and verify client isolation on every AP/controller serving guest and, where appropriate, corporate SSIDs — test after every configuration change or firmware upgrade rather than assuming it persists.",
@@ -1416,6 +1958,7 @@
     "For corporate wireless, layer host-based firewalling and endpoint detection as a compensating control rather than relying on network isolation alone.",
     "Standardize isolation policy centrally (via the wireless controller) rather than per-AP configuration to reduce drift risk in multi-AP deployments."
    ],
+   "mitigationClientFacing": "Devices on your wireless network can see and connect to each other directly. On a guest network that means one visitor can reach another visitor's laptop; on an internal network it means a single compromised device can reach every other device on the same network without passing any control you could inspect. Your equipment supports preventing this and the setting is available now. When enabling it, have it tested properly — it is commonly enforced for the most obvious type of traffic while leaving device-discovery traffic and the newer internet addressing untouched, which leaves the gap open while the setting reports as on.",
    "reference": {
     "standard": "A01:2021 - Broken Access Control",
     "cwe": "CWE-668",
@@ -1436,12 +1979,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AC",
+   "categoryName": "Access Control",
+   "attack": [
+    {
+     "id": "T1040",
+     "name": "Network Sniffing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "DESIGN",
+     "name": "WLAN architecture and isolation"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "PMKID",
+     "name": "PMKID / four-way handshake"
+    }
+   ]
   },
   {
    "id": "WIFI-020",
    "domain": "WIFI",
-   "phase": 449,
    "title": "PMKID Attack (Clientless)",
    "sequence": 449,
    "severity": "high",
@@ -1455,7 +2019,9 @@
     "Confirm the target AP responds to an unauthenticated PMKID request using hcxdumptool against a nominated test BSSID.",
     "Check AP vendor/firmware for known PMKID-disclosure behavior, since not all implementations expose it and some have been patched to omit the field from the initial handshake message.",
     "If a PMKID is obtained, attempt offline cracking against a curated wordlist within an agreed time/compute budget to establish real-world crackability, consistent with the process used for the weak-PSK finding.",
-    "Where a PMKID is not disclosed, note whether the AP firmware is a known-patched version, since this distinguishes 'not vulnerable' from 'not tested long enough to trigger it'."
+    "Where a PMKID is not disclosed, note whether the AP firmware is a known-patched version, since this distinguishes 'not vulnerable' from 'not tested long enough to trigger it'.",
+    "Confirm whether the AP includes a PMKID in the first message of the handshake at all, since the attack depends on that field being populated and many current firmware versions omit it.",
+    "Establish whether the same PSK is in use across the estate, because a PMKID captured from one unattended AP then yields access everywhere that key is configured."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes clientless PMKID capture and offline cracking against the target BSSID.",
@@ -1476,11 +2042,25 @@
     {
      "label": "GPU-accelerated PMKID crack",
      "command": "hashcat -m 22000 pmkid.hc22000 rockyou.txt"
+    },
+    {
+     "label": "Capture PMKIDs from every AP in range without needing any client to be present",
+     "command": "sudo hcxdumptool -i wlan0mon -o pmkid.pcapng --enable_status=1"
+    },
+    {
+     "label": "Convert the capture into a crackable hash",
+     "command": "hcxpcapngtool -o pmkid.hc22000 pmkid.pcapng"
+    },
+    {
+     "label": "Run a targeted rule-based attack against the recovered PMKID",
+     "command": "hashcat -m 22000 pmkid.hc22000 wordlist.txt -r rules/d3ad0ne.rule -w 3"
     }
    ],
    "variants": [
     "Combined approach that falls back to standard handshake capture (with a bounded, authorized deauth) if the AP doesn't disclose a PMKID directly.",
-    "PMKID capture succeeds against the AP but the resulting hash proves uncrackable within a practical timeframe due to a genuinely high-entropy passphrase — still worth documenting as a confirmed-exposure/low-immediate-risk finding rather than a non-finding."
+    "PMKID capture succeeds against the AP but the resulting hash proves uncrackable within a practical timeframe due to a genuinely high-entropy passphrase — still worth documenting as a confirmed-exposure/low-immediate-risk finding rather than a non-finding.",
+    "Collection while walking the perimeter, which gathers PMKIDs from every AP whose coverage leaves the building without any association or client interaction at all.",
+    "Targeting an out-of-hours or unattended site, where the absence of clients defeats handshake capture but has no effect on this technique."
    ],
    "mitigation": [
     "Apply vendor firmware updates that omit PMKID disclosure to unauthenticated stations where such patches are available.",
@@ -1488,6 +2068,7 @@
     "Migrate to WPA3-Personal (SAE) where all clients support it, since SAE's handshake design is not vulnerable to this offline PMKID-based dictionary attack.",
     "Prefer WPA2/WPA3-Enterprise with per-user credentials for any network where the risk of shared-passphrase compromise is unacceptable."
    ],
+   "mitigationClientFacing": "Your wireless password can be attacked without anyone being connected and without any interaction. An attacker within range collects a single piece of data directly from the access point in seconds, then works on recovering the password elsewhere at their own pace. Because no client device is involved, an empty office at night is as good a target as a busy one — better, in fact, since there is nobody to notice. The defence is password strength, since the attack itself cannot be prevented: a long random passphrase makes recovery impractical. Moving corporate wireless to individual logins removes the shared password this attack targets altogether.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-326",
@@ -1508,12 +2089,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "SC",
+   "categoryName": "System and Communications Protection",
+   "attack": [
+    {
+     "id": "T1040",
+     "name": "Network Sniffing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "AUTH",
+     "name": "WLAN authentication and access"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "PMKID",
+     "name": "PMKID / four-way handshake"
+    }
+   ]
   },
   {
    "id": "WIFI-021",
    "domain": "WIFI",
-   "phase": 450,
    "title": "RF Jamming Denial of Service Susceptibility",
    "sequence": 450,
    "severity": "medium",
@@ -1527,7 +2129,9 @@
     "Confirm with the client the exact legal/regulatory authorization and physical containment plan (shielded room, controlled test site) before any jamming activity is even considered, since unauthorized RF jamming is a regulatory offense in most countries independent of any penetration-testing engagement scope.",
     "Where full active jamming is not authorized or feasible, assess susceptibility analytically instead: review whether the organization has any RF spectrum monitoring in place, whether critical operations have a wired/cellular fallback, and whether physical access to the RF environment (parking lots, adjacent floors) is controlled.",
     "Check for existing spectrum analyzer or WIDS capability that would detect an actual jamming event in production, since detection/response readiness is usually the real deliverable for this finding rather than a live jamming demonstration.",
-    "Where full active jamming cannot be authorized, review the AP's channel-utilization and interference-history logs (if available) for evidence of prior, unexplained connectivity disruptions that may already indicate real-world susceptibility."
+    "Where full active jamming cannot be authorized, review the AP's channel-utilization and interference-history logs (if available) for evidence of prior, unexplained connectivity disruptions that may already indicate real-world susceptibility.",
+    "Establish which business processes stop when wireless stops — stock scanning, payment terminals, nurse call, voice handsets — since the finding's severity is set by that dependency rather than by the radio itself.",
+    "Confirm whether a wired or cellular fallback exists and has been tested, because an untested fallback is functionally absent during an outage."
    ],
    "exploitationSteps": [
     "Do not proceed with active RF jamming unless the engagement has explicit, documented legal authorization and physical containment (e.g. a shielded enclosure) — this differs from the deauthentication finding, which operates at the protocol layer within normal transmit power and does not carry the same regulatory exposure.",
@@ -1544,18 +2148,31 @@
     {
      "label": "Spectrum analysis to confirm interference and measure channel occupancy",
      "command": "iw dev wlan0 scan | grep -A2 signal  # or use a dedicated spectrum analyzer for accurate RF measurement"
+    },
+    {
+     "label": "Measure the noise floor and interference across the band to establish a baseline before testing",
+     "command": "sudo iw dev wlan0 survey dump"
+    },
+    {
+     "label": "Confirm the controller reports the interference rather than silently degrading (Cisco WLC)",
+     "command": "ssh admin@<wlc-mgmt-ip> 'show advanced 802.11a monitor' ; ssh admin@<wlc-mgmt-ip> 'show rogue ap summary'"
     }
    ],
    "variants": [
     "Reactive/selective jamming that targets only specific frame types (e.g. deauth-frame-triggered jamming) rather than continuous broadband noise, requiring more sophisticated equipment but harder to detect via simple spectrum monitoring.",
-    "Protocol-layer flooding (association-request or probe-request floods) as a lower-regulatory-risk proxy for full RF jamming, since it denies service via resource exhaustion rather than physical-layer noise."
+    "Protocol-layer flooding (association-request or probe-request floods) as a lower-regulatory-risk proxy for full RF jamming, since it denies service via resource exhaustion rather than physical-layer noise.",
+    "Narrowband interference targeting only the control channel, which is far harder to attribute than broadband jamming while producing the same operational outcome.",
+    "Protocol-level denial through continuous CTS-to-self frames, which silences the cell using standards-compliant frames and needs no jamming hardware."
    ],
    "mitigation": [
     "Deploy spectrum analysis / WIDS capability that can detect and alert on abnormal RF interference or noise-floor changes on operating channels.",
     "Maintain a documented fallback connectivity plan (wired, cellular failover) for business-critical operations that depend on wireless availability.",
     "Where feasible, use multiple APs across non-overlapping channels/bands so a single-channel jamming event doesn't take down all wireless service simultaneously.",
-    "Establish an incident-response runbook specifically for suspected RF interference, including how to report it to the relevant telecom regulator if it appears to be a deliberate, unauthorized jamming attempt."
+    "Establish an incident-response runbook specifically for suspected RF interference, including how to report it to the relevant telecom regulator if it appears to be a deliberate, unauthorized jamming attempt.",
+    "Maintain and periodically exercise a wired or cellular fallback for any process that stops when wireless stops, since the radio environment itself cannot be secured.",
+    "Enable and monitor the controller's spectrum intelligence so interference is raised as an alert rather than surfacing as unexplained user complaints."
    ],
+   "mitigationClientFacing": "Wireless can be jammed by anyone nearby with inexpensive equipment, and there is no technical measure that prevents it — the radio spectrum is shared and open by design. The question this finding raises is therefore not how to stop it, but what in your business stops when wireless stops. Identify those processes, make sure each has a wired or mobile fallback, and test that fallback rather than assuming it works. Alongside that, enable interference alerting on your wireless controllers so that a deliberate disruption is recognised as one rather than being investigated for hours as an unexplained fault.",
    "reference": {
     "standard": "A05:2021 - Security Misconfiguration",
     "cwe": "CWE-400",
@@ -1575,12 +2192,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "SC",
+   "categoryName": "System and Communications Protection",
+   "attack": [
+    {
+     "id": "T1499",
+     "name": "Endpoint Denial of Service",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "MFP-DoS",
+     "name": "Management-frame / RF availability"
+    }
+   ]
   },
   {
    "id": "WIFI-022",
    "domain": "WIFI",
-   "phase": 451,
    "title": "SSID Spoofing / Beacon Flooding",
    "sequence": 451,
    "severity": "medium",
@@ -1594,7 +2232,9 @@
     "Monitor for beacon frames advertising SSIDs not present in the organization's documented AP inventory, particularly any using a naming pattern similar to legitimate networks.",
     "Check whether wireless scanning/WIDS tooling in use has any documented behavior or resource limits when faced with a very high number of simultaneously-advertised SSIDs.",
     "Assess whether staff/visitors have a reliable, documented way to identify the legitimate SSID (e.g. signage referencing an exact, unique name) versus relying on recognition alone, which beacon flooding specifically undermines.",
-    "Check whether client devices display any visual distinguishing indicator (network security icon, saved-network star) that would help a user avoid a convincingly-named decoy SSID during the flood."
+    "Check whether client devices display any visual distinguishing indicator (network security icon, saved-network star) that would help a user avoid a convincingly-named decoy SSID during the flood.",
+    "Confirm whether the wireless controller raises an alert when an SSID it owns is advertised from an unknown BSSID, since without that the spoof is invisible to the operator.",
+    "Establish how client devices rank networks of the same name, because a client that selects purely on signal strength will prefer a nearby spoof over a distant genuine AP."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes active beacon spoofing/flooding within the target site and agree a bounded duration to limit disruption to legitimate wireless scanning by staff/other tools.",
@@ -1611,17 +2251,30 @@
     {
      "label": "Spoof a beacon closely resembling the legitimate SSID",
      "command": "mdk4 wlan0mon b -n \"<Legit-SSID-lookalike>\" -c <channel>"
+    },
+    {
+     "label": "Identify every distinct BSSID advertising the corporate SSID and compare against inventory",
+     "command": "sudo airodump-ng --essid '<corporate-ssid>' --band abg wlan0mon"
+    },
+    {
+     "label": "Flood the environment with beacon frames to test detection and client behaviour under authorisation",
+     "command": "sudo mdk4 wlan0mon b -f ssid_list.txt -c 6 -s 200"
     }
    ],
    "variants": [
     "Targeted single-SSID spoofing designed to sit alongside the legitimate network as a decoy for social-engineering purposes, versus a broad, high-volume flood aimed at degrading scanning tools generally.",
-    "Beacon flooding combined with a simultaneous deauthentication campaign against the real AP, intended to make the flood of fake networks the path of least resistance for a confused or automated reconnecting client."
+    "Beacon flooding combined with a simultaneous deauthentication campaign against the real AP, intended to make the flood of fake networks the path of least resistance for a confused or automated reconnecting client.",
+    "A single spoofed SSID matching the corporate name exactly, which is far stealthier than beacon flooding and is the shape used when the goal is association rather than disruption.",
+    "Beacon flooding used purely as cover, generating enough noise that a genuine rogue AP is lost among the alerts it produces."
    ],
    "mitigation": [
     "Deploy WIDS/WIPS capable of distinguishing forged/unauthorized beacons from the legitimate authorized inventory and alerting accordingly, with resource headroom to remain effective under a high-volume flood.",
     "Provide staff/visitors with clear, specific guidance (exact SSID name, ideally paired with an out-of-band verification method) rather than relying on visual recognition among a potentially crowded list.",
-    "Where feasible, use 802.11w/PMF and enterprise authentication so that even if a user connects to a spoofed SSID, credential-based protections limit the impact."
+    "Where feasible, use 802.11w/PMF and enterprise authentication so that even if a user connects to a spoofed SSID, credential-based protections limit the impact.",
+    "Enable rogue-SSID alerting on the wireless controller so that the corporate SSID advertised from an unknown BSSID raises an alert rather than passing unnoticed.",
+    "Deploy 802.1X with server-certificate validation on managed clients, so that a device presented with a spoofed SSID cannot complete authentication regardless of signal strength."
    ],
+   "mitigationClientFacing": "Anyone nearby can broadcast networks using your organisation's name, or flood the area with hundreds of fake network names. The first is used to lure devices onto attacker equipment; the second causes confusion and hides the first. Your controllers can raise an alert when your own network name is broadcast from equipment you do not own, and that alerting is currently off — which means this could be happening now without your knowledge. Turn it on, and make sure the alerts reach someone who will act. Device-side certificate checking, recommended elsewhere in this report, is what stops a lure from succeeding even when one is running.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-290",
@@ -1640,12 +2293,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1078",
+     "name": "Valid Accounts",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "MONITOR",
+     "name": "WLAN security monitoring"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "MFP-DoS",
+     "name": "Management-frame / RF availability"
+    }
+   ]
   },
   {
    "id": "WIFI-023",
    "domain": "WIFI",
-   "phase": 452,
    "title": "WPA/WPA2-PSK Weak Passphrase",
    "sequence": 452,
    "severity": "high",
@@ -1659,7 +2333,9 @@
     "Capture the handshake or PMKID as described in the related PMKID/handshake-capture findings and run it against a standard dictionary (rockyou.txt and similar) plus a client-specific wordlist built from public company information.",
     "Note the time-to-crack against a commodity GPU as the primary evidence of severity — a passphrase cracked in under an hour with a basic dictionary is materially worse than one that resists a multi-day attempt.",
     "Review the organization's password/passphrase policy documentation, if any exists, specifically for wireless network secrets, since this is often an overlooked gap even in organizations with strong general password policy.",
-    "Cross-reference the recovered passphrase's structure (dictionary word, keyboard pattern, company-name-plus-year) against the organization's stated password policy to determine whether the wireless-specific policy is weaker than the general corporate one."
+    "Cross-reference the recovered passphrase's structure (dictionary word, keyboard pattern, company-name-plus-year) against the organization's stated password policy to determine whether the wireless-specific policy is weaker than the general corporate one.",
+    "Build a site-specific candidate list from the organisation's public presence before using any general wordlist, since corporate passphrases are overwhelmingly derived from the company name, address or founding year.",
+    "Confirm how the passphrase would be changed if it were compromised, because a key embedded in hundreds of unmanaged devices cannot realistically be rotated and that constrains the remediation advice."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes handshake/PMKID capture and offline dictionary cracking of the live passphrase.",
@@ -1680,11 +2356,21 @@
     {
      "label": "Then a client-specific OSINT-built wordlist with mangling rules",
      "command": "hashcat -m 22000 psk_strength.hc22000 client_osint_wordlist.txt -r rules/best64.rule"
+    },
+    {
+     "label": "Generate a targeted candidate list from organisation-specific terms",
+     "command": "hashcat --stdout -a 1 company_terms.txt years.txt | hashcat --stdout -r rules/best64.rule > targeted.txt"
+    },
+    {
+     "label": "Run the targeted list against the captured handshake before falling back to a general wordlist",
+     "command": "hashcat -m 22000 handshake.hc22000 targeted.txt -w 3 --status --status-timer=30"
     }
    ],
    "variants": [
     "Weak passphrase following a predictable seasonal/incrementing pattern across rotations, compounding the weak-strength finding with a weak-rotation-policy finding.",
-    "A technically long passphrase that is nonetheless low-entropy (a common phrase, a keyboard-walk pattern, or the organization's name plus a predictable suffix) — passing a naive length-only policy check while remaining trivially crackable with a targeted wordlist."
+    "A technically long passphrase that is nonetheless low-entropy (a common phrase, a keyboard-walk pattern, or the organization's name plus a predictable suffix) — passing a naive length-only policy check while remaining trivially crackable with a targeted wordlist.",
+    "A long passphrase that is nonetheless a predictable phrase, which resists brute force but falls immediately to a phrase-based wordlist.",
+    "The same passphrase reused as the wired network's management credential, where recovering it from the air yields administrative access rather than only network connectivity."
    ],
    "mitigation": [
     "Set a long (20+ character), randomly generated passphrase, distributed via a password manager rather than chosen for memorability.",
@@ -1692,6 +2378,7 @@
     "Migrate to WPA2/WPA3-Enterprise with per-user credentials wherever feasible, removing the shared-passphrase-strength problem entirely.",
     "Where WPA3-Personal (SAE) is supported by all clients, prefer it, since SAE resists offline dictionary attacks even against comparatively weaker passphrases."
    ],
+   "mitigationClientFacing": "Your wireless password was recovered during testing. It is based on recognisable details about the organisation, which is the first thing anyone attempting this tries — attackers build a candidate list from your own website before touching a general password list. The replacement should be long and random rather than memorable, since it is stored by devices and rarely typed. Before changing it, confirm how many devices hold the current one, because that count determines whether this is an afternoon's work or a project. If the answer is a large number of unmanaged devices, that itself is the stronger argument for moving to individual logins.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-326",
@@ -1712,12 +2399,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "SC",
+   "categoryName": "System and Communications Protection",
+   "attack": [
+    {
+     "id": "T1040",
+     "name": "Network Sniffing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "PMKID",
+     "name": "PMKID / four-way handshake"
+    }
+   ]
   },
   {
    "id": "WIFI-024",
    "domain": "WIFI",
-   "phase": 453,
    "title": "WPA3 Dragonblood Vulnerabilities",
    "sequence": 453,
    "severity": "medium",
@@ -1731,7 +2439,9 @@
     "Identify AP vendor/firmware and cross-reference against the Dragonblood advisory list and subsequent vendor patch notes for that specific model.",
     "Confirm whether the network operates in WPA3-only or WPA3-Transition (mixed WPA2/WPA3) mode, since the downgrade variant only applies to transition mode.",
     "With authorization, attempt the published Dragondrain/Dragontime/Dragonslayer proof-of-concept tests against the target AP to check for timing variance correlated with password guesses.",
-    "For transition-mode networks, attempt to force a WPA3-capable test client to negotiate WPA2 instead and confirm whether the downgrade succeeds."
+    "For transition-mode networks, attempt to force a WPA3-capable test client to negotiate WPA2 instead and confirm whether the downgrade succeeds.",
+    "Confirm the AP firmware version against the vendor's Dragonblood advisory, since this is a patching finding and the presence of WPA3 alone does not indicate exposure.",
+    "Check whether WPA3 is deployed in transition mode, because the downgrade path there is a larger exposure than the side-channel weaknesses themselves."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes active SAE-handshake side-channel testing and, separately, downgrade-attack testing against a nominated test client.",
@@ -1752,11 +2462,21 @@
     {
      "label": "Test WPA3-Transition downgrade to WPA2 for a dual-mode client",
      "command": "mdk4 wlan0mon t -t <target-bssid>  # transition-mode downgrade proof-of-concept"
+    },
+    {
+     "label": "Confirm which SAE groups the AP accepts, since support for the vulnerable curves indicates unpatched firmware",
+     "command": "sudo tshark -i wlan0mon -Y 'wlan.fixed.auth.alg==3' -T fields -e wlan.bssid -e wlan.fixed.finite_cyclic_group"
+    },
+    {
+     "label": "Confirm whether the AP also advertises WPA2, which indicates transition mode and an available downgrade",
+     "command": "sudo airodump-ng --essid '<target-ssid>' wlan0mon  # the ENC column shows WPA2 WPA3 when both are offered"
     }
    ],
    "variants": [
     "Cache-based side-channel variant (exploiting shared-hardware cache timing) as opposed to the network-observable timing variant, relevant primarily where an attacker has co-located code execution rather than pure over-the-air access.",
-    "Group-negotiation downgrade forcing a weaker elliptic-curve group during SAE rather than a full WPA2 downgrade."
+    "Group-negotiation downgrade forcing a weaker elliptic-curve group during SAE rather than a full WPA2 downgrade.",
+    "Downgrade to WPA2 against an AP in transition mode, which sidesteps SAE entirely and is materially easier than exploiting the side channels.",
+    "Resource-exhaustion denial of service against the SAE commit exchange, which is cheap to mount and affects patched and unpatched firmware alike."
    ],
    "mitigation": [
     "Apply vendor firmware/software patches addressing the specific Dragonblood CVEs (CVE-2019-9494 through CVE-2019-9498) for both APs and any client devices with WPA3 supplicant support.",
@@ -1764,6 +2484,7 @@
     "Track WPA3/SAE-specific advisories from the Wi-Fi Alliance and chipset vendors as a distinct patch-management stream, since these are newer and less mature than WPA2-era guidance.",
     "Re-test SAE handshake timing behavior after any firmware upgrade claiming to remediate Dragonblood, since some vendor patches have historically been incomplete."
    ],
+   "mitigationClientFacing": "You are running WPA3, which is the right choice and a meaningful improvement over what came before. This finding is narrower: the firmware here predates the vendor fixes for a known set of weaknesses in it, so the benefit is not fully realised. Updating the firmware resolves it. Worth flagging separately is that the network is running in a mode that also accepts the older WPA2 standard so that legacy devices still work. That fallback is a larger exposure than the firmware issue, because an attacker can simply take the older path. Plan to retire it once the remaining older devices are replaced.",
    "reference": {
     "standard": "A02:2021 - Cryptographic Failures",
     "cwe": "CWE-203",
@@ -1783,12 +2504,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "SC",
+   "categoryName": "System and Communications Protection",
+   "attack": [
+    {
+     "id": "T1040",
+     "name": "Network Sniffing",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "WPA3-SAE",
+     "name": "WPA3-Personal SAE"
+    }
+   ]
   },
   {
    "id": "WIFI-025",
    "domain": "WIFI",
-   "phase": 454,
    "title": "WPS PIN Vulnerability",
    "sequence": 454,
    "severity": "high",
@@ -1802,7 +2544,9 @@
     "Confirm WPS is enabled on the target AP and check the WPS information element for the specific state (PIN method enabled/disabled/locked).",
     "Identify AP chipset/vendor from the OUI and beacon fingerprint and check against the published list of Pixie-Dust-vulnerable chipsets.",
     "With authorization, run Reaver/Bully in a bounded test to confirm whether online PIN brute-forcing is rate-limited/locked out by the AP after repeated failures, or proceeds unrestricted.",
-    "Where the chipset is a known Pixie Dust candidate, attempt a single WPS handshake capture and offline PIN recovery to confirm exploitability without needing extended online brute-forcing."
+    "Where the chipset is a known Pixie Dust candidate, attempt a single WPS handshake capture and offline PIN recovery to confirm exploitability without needing extended online brute-forcing.",
+    "Confirm whether WPS is advertised in the beacon and whether the external registrar PIN method is enabled, since the push-button method alone is not exposed to this attack.",
+    "Establish whether WPS was re-enabled by a firmware update or factory reset, which is a common cause of it reappearing on a network where it was previously disabled."
    ],
    "exploitationSteps": [
     "Confirm scope authorizes active WPS PIN attacks (online brute-force and/or offline Pixie Dust) against the target AP.",
@@ -1831,7 +2575,9 @@
    ],
    "variants": [
     "Pixie Dust offline attack exploiting weak nonce generation (near-instant recovery on vulnerable chipsets) versus the classic online split-PIN brute-force (hours, and rate-limitable by the AP).",
-    "Push-button configuration (PBC) mode abuse, a related but distinct WPS method that can be raced or replayed under certain AP implementations."
+    "Push-button configuration (PBC) mode abuse, a related but distinct WPS method that can be raced or replayed under certain AP implementations.",
+    "The Pixie Dust offline attack, which recovers the PIN in seconds from a single exchange where the AP generates weak nonces, rather than requiring an online guessing run.",
+    "WPS silently re-enabled after a firmware upgrade or factory reset, which is the usual reason the finding recurs on a network where it was previously remediated."
    ],
    "mitigation": [
     "Disable WPS entirely — this is the only complete fix; WPS's PIN-splitting design flaw cannot be configured around while the feature remains enabled.",
@@ -1839,6 +2585,7 @@
     "Apply vendor firmware updates addressing Pixie-Dust-class nonce-generation weaknesses if WPS must remain temporarily enabled for operational reasons.",
     "Audit the wireless estate specifically for WPS status as a standalone check, since it's frequently overlooked even when passphrase strength and encryption type are otherwise well-managed."
    ],
+   "mitigationClientFacing": "A convenience feature that lets devices join wireless by pressing a button or entering a short number is enabled here. The number can be worked out by an attacker within range, in some cases within seconds, and it yields the full wireless password. Turn the feature off. Two things are worth knowing: it is often re-enabled silently by a firmware update or a factory reset, so it needs re-checking after maintenance rather than being fixed once, and a device that already uses it will need to be rejoined manually, which is worth scheduling rather than discovering.",
    "reference": {
     "standard": "A07:2021 - Identification and Authentication Failures",
     "cwe": "CWE-307",
@@ -1859,12 +2606,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1110",
+     "name": "Brute Force",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "AUTH",
+     "name": "WLAN authentication and access"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "WPS",
+     "name": "Wi-Fi Protected Setup"
+    }
+   ]
   },
   {
    "id": "WIFI-026",
    "domain": "WIFI",
-   "phase": 26,
    "sequence": 26,
    "title": "802.1X / RADIUS EAP Method Downgrade & MAB Bypass",
    "severity": "high",
@@ -1900,6 +2668,18 @@
     {
      "label": "Cloning an authorized MAC address for MAB bypass (Linux)",
      "command": "ifconfig wlan0 down && macchanger -m AA:BB:CC:DD:EE:FF wlan0 && ifconfig wlan0 up"
+    },
+    {
+     "label": "Confirm which EAP methods the RADIUS server will negotiate, since a weaker method left enabled is the downgrade path",
+     "command": "sudo eapmd5pass -r <capture.pcap> || sudo eaphammer --eap-methods --interface wlan0"
+    },
+    {
+     "label": "Test whether an unauthenticated device is admitted by MAC authentication bypass",
+     "command": "sudo macchanger -m <observed-authorised-mac> wlan0 && sudo wpa_supplicant -i wlan0 -c open.conf -d"
+    },
+    {
+     "label": "Confirm whether the client validates the RADIUS server certificate",
+     "command": "sudo eaphammer --interface wlan0 --essid '<corporate-ssid>' --creds --auth wpa-eap"
     }
    ],
    "variants": [
@@ -1913,6 +2693,7 @@
     "Avoid MAB wherever possible; where required for legacy devices, isolate MAB-authenticated devices into a tightly restricted VLAN with no access to sensitive resources and monitor for MAC address anomalies (e.g. the same MAC appearing on multiple ports/locations simultaneously).",
     "Use long, high-entropy RADIUS shared secrets and rotate them periodically."
    ],
+   "mitigationClientFacing": "Your corporate wireless uses individual logins, which is the right design. Two gaps were found in how it is enforced. Weaker login methods remain available and an attacker can request one instead of the strong method, and there is an approved-device list that admits equipment by an identifier which can simply be copied. Disable the weaker methods on the authentication server so the strong one is the only option, and treat the device list as an inventory convenience rather than a security control — anything relying on it for access should be moved behind proper authentication.",
    "reference": {
     "standard": "NIST SP 800-153",
     "cwe": "CWE-287",
@@ -1933,12 +2714,33 @@
     "affectedEndpoints": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1078",
+     "name": "Valid Accounts",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "AUTH",
+     "name": "WLAN authentication and access"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "WPA2-EAP",
+     "name": "WPA2/WPA3-Enterprise (802.1X/EAP)"
+    }
+   ]
   },
   {
    "id": "WIFI-027",
    "domain": "WIFI",
-   "phase": 455,
    "sequence": 455,
    "title": "Absent or Ineffective Rogue Access Point Detection (WIDS/WIPS Coverage Gap)",
    "severity": "medium",
@@ -2004,6 +2806,7 @@
     "Maintain an accurate inventory of authorised access points, since rogue detection is only meaningful relative to a known-good baseline.",
     "Rehearse the response: periodically stand up an authorised test AP and measure detection-to-response time as an operational metric rather than assuming the capability works."
    ],
+   "mitigationClientFacing": "Every other wireless finding in this report assumes an attacker's equipment goes unnoticed, and we tested that assumption directly by operating a test access point on site. It was not detected, and no alert was raised. That matters because it changes the character of every other item here: without detection, a temporary opportunity becomes permanent access. It also means an access point plugged in by an employee for convenience — by far the most common real occurrence — could sit on your network indefinitely. Enable rogue detection on your controllers, tune it so neighbouring businesses do not drown out real alerts, and agree who responds.",
    "reference": {
     "standard": "Wireless Security - Detection & Response",
     "cwe": "CWE-778",
@@ -2027,12 +2830,33 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AU",
+   "categoryName": "Audit and Accountability",
+   "attack": [
+    {
+     "id": "T1685.002",
+     "name": "Disable or Modify Cloud Log",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "MONITOR",
+     "name": "WLAN security monitoring"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "WPA2-EAP",
+     "name": "WPA2/WPA3-Enterprise (802.1X/EAP)"
+    }
+   ]
   },
   {
-   "id": "WIFI-456",
+   "id": "WIFI-028",
    "domain": "WIFI",
-   "phase": 456,
    "sequence": 456,
    "title": "WPA3 Transition Mode Downgrade to WPA2",
    "severity": "high",
@@ -2098,6 +2922,7 @@
     "Use a long random passphrase so that even a captured WPA2 handshake is not practically crackable.",
     "Deploy wireless intrusion detection capable of alerting on an SSID being advertised with weaker suites than the authorised configuration."
    ],
+   "mitigationClientFacing": "Your wireless is configured to accept both the current WPA3 standard and the older WPA2 at once, so that older devices continue to work. An attacker can simply choose the older option, which means devices capable of the stronger protection do not receive it. This is a deliberate compatibility decision rather than a mistake, and the fix is a planning matter: identify which devices still require the older standard, replace or segregate them, and then turn the fallback off. Until that happens it is more accurate to describe this network as WPA2-protected than WPA3-protected, which is worth knowing if WPA3 has been cited in any compliance response.",
    "reference": {
     "standard": "WSTG / OWASP Wireless Security",
     "cwe": "CWE-757",
@@ -2122,12 +2947,33 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "SC",
+   "categoryName": "System and Communications Protection",
+   "attack": [
+    {
+     "id": "T1557",
+     "name": "Adversary-in-the-Middle",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "WPA3-SAE",
+     "name": "WPA3-Personal SAE"
+    }
+   ]
   },
   {
-   "id": "WIFI-457",
+   "id": "WIFI-029",
    "domain": "WIFI",
-   "phase": 457,
    "sequence": 457,
    "title": "OWE Transition Mode and Open Guest Network Downgrade",
    "severity": "medium",
@@ -2193,6 +3039,7 @@
     "Where guest access carries any sensitivity, require per-user credentials rather than relying on OWE alone.",
     "Keep guest traffic on a segment with no route to corporate resources, so a downgraded client cannot reach anything internal."
    ],
+   "mitigationClientFacing": "Your guest network uses the newer standard that encrypts traffic without requiring a password, which is a genuine improvement over a fully open network. It is running in a compatibility mode that also accepts plain unencrypted connections, so a device can be pushed onto the unencrypted path and the benefit is lost. As with the corporate network, the fix is to establish which devices still need the fallback and then remove it. In the meantime, treat the guest network as unencrypted when deciding what it is allowed to reach, rather than relying on protection an attacker can opt out of.",
    "reference": {
     "standard": "WSTG / OWASP Wireless Security",
     "cwe": "CWE-757",
@@ -2216,12 +3063,33 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "SC",
+   "categoryName": "System and Communications Protection",
+   "attack": [
+    {
+     "id": "T1557",
+     "name": "Adversary-in-the-Middle",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "OWE",
+     "name": "Opportunistic Wireless Encryption / open network"
+    }
+   ]
   },
   {
-   "id": "WIFI-458",
+   "id": "WIFI-030",
    "domain": "WIFI",
-   "phase": 458,
    "sequence": 458,
    "title": "Guest-to-Corporate Wireless Segmentation Failure",
    "severity": "high",
@@ -2254,7 +3122,7 @@
     },
     {
      "label": "Check the offered resolver",
-     "command": "cat /etc/resolv.conf && dig @<offered_dns> internal.example.com"
+     "command": "cat /etc/resolv.conf && dig @<offered_dns> <internal-corp-hostname>"
     },
     {
      "label": "Guest isolation test",
@@ -2287,6 +3155,7 @@
     "Rotate guest credentials on a schedule and prefer per-visitor vouchers over a shared printed password.",
     "Test segmentation from the guest network itself on a recurring basis, since configuration drift is the usual cause here."
    ],
+   "mitigationClientFacing": "Guest and corporate wireless are intended to be separate, and they are not fully. From the guest network it was possible to reach systems that should only be reachable internally. This matters more than any individual wireless weakness, because the guest network is deliberately easy to join — that is its purpose — so anything reachable from it is effectively reachable by anyone who can sit in your reception area or car park. Tighten the separation at the firewall so that guest traffic can reach the internet and nothing else, then re-test rather than assuming the rule change worked, since these paths are frequently reopened by a later, unrelated change.",
    "reference": {
     "standard": "NIST SP 800-115 - Technical Guide to Information Security Testing",
     "cwe": "CWE-1188",
@@ -2311,12 +3180,33 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AC",
+   "categoryName": "Access Control",
+   "attack": [
+    {
+     "id": "T1592",
+     "name": "Gather Victim Host Information",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "DESIGN",
+     "name": "WLAN architecture and isolation"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "PMKID",
+     "name": "PMKID / four-way handshake"
+    }
+   ]
   },
   {
-   "id": "WIFI-459",
+   "id": "WIFI-031",
    "domain": "WIFI",
-   "phase": 459,
    "sequence": 459,
    "title": "Unauthorised Tethering and Ad-Hoc Bridging from Corporate Endpoints",
    "severity": "high",
@@ -2382,6 +3272,7 @@
     "Route endpoint traffic through an always-on tunnel so a tether does not remove monitoring visibility.",
     "Address the underlying reason: where staff tether because coverage or filtering blocks legitimate work, fix that rather than only prohibiting the workaround."
    ],
+   "mitigationClientFacing": "Company laptops can share their mobile data connection or bridge between networks, which creates a route into your network that bypasses your internet controls entirely — no filtering, no inspection, no record. Staff do this to work around poor coverage or a blocked site rather than to cause harm, which is worth knowing because it tells you where the pressure is. Disable the capability through your device management, and at the same time look at why it is being used: a network that works reliably and does not block things people legitimately need removes most of the motivation.",
    "reference": {
     "standard": "NIST SP 800-153 - Guidelines for Securing Wireless Local Area Networks",
     "cwe": "CWE-923",
@@ -2406,12 +3297,33 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AC",
+   "categoryName": "Access Control",
+   "attack": [
+    {
+     "id": "T1200",
+     "name": "Hardware Additions",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "DESIGN",
+     "name": "WLAN architecture and isolation"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "WPA2-EAP",
+     "name": "WPA2/WPA3-Enterprise (802.1X/EAP)"
+    }
+   ]
   },
   {
-   "id": "WIFI-460",
+   "id": "WIFI-032",
    "domain": "WIFI",
-   "phase": 460,
    "sequence": 460,
    "title": "Wi-Fi Easy Connect (DPP) Onboarding Weaknesses",
    "severity": "medium",
@@ -2477,6 +3389,7 @@
     "Place DPP-onboarded IoT devices on a dedicated segment with no route to corporate resources.",
     "Invalidate codes as part of the decommissioning process so returned hardware cannot be used to rejoin."
    ],
+   "mitigationClientFacing": "You are using the newer QR-code-based method of getting devices onto wireless, which is a sound approach and avoids sharing a password. The weakness found is in how the setup codes are handled: they can be reused, are not time-limited, and in some cases were found stored where others could see them. A code that stays valid is equivalent to the wireless password it replaces. Make the codes single-use with a short expiry, generate them per device rather than printing one for general use, and keep them out of shared documents and messages. This is a process change rather than a technology one.",
    "reference": {
     "standard": "WSTG / OWASP Wireless Security",
     "cwe": "CWE-295",
@@ -2500,12 +3413,33 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "IA",
+   "categoryName": "Identification and Authentication",
+   "attack": [
+    {
+     "id": "T1557",
+     "name": "Adversary-in-the-Middle",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "AUTH",
+     "name": "WLAN authentication and access"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "PMKID",
+     "name": "PMKID / four-way handshake"
+    }
+   ]
   },
   {
-   "id": "WIFI-461",
+   "id": "WIFI-033",
    "domain": "WIFI",
-   "phase": 461,
    "sequence": 461,
    "title": "IoT and OT Device SoftAP Provisioning Exposure",
    "severity": "high",
@@ -2571,6 +3505,7 @@
     "Include wireless IoT devices in the asset inventory and in recurring wireless surveys, since they are usually installed outside IT's process.",
     "Make provisioning security a procurement requirement: authenticated setup, a closing setup window, and no plaintext credential retrieval."
    ],
+   "mitigationClientFacing": "Smart devices and operational equipment typically create their own temporary wireless network during setup so a phone can configure them. On several devices here that network is still running long after setup finished, and it accepts connections without a password. Anyone within range can connect and reconfigure the device. Check each device for whether this setup mode can be turned off after installation — most can, but it is rarely done because installation is usually carried out by a contractor with no instruction to do so. Add the step to your commissioning checklist, and place this equipment on its own network segment so a device that cannot be secured is at least contained.",
    "reference": {
     "standard": "OWASP IoT Top 10 - I1 Weak, Guessable or Hardcoded Passwords",
     "cwe": "CWE-1188",
@@ -2596,7 +3531,29 @@
     "attachments": [],
     "status": "not-tested"
    },
-   "flagged": false
+   "flagged": false,
+   "categoryStandard": "NIST SP 800-53 Rev. 5",
+   "categoryCode": "AC",
+   "categoryName": "Access Control",
+   "attack": [
+    {
+     "id": "T1592",
+     "name": "Gather Victim Host Information",
+     "matrix": "enterprise"
+    }
+   ],
+   "frameworks": [
+    {
+     "standard": "NIST SP 800-153",
+     "code": "CRYPTO",
+     "name": "WLAN traffic protection"
+    },
+    {
+     "standard": "IEEE 802.11 / WPA3",
+     "code": "OWE",
+     "name": "Opportunistic Wireless Encryption / open network"
+    }
+   ]
   }
  ]
 }

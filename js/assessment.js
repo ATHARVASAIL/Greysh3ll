@@ -1,121 +1,4 @@
-/* VAPT CONSOLE — assessment.js: Assessment Mode, toast notifications, export/import, and the domain context editor. Depends on core.js + rendering.js. */
-
-/* =========================================================
-   ASSESSMENT MODE
-========================================================= */
-let assessModeOpen = false;
-
-/* Assessment Mode now walks whatever the current filters resolve to —
-   if the sidebar (or a ?domain= link) has you scoped to WEB, Assessment
-   Mode walks only WEB's cases, in sequence order, instead of always
-   cycling through the full 524-case dataset regardless of context. */
-function getAssessmentQueue(){
-  return allData.filter(matchesFilters).sort((a,b)=> a.sequence - b.sequence);
-}
-
-function openAssessMode(){
-  const sorted = getAssessmentQueue();
-  if(sorted.length === 0){
-    showToast('No test cases match the current filters — clear a filter to start Assessment Mode.');
-    return;
-  }
-  const firstIncomplete = sorted.findIndex(d=>d.status !== 'tested-pass');
-  assessIndex = firstIncomplete === -1 ? 0 : firstIncomplete;
-  assessModeOpen = true;
-  const overlay = document.getElementById('assessOverlay');
-  if(overlay) overlay.classList.add('open');
-  renderAssessCard();
-}
-function closeAssessMode(){
-  assessModeOpen = false;
-  const overlay = document.getElementById('assessOverlay');
-  if(overlay) overlay.classList.remove('open');
-  renderAll();
-}
-/* Domains whose detail fetch has already triggered a re-render, so a second
-   render never re-enters the same path. Without this, an item whose id is
-   missing from its detail file leaves hasDetail() false forever: the cached
-   promise resolves instantly, calls renderAssessCard again, which requests the
-   same domain again — an unbounded microtask loop that hard-freezes the tab. */
-const assessDetailAttempted = new Set();
-
-function renderAssessCard(){
-  const sorted = getAssessmentQueue();
-  if(sorted.length === 0){ closeAssessMode(); return; }
-  if(assessIndex >= sorted.length) assessIndex = sorted.length - 1;
-  const item = sorted[assessIndex];
-
-  /* Assessment Mode walks case by case, so fetch the domain's detail the first
-     time it reaches that domain, then re-render once with full content. The
-     card below still renders immediately from index-level fields, so the step
-     never appears blank while the fetch is in flight. */
-  if(!hasDetail(item) && !assessDetailAttempted.has(item.domain)){
-    assessDetailAttempted.add(item.domain);
-    ensureDetail(item.domain)
-      .then(()=>{ if(assessModeOpen) renderAssessCard(); })
-      .catch(()=>{
-        // Allow a genuine retry later, but not an immediate re-entry.
-        assessDetailAttempted.delete(item.domain);
-        showToast('Could not load detail for this test case.');
-      });
-  }
-
-  const total = sorted.length;
-  const catMeta = DOMAIN_META.find(c=>c.code === item.domain);
-  const phaseNum = DOMAIN_META.findIndex(c=>c.code === item.domain) + 1;
-
-  const counter = document.getElementById('assessCounter');
-  const progressFill = document.getElementById('assessProgressFill');
-  if(counter) counter.textContent = `Test ${assessIndex+1} / ${total}`;
-  if(progressFill) progressFill.style.width = ((assessIndex+1)/total*100) + '%';
-
-  const body = document.getElementById('assessBody');
-  if(!body) return;
-  const isFirstOfDomain = assessIndex === 0 || sorted[assessIndex-1].domain !== item.domain;
-  body.innerHTML = `
-    <span class="assess-cat-tag">Phase ${phaseNum} · ${catMeta?catMeta.code:''} · ${escapeHtml(catMeta?catMeta.name:'')}</span>
-    ${isFirstOfDomain ? renderDomainPrimer(item.domain) : ''}
-    <div class="assess-title">${escapeHtml(item.title)}</div>
-    <div class="item-top u-mb-14">
-      <span class="order-badge">#${item.sequence}</span>
-      <span class="item-id">${item.id}</span>
-      <span class="sev-badge sev-chip" data-sev="${item.severity}">${escapeHtml(item.severityLabel||item.severity)}</span>
-      <span class="cwe-badge">${escapeHtml(item.cwe||'—')}</span>
-    </div>
-    ${getDetailHtml(item)}
-    <div class="assess-nav">
-      <button class="btn${assessIndex===0?' u-disabled':''}" id="assessPrevBtn" ${assessIndex===0?'disabled':''}>${svgIcon('chevronleft')} Previous</button>
-      <button class="btn assess-mark ${item.status==='tested-pass'?'done':''}" id="assessMarkBtn">${item.status==='tested-pass'?checkSvg()+' Passed':'Mark Pass'}</button>
-      <button class="btn${assessIndex===total-1?' u-disabled':''}" id="assessNextBtn" ${assessIndex===total-1?'disabled':''}>Next ${svgIcon('chevronright')}</button>
-    </div>
-    <div class="assess-jump-hint">Use <kbd>←</kbd> <kbd>→</kbd> to navigate, <kbd>Esc</kbd> to exit</div>
-  `;
-  bindResultEvents(body);
-  const prevBtn = document.getElementById('assessPrevBtn');
-  const nextBtn = document.getElementById('assessNextBtn');
-  const markBtn = document.getElementById('assessMarkBtn');
-  if(prevBtn) prevBtn.onclick = assessPrev;
-  if(nextBtn) nextBtn.onclick = assessNext;
-  if(markBtn){
-    markBtn.onclick = ()=>{
-      item.status = item.status === 'tested-pass' ? 'not-tested' : 'tested-pass';
-      markInteraction(item.domain);
-      detailCache.delete(item.id);
-      persist();
-      renderAssessCard();
-      if(item.status === 'tested-pass') setTimeout(()=>{ if(assessIndex < total-1) assessNext(); }, 400);
-    };
-  }
-}
-function assessNext(){
-  const sorted = getAssessmentQueue();
-  if(assessIndex < sorted.length-1){ assessIndex++; renderAssessCard(); }
-}
-function assessPrev(){ if(assessIndex > 0){ assessIndex--; renderAssessCard(); } }
-
-document.getElementById('assessModeBtn').addEventListener('click', openAssessMode);
-document.getElementById('assessClose').addEventListener('click', closeAssessMode);
-document.getElementById('assessOverlay').addEventListener('click', (e)=>{ if(e.target.id === 'assessOverlay') closeAssessMode(); });
+/* VAPT CONSOLE — assessment.js: toast notifications, export/import, and the domain context editor. Depends on core.js + rendering.js. */
 
 /* =========================================================
    TOAST
@@ -169,12 +52,12 @@ document.getElementById('exportCsvBtn').addEventListener('click', async ()=>{
   try{ await ensureAllDetail(); }
   catch(err){ showToast('Could not load all test case detail — export cancelled.'); return; }
   const tester = document.getElementById('testerName').value || '(unspecified)';
-  const header = 'TestOrder,Tester,Domain,ID,Vulnerability,Severity,Status,Flagged,CWE,Standard,Tools,Notes,Remediation,RetestedOn,RetestNotes\n';
+  const header = 'DomainCaseNo,Tester,Domain,ID,Vulnerability,Severity,Status,Flagged,CWE,Standard,Tools,Notes,Remediation,RetestedOn,RetestNotes\n';
   const esc = (s)=> `"${String(s==null?'':s).replace(/"/g,'""')}"`;
   const rows = allData.slice().sort((a,b)=>a.sequence-b.sequence).map(d=>{
     const ref = d.reference || {};
     const tools = Array.isArray(ref.tools) ? ref.tools.join(', ') : (ref.tools || '');
-    return [d.sequence, esc(tester), esc(d.domain), esc(d.id), esc(d.title), esc(d.severityLabel||d.severity),
+    return [d.domainIndex, esc(tester), esc(d.domain), esc(d.id), esc(d.title), esc(d.severityLabel||d.severity),
       esc(d.status), d.flagged?'YES':'NO', esc(d.cwe||''), esc(ref.standard||''),
       esc(tools), esc(d.assessorNotes?.findings||''),
       esc(d.status==='tested-fail' ? getRemediationObj((d.assessorNotes?.remediation||{}).state).label : ''),
@@ -205,7 +88,11 @@ document.getElementById('printBtn').addEventListener('click', async ()=>{
    checklist UI. Only runs at print time (see printBtn above);
    @media print hides everything on the page except #reportRoot.
 ========================================================= */
-const REPORT_SEV_COLOR = { critical:'#B91C1C', high:'#C2410C', medium:'#A16207', low:'#15803D', info:'#0369A1' };
+/* Report severity palette — canonical hexes. These are applied via the
+   .rsev-* / .rsev-text-* classes in the print block of responsive-performance.css
+   (not inline style=, which the strict CSP forbids). Kept here as the single
+   documented reference; if these change, update those CSS classes to match:
+   critical #B91C1C · high #C2410C · medium #A16207 · low #15803D · info #0369A1 */
 const REPORT_STATUS_LABEL = { 'not-tested':'Not Tested', 'in-progress':'In Progress', 'tested-pass':'Pass', 'tested-fail':'Fail', 'not-applicable':'N/A' };
 
 function buildReportHTML(){
@@ -283,10 +170,10 @@ function buildReportHTML(){
         <thead><tr><th>Severity</th><th>Total cases</th><th>Open findings</th><th>Status</th></tr></thead>
         <tbody>
           ${sevCounts.map(s => `<tr>
-            <td><span class="report-sev-chip" style="background:${REPORT_SEV_COLOR[s.key]}">${escapeHtml(s.label)}</span></td>
+            <td><span class="report-sev-chip rsev-${s.key}">${escapeHtml(s.label)}</span></td>
             <td>${s.total}</td>
             <td>${s.open}</td>
-            <td>${s.open > 0 ? `<strong style="color:${REPORT_SEV_COLOR[s.key]}">Action required</strong>` : 'Clear'}</td>
+            <td>${s.open > 0 ? `<strong class="rsev-text-${s.key}">Action required</strong>` : 'Clear'}</td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -323,7 +210,7 @@ function buildReportHTML(){
             const f = items.filter(d=>d.status==='tested-fail').length;
             const na = items.filter(d=>d.status==='not-applicable').length;
             const nt = items.filter(d=>d.status==='not-tested'||d.status==='in-progress').length;
-            return `<tr><td>${i+1}</td><td>${escapeHtml(c.name)} (${c.code})</td><td>${t}</td><td>${p}</td><td>${f?`<strong style="color:${REPORT_SEV_COLOR.critical}">${f}</strong>`:'0'}</td><td>${na}</td><td>${nt}</td></tr>`;
+            return `<tr><td>${i+1}</td><td>${escapeHtml(c.name)} (${c.code})</td><td>${t}</td><td>${p}</td><td>${f?`<strong class="rsev-text-critical">${f}</strong>`:'0'}</td><td>${na}</td><td>${nt}</td></tr>`;
           }).join('')}
         </tbody>
       </table>
@@ -342,7 +229,7 @@ function buildReportHTML(){
         return `
         <div class="report-finding">
           <div class="report-finding-head">
-            <span class="report-sev-chip" style="background:${REPORT_SEV_COLOR[item.severity]}">${escapeHtml(item.severityLabel||item.severity)}</span>
+            <span class="report-sev-chip rsev-${item.severity}">${escapeHtml(item.severityLabel||item.severity)}</span>
             <span class="report-finding-id">${escapeHtml(item.id)}</span>
             <span class="report-finding-status">${item.flagged ? 'FLAGGED' : REPORT_STATUS_LABEL[item.status]}</span>
           </div>
@@ -354,8 +241,17 @@ function buildReportHTML(){
           ${notes.findings ? `<div class="report-field"><div class="report-field-label">Assessor Findings</div><p>${escapeHtml(notes.findings)}</p></div>` : ''}
           ${notes.pocDetails ? `<div class="report-field"><div class="report-field-label">Proof of Concept</div><p>${escapeHtml(notes.pocDetails)}</p></div>` : ''}
           ${(notes.affectedEndpoints && notes.affectedEndpoints.length) ? `<div class="report-field"><div class="report-field-label">Affected Endpoints</div><ul>${notes.affectedEndpoints.map(e=>`<li>${escapeHtml(e)}</li>`).join('')}</ul></div>` : ''}
-          <div class="report-field"><div class="report-field-label">Recommended Mitigation</div>
+          ${item.mitigationClientFacing ? `<div class="report-field"><div class="report-field-label">What This Means &amp; What To Do</div><p>${escapeHtml(item.mitigationClientFacing)}</p></div>` : ''}
+          <div class="report-field"><div class="report-field-label">Recommended Mitigation (Technical)</div>
             <ul>${(item.mitigation||[]).slice(0,4).map(m=>`<li>${escapeHtml(m)}</li>`).join('')}</ul>
+          </div>
+          <div class="report-field"><div class="report-field-label">Industry Mapping</div>
+            <ul>
+              ${item.cwe ? `<li>${escapeHtml(item.cwe)}</li>` : ''}
+              ${item.categoryCode ? `<li>${escapeHtml(item.categoryStandard||'')}: ${escapeHtml(item.categoryCode)} ${escapeHtml(item.categoryName||'')}</li>` : ''}
+              ${(item.attack||[]).map(a=>`<li>MITRE ATT&amp;CK ${escapeHtml(a.id)} ${escapeHtml(a.name)}</li>`).join('')}
+              ${(item.frameworks||[]).map(f=>`<li>${escapeHtml(f.standard)}: ${escapeHtml(f.code)} ${escapeHtml(f.name)}</li>`).join('')}
+            </ul>
           </div>
           ${(notes.evidenceLinks && notes.evidenceLinks.length) ? `<div class="report-field"><div class="report-field-label">Evidence</div><ul>${notes.evidenceLinks.map(e=>`<li>${escapeHtml(e)}</li>`).join('')}</ul></div>` : ''}
           ${(notes.remediation && notes.remediation.state && notes.remediation.state!=='open') ? `<div class="report-field"><div class="report-field-label">Remediation Status</div><p>${escapeHtml(getRemediationObj(notes.remediation.state).label)}${notes.remediation.retestedAt?` &middot; retested ${escapeHtml(notes.remediation.retestedAt)}`:''}${notes.remediation.note?` &mdash; ${escapeHtml(notes.remediation.note)}`:''}</p></div>` : ''}

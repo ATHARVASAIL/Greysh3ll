@@ -60,6 +60,16 @@ async function auditAssessment(){
     click('.cat-section[data-cat="WIFI"] .cat-head');
   });
 
+  /* Expanding a domain now lands on the category picker, so every step that
+     works with rows has to choose a category first — the same journey a user
+     takes. Picks the first category that actually has cases. */
+  await step('pick a category', () => {
+    const s = w.document.querySelector('.cat-section[data-cat="WIFI"]');
+    const pick = Array.from(s.querySelectorAll('.cat-pick')).find(b => !b.disabled);
+    if(!pick) throw new Error('no selectable category in WIFI');
+    pick.dispatchEvent(new w.Event('click', { bubbles:true }));
+  });
+
   /* ---- status cycling on a row ---- */
   await step('row status toggle', () => {
     const s = w.document.querySelector('.cat-section[data-cat="WIFI"]');
@@ -117,15 +127,6 @@ async function auditAssessment(){
     const first = w.document.querySelector('.palette-item, .palette-row');
     if(first) first.dispatchEvent(new w.Event('click',{bubbles:true}));
     w.$fn('closePalette')();
-  });
-
-  /* ---- assessment mode ---- */
-  await step('assessment mode', async () => {
-    w.$fn('openAssessMode')();
-    await new Promise(r => setTimeout(r, 80));
-    for(let i=0;i<5;i++){ w.$fn('assessNext')(); }
-    for(let i=0;i<3;i++){ w.$fn('assessPrev')(); }
-    w.$fn('closeAssessMode')();
   });
 
   /* ---- toolkit: every tab ---- */
