@@ -14,11 +14,16 @@ Checks at each step:
   - interactive controls below 44px on coarse pointers
   - console errors and uncaught exceptions
 """
-import http.server, socketserver, threading, functools, json, os, sys, time
+import http.server, socketserver, threading, functools, json, os, sys, time, tempfile
 from playwright.sync_api import sync_playwright
 
-APP = os.environ.get('GS_APP') or '/home/claude/gs/vapt-console-hacker'
-SHOTS = os.environ.get('GS_SHOTS') or '/home/claude/shots2'
+# Repo root is the parent of tests/ — derived from this file so the script runs
+# unchanged on any machine (CI runner, a fresh clone, a dev box). Paths and the
+# screenshot output dir are resolved relative to here rather than assuming any
+# particular home directory, which would fail on a CI runner.
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+APP = os.environ.get('GS_APP') or _REPO_ROOT
+SHOTS = os.environ.get('GS_SHOTS') or os.path.join(tempfile.gettempdir(), 'greysh3ll-shots')
 PORT = 8131
 
 VIEWPORTS = [

@@ -1,6 +1,7 @@
-import http.server, socketserver, threading, functools, time, json
+import http.server, socketserver, threading, functools, time, json, os
 from playwright.sync_api import sync_playwright
-APP='/home/claude/gs/vapt-console-hacker'; PORT=8211
+# Repo root from this file so the script runs on any machine, not just where it was written.
+APP = os.environ.get('GS_APP') or os.path.dirname(os.path.dirname(os.path.abspath(__file__))); PORT=8211
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self,*a): pass
 socketserver.TCPServer.allow_reuse_address=True

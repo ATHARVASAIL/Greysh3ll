@@ -6,11 +6,13 @@ Serves the app over HTTP because fetch() is blocked on file:// URLs, then
 loads both pages at six viewports and checks for horizontal overflow,
 undersized touch targets, invisible elements and console errors.
 """
-import http.server, socketserver, threading, functools, json, os, sys, time
+import http.server, socketserver, threading, functools, json, os, sys, time, tempfile
 from playwright.sync_api import sync_playwright
 
-APP = os.environ.get('GS_APP') or '/home/claude/gs/vapt-console-hacker'
-SHOTS = os.environ.get('GS_SHOTS') or '/home/claude/shots'
+# Repo root derived from this file so the script is portable (CI, clone, dev box).
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+APP = os.environ.get('GS_APP') or _REPO_ROOT
+SHOTS = os.environ.get('GS_SHOTS') or os.path.join(tempfile.gettempdir(), 'greysh3ll-shots')
 PORT = 8123
 
 VIEWPORTS = [
